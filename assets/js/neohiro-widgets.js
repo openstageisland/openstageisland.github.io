@@ -374,6 +374,7 @@
     var canvas = typeof canvasId === 'string' ? byId(canvasId) : canvasId;
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
+    if (!ctx) return;
     var dpr = window.devicePixelRatio || 1;
     var w = canvas.offsetWidth || 120;
     var h = canvas.offsetHeight || 40;
@@ -473,7 +474,7 @@
         });
         if (opts.direction !== undefined && items.length !== prevItems) {
           var headerEl = byId('nhw-ms-grid');
-          if (headerEl) flashBump(headerEl.parentElement.querySelector('.nhw-section-title'), opts.direction, 1000);
+          if (headerEl && headerEl.parentElement) flashBump(headerEl.parentElement.querySelector('.nhw-section-title'), opts.direction, 1000);
         }
         prevItems = items.length;
       });
@@ -670,6 +671,8 @@
         delete _pendingFetch[url];
         if (d) {
           _fetchCache[url] = { data: d, ts: Date.now() };
+          var idx = _fetchOrder.indexOf(url);
+          if (idx !== -1) _fetchOrder.splice(idx, 1);
           _fetchOrder.push(url);
           while (_fetchOrder.length > _MAX_FETCH_CACHE) {
             var evict = _fetchOrder.shift();
