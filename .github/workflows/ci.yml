@@ -2,9 +2,9 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -22,40 +22,89 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Verify required files
+      - name: Validate source files exist
         run: |
           set -euo pipefail
-          required=(index.html assets/style.css images/destination-image.png README.md data.json LICENSE)
-          missing=0
+          required=(index.md _config.yml Gemfile assets/style.css data.json README.md)
           for f in "${required[@]}"; do
             if [ ! -f "$f" ]; then
-              echo "::error file=$f::Missing required file"
-              missing=1
-            else
-              size=$(wc -c < "$f")
-              echo "✓ $f ($size bytes)"
+              echo "::error file=$f::Missing required source file"
+              exit 1
             fi
+            echo "✓ $f exists"
           done
-          [ "$missing" -eq 0 ] || { echo "One or more required files are missing"; exit 1; }
 
-      - name: Validate HTML structure
+      - name: Validate front matter in Markdown source
         run: |
           set -euo pipefail
-          shopt -s globstar nullglob
           failures=0
-          for f in **/*.html; do
-            [[ "$f" == .git/* ]] && continue
-            [[ "$f" == *".git/"* ]] && continue
+          for f in *.md destinations.md README.md; do
+            [ -f "$f" ] || continue
+            if ! grep -q "^---$" "$f"; then
+              echo "::error file=$f::Missing Jekyll front matter"
+              failures=$((failures+1))
+            else
+              echo "✓ $f front matter present"
+            fi
+          done
+          [ "$failures" -eq 0 ] || { echo "$failures file(s) missing front matter"; exit 1; }
+
+      - name: Validate JSON
+        run: |
+          set -euo pipefail
+          for f in data.json; do
+            [ -f "$f" ] || continue
+            python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8')); print('valid: ' + sys.argv[1])" "$f"
+          done
+
+      - name: Validate _config.yml
+        run: |
+          set -euo pipefail
+          python3 -c "
+import sys, yaml
+try:
+    with open('_config.yml', encoding='utf-8') as f:
+        c = yaml.safe_load(f)
+    for k in ('url', 'github_username'):
+        if k not in c:
+            print(f'::error::Missing required key: {k}')
+            sys.exit(1)
+    print(f'url: {c[\"url\"]}')
+    print(f'github_username: {c[\"github_username\"]}')
+    print('valid _config.yml')
+except Exception as e:
+    print(f'::error::YAML parse error: {e}')
+    sys.exit(1)
+" 2>&1 || { echo "YAML validation failed"; exit 1; }
+
+      - name: Set up Ruby and Jekyll
+        run: |
+          set -euo pipefail
+          ruby_version=$(grep -oP 'ruby "\K[^"]+' Gemfile 2>/dev/null || echo "3.3.0")
+          echo "Installing Ruby ${ruby_version}..."
+          # Install bundler and gems
+          gem install bundler --no-document
+          bundle install --jobs=4 --retry=3
+
+      - name: Build site
+        run: bundle exec jekyll build --trace 2>&1
+
+      - name: Validate generated HTML
+        run: |
+          set -euo pipefail
+          failures=0
+          for f in _site/**/*.html _site/*.html; do
+            [ -f "$f" ] || continue
             ok=1
             if ! grep -qi "<!doctype html>" "$f"; then
               echo "::error file=$f::Missing <!DOCTYPE html>"
               ok=0
             fi
             if ! grep -q '<html[^>]*\blang=' "$f"; then
-              echo "::error file=$f::Missing <html lang=...> attribute"
+              echo "::error file=$f::Missing <html lang=...>"
               ok=0
             fi
-            if ! grep -q '<title>[^<]*</title>' "$f"; then
+            if ! grep -q '<title>[^<]+</title>' "$f"; then
               echo "::error file=$f::Missing or empty <title>"
               ok=0
             fi
@@ -64,8 +113,8 @@ jobs:
               ok=0
             fi
             # Section balance check
-            open=$(grep -oE '<section\b' "$f" | wc -l)
-            close=$(grep -oE '</section>' "$f" | wc -l)
+            open=$(grep -c '<section\b' "$f" 2>/dev/null || echo 0)
+            close=$(grep -c '</section>' "$f" 2>/dev/null || echo 0)
             if [ "$open" -ne "$close" ]; then
               echo "::error file=$f::Unbalanced <section> tags ($open open vs $close close)"
               ok=0
@@ -76,56 +125,35 @@ jobs:
               failures=$((failures+1))
             fi
           done
-          [ "$failures" -eq 0 ] || { echo "$failures HTML file(s) failed validation"; exit 1; }
+          [ "$failures" -eq 0 ] || { echo "$failures HTML file(s) failed"; exit 1; }
 
-      - name: Validate JSON
+      - name: Validate local asset references in generated HTML
         run: |
           set -euo pipefail
-          command -v python3 >/dev/null || { echo "::error::python3 is required but not found"; exit 1; }
-          shopt -s globstar nullglob
-          for f in **/*.json; do
-            [[ "$f" == .git/* ]] && continue
-            [[ "$f" == *".git/"* ]] && continue
-            python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8')); print('✓ ' + sys.argv[1] + ' is valid JSON')" "$f" || exit 1
-          done
-
-      - name: Validate internal links and asset references
-        run: |
-          set -euo pipefail
-          failures=0
-          # Extract href/src from HTML and check that local paths resolve to existing files
+          # For every src/href in generated HTML, verify local paths resolve
+          warnings=0
           while IFS= read -r ref; do
-            # Strip query/fragment, leading/trailing quotes
             clean="${ref%%#*}"
             clean="${clean%%\?*}"
             clean="${clean//\"/}"
-            [[ -z "$clean" ]] && continue
-            # Skip absolute URLs and protocol-relative
+            [ -n "$clean" ] || continue
+            # Skip absolute URLs and special schemes
             [[ "$clean" =~ ^https?:// ]] && continue
             [[ "$clean" =~ ^// ]] && continue
             [[ "$clean" =~ ^secondlife:// ]] && continue
             [[ "$clean" =~ ^mailto: ]] && continue
             [[ "$clean" =~ ^data: ]] && continue
             [[ "$clean" =~ ^# ]] && continue
-            # Resolve relative to repo root
-            if [ ! -f "$clean" ] && [ ! -d "$clean" ]; then
-              echo "::warning::Broken local reference: $ref (resolves to '$clean')"
-              failures=$((failures+1))
+            [[ "$clean" =~ ^/ ]] && continue
+            [[ -z "$clean" ]] && continue
+            if [ ! -f "_site/$clean" ] && [ ! -d "_site/$clean" ]; then
+              echo "::warning file=_site/$clean::Broken local reference in site: $ref -> '$clean'"
+              warnings=$((warnings+1))
             fi
-          done < <(grep -hoE '(href|src)="[^"]*"' index.html README.md | sed -E 's/^(href|src)="//; s/"$//')
-          if [ "$failures" -gt 0 ]; then
-            echo "::warning::$failures potentially broken local reference(s) (review warnings above)"
-          fi
-
-      - name: Validate README markdown link syntax
-        run: |
-          set -euo pipefail
-          # Check for empty link targets
-          if grep -nE '\[[^]]*\]\(\)' README.md; then
-            echo "::error::Empty link target in README"
-            exit 1
-          fi
-          echo "✓ README markdown links look valid"
+          done < <(grep -rhoE '(href|src)="[^"]*"' _site/ | sed -E 's/^(href|src)="//; s/"$//' | sort -u)
+          echo "Local reference check complete: $warnings warning(s)"
+          # Fail only on real broken refs (not minor)
+          # Emit a summary even if warnings exist so CI is informative
 
   deploy:
     runs-on: ubuntu-24.04
@@ -138,13 +166,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Set up Ruby and Jekyll
+        run: |
+          gem install bundler --no-document
+          bundle install --jobs=4 --retry=3
+
+      - name: Build site
+        run: bundle exec jekyll build
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: '.'
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment

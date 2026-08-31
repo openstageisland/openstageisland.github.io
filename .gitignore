@@ -31,6 +31,9 @@ _site/
 node_modules/
 bower_components/
 
+# Append-only audit log — written every 5 min by counter-scrape workflow
+data/counter-events.ndjson
+
 # Temporary
 *.tmp
 *.bak

@@ -1,0 +1,24 @@
+{
+  "updated_at": null,
+  "source": "freevisitorcounters",
+  "scrape_run_id": "pending",
+  "note": "Populated by .github/workflows/counter-scrape.yml every 5 min. Do not edit manually.",
+  "counters": [
+    {
+      "id": "openstageisland.github.io-site",
+      "label": "openstageisland.github.io docs site",
+      "hits": null,
+      "unique_24h": null,
+      "online": null,
+      "fetched_at": null
+    },
+    {
+      "id": "fpm-media-domain",
+      "label": "frenzypenguin.media (forthcoming)",
+      "hits": null,
+      "unique_24h": null,
+      "online": null,
+      "fetched_at": null
+    }
+  ]
+}

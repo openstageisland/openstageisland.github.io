@@ -1,0 +1,237 @@
+name: Visitor Counter Scrape
+
+# Cross-repo counter scrape — scheduled heartbeat that polls every
+# freevisitorcounters.com counter slot registered in links-secret and
+# writes a per-counter live total to /shared/dashboard/counters/counters.json
+# (or to a public mirror in _site/data/counters.json so the dashboard
+# can read it from the OSI site itself).
+#
+# Schedule: every 5 minutes, matching Heart's visitor-counter scope.
+# Concurrency: serialized (cancel-in-progress: false) to avoid concurrent
+# writes to the same counters file.
+#
+# Required secrets (set in GitHub repo Settings > Secrets and variables > Actions):
+#   VISITOR_COUNTER_AUTH_IDS  — newline-separated list of "<id>:<auth_id>" pairs,
+#                               or a JSON object {"<id>": "<auth_id>", ...}.
+#                               Mirrors links-secret/visitor-counters.yaml.
+#
+# Optional:
+#   COUNTER_DASHBOARD_OUTPUT  — repo-relative output path (default: data/counters.json)
+#   COUNTER_FEED_OUTPUT       — repo-relative audit feed path (default: data/counter-events.ndjson)
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run scrape but skip writes"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/counter-scrape.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "counter-scrape"
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pyyaml
+
+      - name: Verify secrets present
+        id: secrets_check
+        env:
+          AUTH_IDS: ${{ secrets.VISITOR_COUNTER_AUTH_IDS }}
+        run: |
+          if [ -z "$AUTH_IDS" ]; then
+            echo "secrets_present=false" >> $GITHUB_OUTPUT
+            echo "::notice::VISITOR_COUNTER_AUTH_IDS not configured — scrape step will be skipped."
+            echo "::notice::Set the secret in repo Settings > Secrets to enable counter scraping."
+          else
+            echo "secrets_present=true" >> $GITHUB_OUTPUT
+            echo "✓ Auth secret present ($(printf '%s' "$AUTH_IDS" | wc -l) line(s))"
+          fi
+
+      - name: Scrape counters
+        if: steps.secrets_check.outputs.secrets_present == 'true'
+        env:
+          AUTH_IDS: ${{ secrets.VISITOR_COUNTER_AUTH_IDS }}
+          OUTPUT_PATH: ${{ vars.COUNTER_DASHBOARD_OUTPUT || 'data/counters.json' }}
+          FEED_PATH: ${{ vars.COUNTER_FEED_OUTPUT || 'data/counter-events.ndjson' }}
+          DRY_RUN: ${{ inputs.dry_run == true || 'false' }}
+        run: |
+          python - <<'PYEOF'
+          import json
+          import os
+          import sys
+          import time
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from urllib.parse import urlencode
+
+          import requests
+
+          AUTH_IDS = os.environ["AUTH_IDS"]
+          OUTPUT = Path(os.environ.get("OUTPUT_PATH", "data/counters.json"))
+          FEED = Path(os.environ.get("FEED_PATH", "data/counter-events.ndjson"))
+          DRY = os.environ.get("DRY_RUN", "false").lower() == "true"
+          VENDOR = "https://www.freevisitorcounters.com/auth.php"
+          TIMEOUT = 8.0
+          DEADLINE = 4.0
+          MAX_RETRIES = 2
+
+          def parse_auth(raw):
+              out = []
+              stripped = raw.strip()
+              if stripped.startswith("{"):
+                  obj = json.loads(stripped)
+                  for cid, auth in obj.items():
+                      if isinstance(auth, str) and auth.strip():
+                          out.append({"id": cid, "auth_id": auth.strip()})
+              else:
+                  for line in raw.splitlines():
+                      line = line.strip()
+                      if not line or line.startswith("#"):
+                          continue
+                      if ":" in line:
+                          cid, auth = line.split(":", 1)
+                          cid, auth = cid.strip(), auth.strip()
+                          if cid and auth:
+                              out.append({"id": cid, "auth_id": auth})
+              return out
+
+          def now_iso():
+              return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+          def fetch(session, auth_id, deadline_s):
+              end = time.monotonic() + deadline_s
+              url = f"{VENDOR}?{urlencode({'id': auth_id})}"
+              last_err = ""
+              for attempt in range(1, MAX_RETRIES + 1):
+                  remaining = end - time.monotonic()
+                  if remaining <= 0:
+                      return None, last_err or "deadline_exhausted"
+                  try:
+                      r = session.get(url, timeout=(min(remaining, TIMEOUT), TIMEOUT))
+                      r.raise_for_status()
+                      payload = r.json()
+                      if not isinstance(payload, dict):
+                          raise ValueError(f"unexpected JSON: {type(payload).__name__}")
+                      return payload, ""
+                  except (requests.RequestException, ValueError) as e:
+                      last_err = f"{type(e).__name__}: {e}"
+              return None, last_err
+
+          def main():
+              counters = parse_auth(AUTH_IDS)
+              if not counters:
+                  print("::error::No counters parsed from secret", file=sys.stderr)
+                  return 2
+              print(f"Parsed {len(counters)} counter(s)")
+
+              session = requests.Session()
+              session.headers["User-Agent"] = "openstageisland-heartbeat/1.0"
+              succeeded = 0
+              failed = 0
+              rows = []
+              try:
+                  for c in counters:
+                      payload, err = fetch(session, c["auth_id"], DEADLINE)
+                      if payload is None:
+                          failed += 1
+                          print(f"::warning::{c['id']}: {err}")
+                          continue
+                      succeeded += 1
+                      payload["_id"] = c["id"]
+                      payload["_fetched_at"] = now_iso()
+                      rows.append(payload)
+                      hits = payload.get("hits", "?")
+                      print(f"✓ {c['id']}: hits={hits}")
+              finally:
+                  session.close()
+
+              print(f"Summary: {succeeded} succeeded, {failed} failed")
+              if not rows:
+                  return 3
+
+              if DRY:
+                  print("DRY_RUN set — not writing outputs")
+                  return 0
+
+              OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+              out = {
+                  "updated_at": now_iso(),
+                  "source": "freevisitorcounters",
+                  "scrape_run_id": now_iso(),
+                  "counters": [
+                      {
+                          "id": r["_id"],
+                          "hits": r.get("hits"),
+                          "unique_24h": r.get("unique_24h"),
+                          "online": r.get("online"),
+                          "fetched_at": r["_fetched_at"],
+                      }
+                      for r in rows
+                  ],
+              }
+              tmp = OUTPUT.with_suffix(OUTPUT.suffix + ".tmp")
+              tmp.write_text(json.dumps(out, indent=2), encoding="utf-8")
+              tmp.replace(OUTPUT)
+              print(f"✓ wrote {OUTPUT}")
+
+              FEED.parent.mkdir(parents=True, exist_ok=True)
+              with FEED.open("a", encoding="utf-8") as f:
+                  for r in rows:
+                      row = {
+                          "ts": r["_fetched_at"],
+                          "id": r["_id"],
+                          "hits": r.get("hits"),
+                          "unique_24h": r.get("unique_24h"),
+                      }
+                      f.write(json.dumps(row) + "\n")
+              print(f"✓ appended {FEED}")
+
+              return 0
+
+          sys.exit(main())
+          PYEOF
+
+      - name: Commit updated counters
+        if: (github.event_name == 'schedule' || github.event_name == 'push') && steps.secrets_check.outputs.secrets_present == 'true'
+        run: |
+          if [ -f data/counters.json ] || [ -f data/counter-events.ndjson ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/counters.json 2>/dev/null || true
+            if git diff --cached --quiet; then
+              echo "No changes to commit"
+            else
+              git commit -m "chore(counter-scrape): refresh counter totals [skip ci]"
+              git push
+              echo "✓ committed and pushed"
+            fi
+          else
+            echo "::warning::No output files found, skipping commit"
+          fi

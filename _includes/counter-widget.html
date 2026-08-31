@@ -1,0 +1,28 @@
+{# counter-widget.html — unified visitor counter partial for the neohiro/FPM/OSI/H+ Jekyll sites.
+   Include with:   {% include counter-widget.html %}
+   Reads counter_id from site config (preferred) or a local override:
+     - site.counter_id (set in _config.yml) — auto-populated for all sites
+     - include counter_id="1234567"          — manual override (rare)
+   The embed:
+     - Uses `defer` (NEVER render-blocking)
+     - Wraps in <div align="center"> for visual consistency
+     - Has a noscript fallback link for accessibility
+     - IDs are loaded from links-secret/visitor-counters.spec.yaml (SSOT),
+       validated by userdata/wout/counter-embed-rollout/validate_counter_embed.py
+     - ARCHITECTURAL GUARANTEE: this partial is the ONLY approved embed site.
+       Multiple includes per page are an anti-pattern; the validator flags it.
+   Architecture (per AGENTS.md §template-shared):
+     1. Authoritative source: template-shared/_includes/counter-widget.html
+     2. Synced to 4 sites via template-shared/sync-shared.sh
+     3. Sites expose counter_id via _config.yml (site.counter_id)
+     4. Validator + CI ensure no other embed pattern ships.
+#}
+{%- assign _id = include.counter_id | default: site.counter_id -%}
+{%- if _id -%}
+<div align="center">
+  <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/{{ _id }}/t/1" defer></script>
+  <noscript>
+    <a href="https://www.freevisitorcounters.com/">View visitor counter</a>
+  </noscript>
+</div>
+{%- endif -%}

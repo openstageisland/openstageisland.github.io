@@ -5,6 +5,9 @@ baseurl: ""
 github_username: openstageisland
 github_repo: openstageisland.github.io
 
+# Visitor counter (SSOT: links-secret/counter-surfaces.spec.yaml)
+counter_id: "1631175"
+
 markdown: kramdown
 kramdown:
   input: GFM
