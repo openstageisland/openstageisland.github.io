@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Open Stage Island / Live Data</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #080a0e; --surface: #0f1318; --border: #1a2030; --fg: #eceff1; --fg-muted: #667788; --accent: #7c4dff; --green: #00cc88; --blue: #00aaff; --magenta: #ff0066; }
+    body { background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+  </style>
+  <link rel="stylesheet" href="assets/css/neohiro-widgets.css">
+</head>
+<body>
+  <div class="nhw-root">
+    <h1>Open Stage Island / Live Data</h1>
+    <p class="nhw-subtitle">Live visitor counters, Second Life destination embed, and real-time status for Open Stage Island. All widgets auto-refresh during your visit.</p>
+
+    <!-- ── Health Strip ──────────────────────────────────────────────── -->
+    <div class="nhw-section">
+      <div class="nhw-section-header">
+        <h2 class="nhw-section-title">Network Health</h2>
+        <span class="nhw-section-badge" style="background: var(--green); color: #000;">LIVE</span>
+      </div>
+      <div id="nhw-health-strip"></div>
+    </div>
+
+    <!-- ── Visitor Counters ─────────────────────────────────────────── -->
+    <div class="nhw-section">
+      <div class="nhw-section-header">
+        <h2 class="nhw-section-title">Visitor Counters</h2>
+      </div>
+      <div class="nhw-stat-grid" id="nhw-counters"></div>
+    </div>
+
+    <!-- ── Live Clock ───────────────────────────────────────────────── -->
+    <div class="nhw-section" style="text-align: center;">
+      <div class="nhw-clock" id="nhw-clock">--:--:--</div>
+      <div class="nhw-stat-sub" style="margin-top: 8px;">Local time (auto-updates)</div>
+    </div>
+
+    <!-- ── SL Destination Embed ─────────────────────────────────────── -->
+    <div class="nhw-section">
+      <div class="nhw-section-header">
+        <h2 class="nhw-section-title">Second Life Destination</h2>
+      </div>
+      <div id="osi-dest-frame" style="background: var(--nhw-surface, #0f1318); border-radius: 12px; overflow: hidden; border: 1px solid var(--nhw-border, #1a2030);">
+        <noscript>
+          <p style="padding: 20px; text-align: center; color: var(--nhw-fg-muted, #667788);">The SL destination embed requires JavaScript.</p>
+        </noscript>
+      </div>
+      <p style="margin-top: 12px; text-align: center;">
+        <a href="https://secondlife.com/destination/open-stage-island" target="_blank" rel="noopener" style="color: var(--nhw-accent, #7c4dff); text-decoration: none; font-size: 0.85rem;">Open official destination page &uarr;</a>
+        &nbsp;|&nbsp;
+        <a href="https://maps.secondlife.com/secondlife/Derwent/248/128/22" target="_blank" rel="noopener" style="color: var(--nhw-accent, #7c4dff); text-decoration: none; font-size: 0.85rem;">SLURL: Derwent 248/128/22</a>
+      </p>
+    </div>
+
+    <!-- ── Heartbeat SVGs ──────────────────────────────────────────── -->
+    <div class="nhw-section">
+      <div class="nhw-section-header">
+        <h2 class="nhw-section-title">Heartbeat Cycles</h2>
+        <span class="nhw-section-badge" style="background: var(--blue); color: #000;">SVG</span>
+      </div>
+      <div id="nhw-heartbeats"></div>
+    </div>
+
+    <!-- ── Activity Feed ────────────────────────────────────────────── -->
+    <div class="nhw-section">
+      <div id="nhw-activity"></div>
+    </div>
+  </div>
+
+  <script src="assets/js/neohiro-widgets.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var DEST_URL = 'https://secondlife.com/destination/open-stage-island';
+      var SLURL_HREF = 'https://maps.secondlife.com/secondlife/Derwent/248/128/22';
+      var TIMEOUT_MS = 6500;
+
+      NeohiroWidgets.init({
+        heartbeatBase: 'https://neohiro.github.io/heartbeats',
+        apiBase: '',
+        pollInterval: 60000,
+        healthInterval: 30000,
+      });
+
+      /* Health strip */
+      NeohiroWidgets.loadHealthStrip('nhw-health-strip', 'https://neohiro.github.io/api/health');
+
+      /* Visitor counters */
+      var countersEl = document.getElementById('nhw-counters');
+      var cSite = NeohiroWidgets.renderStatCard(countersEl, { id: 'nhw-c-site', label: 'Site visits', sub: 'Counter #1631175' });
+      var cSl = NeohiroWidgets.renderStatCard(countersEl, { id: 'nhw-c-sl', label: 'Destination traffic', sub: 'Counter #1631180' });
+      NeohiroWidgets.loadVisitorCounter('1631175', cSite.id, { pollMs: 300000 });
+      NeohiroWidgets.loadVisitorCounter('1631180', cSl.id, { pollMs: 300000 });
+
+      /* Clock */
+      function tickClock() {
+        var el = document.getElementById('nhw-clock');
+        if (!el) return;
+        var d = new Date();
+        el.textContent = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2);
+      }
+      tickClock();
+      setInterval(tickClock, 1000);
+
+      /* Heartbeat SVGs */
+      NeohiroWidgets.loadHeartbeat('nhw-heartbeats', ['public', 'authed'], { basePath: 'https://neohiro.github.io/heartbeats', pollMs: 300000 });
+
+      /* Activity feed */
+      NeohiroWidgets.loadActivityFeed('nhw-activity', [
+        'openstageisland/openstageisland.github.io',
+      ], { title: 'OSI Activity', limit: 8, interval: 300000 });
+
+      /* SL Destination iframe */
+      (function () {
+        var wrap = document.getElementById('osi-dest-frame');
+        if (!wrap) return;
+        var iframe = document.createElement('iframe');
+        iframe.src = DEST_URL;
+        iframe.title = 'Open Stage Island — official Second Life destination page';
+        iframe.loading = 'lazy';
+        iframe.style.cssText = 'width: 100%; height: 500px; border: none; display: block;';
+        iframe.sandbox = 'allow-popups';
+        iframe.referrerPolicy = 'no-referrer-when-downgrade';
+        wrap.appendChild(iframe);
+
+        var didLoad = false;
+        iframe.addEventListener('load', function () { didLoad = true; });
+
+        setTimeout(function () {
+          if (didLoad) return;
+          iframe.style.display = 'none';
+          var fallback = document.createElement('div');
+          fallback.style.cssText = 'padding: 40px 20px; text-align: center;';
+          fallback.innerHTML = '<p style="color: var(--nhw-fg-muted, #667788); margin-bottom: 16px;">Live destination page could not be embedded (X-Frame-Options / CSP).</p>' +
+            '<a href="' + DEST_URL + '" target="_blank" rel="noopener" style="color: var(--nhw-accent, #7c4dff); text-decoration: none;">Open official destination page &uarr;</a>' +
+            '<p style="color: var(--nhw-fg-subtle, #445566); font-size: 0.8rem; margin-top: 12px;">Region: Derwent · 248 / 128 / 22 · Moderate</p>';
+          wrap.appendChild(fallback);
+        }, TIMEOUT_MS);
+      })();
+    })();
+  </script>
+</body>
+</html>
