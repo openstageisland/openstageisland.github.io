@@ -2,11 +2,12 @@
 layout: default
 title: "Open Stage Island — A Second Life Music Destination"
 description: "A free, 24/7 open-air music stage in Second Life. Any electronic music artist can play to a live audience — no booking, no fee."
-canonical: "https://neohiro.github.io/openstageisland.github.io/"
+canonical: "https://openstageisland.github.io/"
+preload_hero: true
 ---
 
 <header class="hero" role="banner">
-  <img src="{{ '/images/destination-image.png' | relative_url }}"
+  <img src="{{ "/images/destination-image.png" | relative_url }}"
        alt="Avatars gathered at the Open Stage Island outdoor music venue under laser lights"
        class="hero-image"
        width="657" height="394"
@@ -20,7 +21,8 @@ canonical: "https://neohiro.github.io/openstageisland.github.io/"
       <a href="secondlife://Derwent/248/128/22" class="cta-button">
         Teleport in Second Life
       </a>
-      <a href="https://maps.secondlife.com/secondlife/Derwent/248/128/22" class="cta-button cta-secondary" rel="noopener">
+      <a href="https://maps.secondlife.com/secondlife/Derwent/248/128/22"
+         class="cta-button cta-secondary" rel="noopener">
         Open in Web Maps
       </a>
     </div>
@@ -32,6 +34,7 @@ canonical: "https://neohiro.github.io/openstageisland.github.io/"
     <li><a href="#about">About</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#location">Visit</a></li>
+    <li><a href="{{ "/destinations/" | relative_url }}">Live Data</a></li>
     <li><a href="#links">Links</a></li>
   </ul>
 </nav>
@@ -41,13 +44,14 @@ canonical: "https://neohiro.github.io/openstageisland.github.io/"
     <h2 id="intro-heading" class="intro-heading">Take the stage. It's free.</h2>
     <p class="intro-text">
       Open Stage Island is a free, 24/7 open-air music venue in Second Life. Any
-      electronic music artist can take the stage and play to a live audience &mdash;
-      no booking, no fee. Discover freebies, attend DJ school, and meet newcomers,
-      LGBTQI+ residents, and furries in a magical-realism setting. The stage is
-      yours whenever you want it.
+      electronic music artist can take the stage and play to a live audience
+      &mdash; no booking, no fee. Discover freebies, attend DJ school, and meet
+      newcomers, LGBTQI+ residents, and furries in a magical-realism setting.
+      The stage is yours whenever you want it.
     </p>
     <a href="https://join.secondlife.com/" class="cta-button cta-themed" rel="noopener">
-      <svg class="cta-themed-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+      <svg class="cta-themed-icon" aria-hidden="true" focusable="false"
+           viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
         <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
       </svg>
       Join Free on Second Life
@@ -57,14 +61,15 @@ canonical: "https://neohiro.github.io/openstageisland.github.io/"
   <section id="about" aria-labelledby="about-heading">
     <h2 id="about-heading">About Open Stage Island</h2>
     <p>
-      Open Stage Island is an evolving music community set in a beautiful natural environment
-      where you bring the magic. This magical realism venue has grown over the past years to
-      become a vibrant social hub.
+      Open Stage Island is an evolving music community set in a beautiful natural
+      environment where you bring the magic. This magical realism venue has grown
+      over the past years to become a vibrant social hub.
     </p>
     <p>
-      Join the party, attend DJ school, and dance your avatar's bottom off. Discover freebies
-      and interactive experiences. The open air stage is available 24/7 to all electronic
-      music artists for live audience feedback — DJs and producers regularly show their skills.
+      Join the party, attend DJ school, and dance your avatar's bottom off.
+      Discover freebies and interactive experiences. The open air stage is
+      available 24/7 to all electronic music artists for live audience feedback
+      &mdash; DJs and producers regularly show their skills.
     </p>
   </section>
 
@@ -116,7 +121,8 @@ canonical: "https://neohiro.github.io/openstageisland.github.io/"
       <div class="location-row">
         <dt>SLURL</dt>
         <dd>
-          <a href="https://maps.secondlife.com/secondlife/Derwent/248/128/22" rel="noopener" class="slurl">
+          <a href="https://maps.secondlife.com/secondlife/Derwent/248/128/22"
+             rel="noopener" class="slurl">
             maps.secondlife.com/secondlife/Derwent/248/128/22
           </a>
         </dd>
@@ -127,16 +133,39 @@ canonical: "https://neohiro.github.io/openstageisland.github.io/"
   <section id="links" aria-labelledby="links-heading">
     <h2 id="links-heading">Useful Links</h2>
     <ul class="link-list">
-      <li><a href="https://secondlife.com/destination/open-stage-island" rel="noopener">Official Destination Page</a></li>
-      <li><a href="https://maps.secondlife.com/secondlife/Derwent/248/128/22" rel="noopener">Second Life Maps</a></li>
-      <li><a href="https://join.secondlife.com/" rel="noopener">Join Second Life (free)</a></li>
-      <li><a href="{{ '/README/' | relative_url }}">Documentation (README)</a></li>
+      <li><a href="https://secondlife.com/destination/open-stage-island" rel="noopener">
+        Official Destination Page
+      </a></li>
+      <li><a href="https://maps.secondlife.com/secondlife/Derwent/248/128/22" rel="noopener">
+        Second Life Maps
+      </a></li>
+      <li><a href="https://join.secondlife.com/" rel="noopener">
+        Join Second Life (free)
+      </a></li>
+      <li><a href="{{ "/README/" | relative_url }}">Documentation (README)</a></li>
     </ul>
   </section>
 
-<section id="neohiro-network" aria-labelledby="network-heading">
-  <h2 id="network-heading">Part of the neohiro Network</h2>
-  <p class="network-intro">More from <a href="https://github.com/neohiro" rel="noopener">neohiro</a> &mdash; the network that keeps the lights on at Open Stage Island.</p>
+  <section id="osi-live-counter-panel" aria-labelledby="counter-heading">
+    <h2 id="counter-heading" class="sr-only">Visitor counters</h2>
+    <div id="osi-live-data" class="osi-live-data">
+      <noscript>
+        <p class="osi-live-status">
+          Live counters require JavaScript.
+          <a href="https://www.freevisitorcounters.com/">
+            View counters on freevisitorcounters.com
+          </a>
+        </p>
+      </noscript>
+    </div>
+  </section>
+
+  <section id="neohiro-network" aria-labelledby="network-heading">
+    <h2 id="network-heading">Part of the neohiro Network</h2>
+    <p class="network-intro">
+      More from <a href="https://github.com/neohiro" rel="noopener">neohiro</a>
+      &mdash; the network that keeps the lights on at Open Stage Island.
+    </p>
     <div class="glide-track" aria-label="Sister sites (animated)">
       <div class="glide-rail">
         <a class="glide-card glide-card-neohiro" href="https://neohiro.github.io/" rel="noopener">
@@ -144,7 +173,7 @@ canonical: "https://neohiro.github.io/openstageisland.github.io/"
           <span class="glide-name">neohiro</span>
           <span class="glide-desc">Security hardening &amp; privacy tools</span>
         </a>
-        <a class="glide-card glide-card-fpm" href="https://neohiro.github.io/frenzypenguin-media/" rel="noopener">
+        <a class="glide-card glide-card-fpm" href="https://frenzypenguin-media.github.io/" rel="noopener">
           <span class="glide-mark" aria-hidden="true">🐧</span>
           <span class="glide-name">FrenzyPenguin Media</span>
           <span class="glide-desc">Indie media &amp; creative studio</span>
@@ -164,7 +193,7 @@ canonical: "https://neohiro.github.io/openstageisland.github.io/"
           <span class="glide-name">neohiro</span>
           <span class="glide-desc">Security hardening &amp; privacy tools</span>
         </a>
-        <a class="glide-card glide-card-fpm" href="https://neohiro.github.io/frenzypenguin-media/" rel="noopener" aria-hidden="true" tabindex="-1">
+        <a class="glide-card glide-card-fpm" href="https://frenzypenguin-media.github.io/" rel="noopener" aria-hidden="true" tabindex="-1">
           <span class="glide-mark" aria-hidden="true">🐧</span>
           <span class="glide-name">FrenzyPenguin Media</span>
           <span class="glide-desc">Indie media &amp; creative studio</span>
