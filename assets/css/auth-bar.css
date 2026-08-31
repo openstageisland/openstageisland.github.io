@@ -1,323 +1,596 @@
-/* Shared auth bar — folding left drawer */
+/* neohiro shared AI dock — bottom bar + sway panels
+   SSOT: template-shared/assets/css/auth-bar.css
+   Updated: 2026-08-31 — full redesign from right-floating → bottom dock */
+
 :root {
-  --auth-bar-z: 1000;
-  --auth-bar-radius: 10px;
-  --auth-bar-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  --auth-bar-fg: var(--fg, #e6edf3);
-  --auth-bar-bg: var(--bg-card, #161b22);
-  --auth-bar-border: var(--border, #30363d);
-  --auth-bar-muted: var(--fg-subtle, #6e7681);
-  --auth-bar-accent: var(--accent, #58a6ff);
-  --auth-bar-red: var(--red, #f85149);
+  --ai-dock-z:        1000;
+  --ai-dock-radius:   12px;
+  --ai-dock-shadow:   0 -4px 32px rgba(0, 0, 0, 0.3);
+  --ai-dock-fg:       var(--fg, #e6edf3);
+  --ai-dock-bg:       var(--bg-card, #161b22);
+  --ai-dock-border:   var(--border, #30363d);
+  --ai-dock-muted:    var(--fg-subtle, #6e7681);
+  --ai-dock-accent:   var(--accent, #58a6ff);
+  --ai-dock-red:      var(--red, #f85149);
+  --ai-dock-green:    var(--green, #3fb950);
+  --ai-dock-h:        52px;
+  --ai-dock-panel-h: 360px;
 }
 
-.auth-bar {
+/* ── Bottom dock shell ───────────────────────────────────────────── */
+.ai-dock {
   position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: var(--auth-bar-z);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--ai-dock-z);
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+  align-items: stretch;
   font-family: var(--font-ui, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  pointer-events: none;
 }
 
-.auth-bar__inner {
+.ai-dock__rail,
+.ai-dock__panels {
+  pointer-events: auto;
+}
+
+/* ── Persistent rail (the sway bar itself) ──────────────────────── */
+.ai-dock__rail {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: var(--ai-dock-h);
+  background: var(--ai-dock-bg);
+  border-top: 1px solid var(--ai-dock-border);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-.auth-bar__tabs {
-  display: flex;
-  gap: 4px;
-  background: var(--auth-bar-bg);
-  border: 1px solid var(--auth-bar-border);
-  border-radius: var(--auth-bar-radius);
-  padding: 4px;
-  box-shadow: var(--auth-bar-shadow);
-  backdrop-filter: blur(8px);
+.ai-dock:hover .ai-dock__rail {
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--ai-dock-accent);
+  border-color: var(--ai-dock-accent);
 }
 
-.auth-bar__tab {
+/* ── Separator ─────────────────────────────────────────────────── */
+.ai-dock__sep {
+  width: 1px;
+  height: 28px;
+  background: var(--ai-dock-border);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+/* ── Dock tabs ─────────────────────────────────────────────────── */
+.ai-dock__tab {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 14px;
+  height: 38px;
   background: transparent;
-  border: 0;
-  border-radius: 6px;
-  color: var(--auth-bar-fg);
-  font-size: 0.85rem;
-  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ai-dock-fg);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   white-space: nowrap;
+  text-decoration: none;
+  transform-origin: center bottom;
+  position: relative;
+  overflow: hidden;
 }
 
-.auth-bar__tab:hover {
+.ai-dock__tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ai-dock-accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: inherit;
+}
+
+.ai-dock__tab:hover {
   background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 4px 16px rgba(88, 166, 255, 0.2);
 }
 
-.auth-bar__tab.active {
-  background: var(--auth-bar-accent);
+.ai-dock__tab:hover::before { opacity: 0.08; }
+
+.ai-dock__tab.active {
+  background: var(--ai-dock-accent);
   color: #fff;
+  transform: translateY(-4px) scale(1.08);
+  box-shadow: 0 6px 20px rgba(88, 166, 255, 0.35);
+  border-color: transparent;
 }
 
-.auth-bar__tab--contact.active { background: var(--auth-bar-accent); }
-.auth-bar__tab--login.active { background: #238636; }
-.auth-bar__tab--user {
-  padding: 4px 8px 4px 4px;
+.ai-dock__tab-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.auth-bar__role-badge {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--auth-bar-muted);
-  margin-left: 4px;
+.ai-dock__tab:hover .ai-dock__tab-icon {
+  transform: scale(1.15) rotate(-5deg);
 }
 
-.auth-bar__role-badge--godadmin {
-  background: var(--auth-bar-red);
-  color: #fff;
+.ai-dock__tab.active .ai-dock__tab-icon {
+  transform: scale(1.2);
 }
 
-.auth-bar__panels {
+.ai-dock__tab--ai { color: var(--ai-dock-accent); }
+.ai-dock__tab--ai:hover { background: rgba(88, 166, 255, 0.12); }
+.ai-dock__tab--ai.active { background: var(--ai-dock-accent); color: #fff; }
+
+.ai-dock__tab--contact.active { background: var(--ai-dock-accent); color: #fff; }
+.ai-dock__tab--login.active { background: var(--ai-dock-green); color: #fff; }
+.ai-dock__tab--login:hover { background: rgba(63, 185, 80, 0.1); }
+
+/* ── Sway keyframes ───────────────────────────────────────────── */
+@keyframes sway-left {
+  0%   { transform: translateY(-4px) rotate(-2deg) scale(1.05); }
+  40%  { transform: translateY(-6px) rotate(1.5deg) scale(1.08); }
+  70%  { transform: translateY(-3px) rotate(-0.5deg) scale(1.03); }
+  100% { transform: translateY(-4px) rotate(0deg) scale(1); }
+}
+
+@keyframes sway-right {
+  0%   { transform: translateY(-4px) rotate(2deg) scale(1.05); }
+  40%  { transform: translateY(-6px) rotate(-1.5deg) scale(1.08); }
+  70%  { transform: translateY(-3px) rotate(0.5deg) scale(1.03); }
+  100% { transform: translateY(-4px) rotate(0deg) scale(1); }
+}
+
+@keyframes panel-sway-in {
+  0%   { opacity: 0; transform: translateY(20px) scaleX(0.96); }
+  30%  { opacity: 1; transform: translateY(-8px) scaleX(1.02); }
+  60%  { transform: translateY(3px) scaleX(0.995); }
+  80%  { transform: translateY(-2px) scaleX(1.003); }
+  100% { opacity: 1; transform: translateY(0) scaleX(1); }
+}
+
+@keyframes panel-sway-out {
+  0%   { opacity: 1; transform: translateY(0) scaleX(1); }
+  20%  { opacity: 0.8; transform: translateY(-4px) scaleX(1.01); }
+  100% { opacity: 0; transform: translateY(20px) scaleX(0.96); }
+}
+
+/* ── Panels (slide up from dock) ──────────────────────────────── */
+.ai-dock__panels {
   position: relative;
 }
 
-.auth-bar__panel {
-  width: min(360px, calc(100vw - 32px));
-  background: var(--auth-bar-bg);
-  border: 1px solid var(--auth-bar-border);
-  border-radius: var(--auth-bar-radius);
-  padding: 16px;
-  box-shadow: var(--auth-bar-shadow);
-  backdrop-filter: blur(8px);
-  animation: auth-bar-slide 0.2s ease-out;
+.ai-dock__panel {
+  position: absolute;
+  bottom: var(--ai-dock-h);
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  width: min(480px, calc(100vw - 32px));
+  background: var(--ai-dock-bg);
+  border: 1px solid var(--ai-dock-border);
+  border-bottom: none;
+  border-radius: var(--ai-dock-radius) var(--ai-dock-radius) 0 0;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: panel-sway-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: center bottom;
+  max-height: var(--ai-dock-panel-h);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
-@keyframes auth-bar-slide {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+@keyframes panel-sway-in {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(20px) scaleX(0.94) rotate(-1.5deg); }
+  35%  { opacity: 1; transform: translateX(-50%) translateY(-10px) scaleX(1.03) rotate(1deg); }
+  60%  { transform: translateX(-50%) translateY(4px) scaleX(0.995) rotate(-0.3deg); }
+  80%  { transform: translateX(-50%) translateY(-3px) scaleX(1.005) rotate(0.1deg); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0) scaleX(1) rotate(0deg); }
 }
 
-.auth-bar__panel p {
+@keyframes panel-sway-out {
+  0%   { opacity: 1; transform: translateX(-50%) translateY(0) scaleX(1) rotate(0deg); }
+  25%  { opacity: 0.7; transform: translateX(-50%) translateY(-4px) scaleX(1.01) rotate(0.5deg); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(20px) scaleX(0.94) rotate(-1.5deg); }
+}
+
+.ai-dock__panel[data-closing="true"] {
+  animation: panel-sway-out 0.25s ease-in forwards;
+}
+
+.ai-dock__panel[hidden] {
+  display: block !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ── Panel content padding ────────────────────────────────────── */
+.ai-dock__panel > * {
+  padding: 16px 18px;
+}
+
+.ai-dock__panel p {
   margin: 0 0 12px;
-  font-size: 0.85rem;
-  color: var(--auth-bar-fg);
+  font-size: 0.84rem;
+  color: var(--ai-dock-fg);
   line-height: 1.5;
 }
 
-.auth-bar__contact-form {
+/* ── AI Chat ─────────────────────────────────────────────────── */
+.ai-dock__ai-chat { display: flex; flex-direction: column; gap: 12px; }
+
+.ai-dock__chat-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 80px;
+}
+
+.ai-dock__chat-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 90%;
+}
+
+.ai-dock__chat-msg--bot { align-self: flex-start; }
+.ai-dock__chat-msg--user { align-self: flex-end; flex-direction: row-reverse; }
+
+.ai-dock__chat-avatar {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ai-dock-accent);
+  border-radius: 50%;
+}
+
+.ai-dock__chat-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ai-dock-muted);
+  margin-bottom: 2px;
+}
+
+.ai-dock__chat-text {
+  font-size: 0.82rem;
+  color: var(--ai-dock-fg);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--ai-dock-border);
+  border-radius: 10px 10px 10px 2px;
+  padding: 7px 11px;
+  line-height: 1.45;
+}
+
+.ai-dock__chat-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--ai-dock-border);
+}
+
+.ai-dock__chat-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  background: var(--bg, #0d1117);
+  border: 1px solid var(--ai-dock-border);
+  border-radius: 8px;
+  color: var(--ai-dock-fg);
+  font-family: inherit;
+  font-size: 0.84rem;
+  transition: border-color 0.2s;
+}
+
+.ai-dock__chat-form input:focus {
+  outline: none;
+  border-color: var(--ai-dock-accent);
+}
+
+.ai-dock__chat-form button {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ai-dock-accent);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.ai-dock__chat-form button:hover {
+  filter: brightness(1.15);
+  transform: scale(1.08);
+}
+
+/* ── Contact form ─────────────────────────────────────────────── */
+.ai-dock__contact-form {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.auth-bar__contact-form textarea {
+.ai-dock__contact-form textarea {
   width: 100%;
   min-height: 80px;
   max-height: 200px;
   background: var(--bg, #0d1117);
-  border: 1px solid var(--auth-bar-border);
-  border-radius: 6px;
-  padding: 8px 10px;
-  color: var(--auth-bar-fg);
+  border: 1px solid var(--ai-dock-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--ai-dock-fg);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   resize: vertical;
+  transition: border-color 0.2s;
 }
 
-.auth-bar__contact-form textarea:focus {
+.ai-dock__contact-form textarea:focus {
   outline: none;
-  border-color: var(--auth-bar-accent);
-  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+  border-color: var(--ai-dock-accent);
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
 }
 
-.auth-bar__contact-footer {
+.ai-dock__contact-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.auth-bar__char-count {
-  font-size: 0.75rem;
-  color: var(--auth-bar-muted);
+.ai-dock__char-count {
+  font-size: 0.73rem;
+  color: var(--ai-dock-muted);
+  font-family: var(--font-mono, monospace);
 }
 
-.auth-bar__btn {
+/* ── Buttons ─────────────────────────────────────────────────── */
+.ai-dock__btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  background: var(--auth-bar-accent);
-  border: 1px solid var(--auth-bar-accent);
-  border-radius: 6px;
+  background: var(--ai-dock-accent);
+  border: 1px solid var(--ai-dock-accent);
+  border-radius: 8px;
   color: #fff;
-  font-size: 0.85rem;
+  font-family: inherit;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
   transition: all 0.15s ease;
-  font-family: inherit;
 }
 
-.auth-bar__btn:hover {
+.ai-dock__btn:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88, 166, 255, 0.25);
 }
 
-.auth-bar__btn:disabled {
+.ai-dock__btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  filter: none;
 }
 
-.auth-bar__btn--github {
+.ai-dock__btn--github {
   background: #238636;
   border-color: #238636;
   width: 100%;
   justify-content: center;
-  padding: 8px 14px;
+  padding: 10px 16px;
 }
 
-.auth-bar__btn--primary {
-  background: var(--auth-bar-accent);
+.ai-dock__btn--github:hover {
+  background: #2ea043;
+  border-color: #2ea043;
+  box-shadow: 0 4px 12px rgba(35, 134, 54, 0.25);
 }
 
-.auth-bar__btn--ghost {
+.ai-dock__btn--ghost {
   background: transparent;
-  color: var(--auth-bar-fg);
-  border-color: var(--auth-bar-border);
+  color: var(--ai-dock-fg);
+  border-color: var(--ai-dock-border);
 }
 
-.auth-bar__btn--ghost:hover {
-  border-color: var(--auth-bar-accent);
-  color: var(--auth-bar-accent);
+.ai-dock__btn--ghost:hover {
+  border-color: var(--ai-dock-accent);
+  color: var(--ai-dock-accent);
   background: transparent;
   filter: none;
 }
 
-.auth-bar__login-note {
-  font-size: 0.75rem;
-  color: var(--auth-bar-muted);
+.ai-dock__login-note {
+  font-size: 0.73rem;
+  color: var(--ai-dock-muted);
   margin-top: 8px;
   margin-bottom: 0;
 }
 
-.auth-bar__dashboard {
+/* ── Contact success / error ──────────────────────────────────── */
+.ai-dock__contact-success,
+.ai-dock__contact-error {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  padding: 8px 12px;
+  border-radius: 8px;
 }
 
-.auth-bar__dashboard .auth-bar__btn {
-  justify-content: center;
-  width: 100%;
+.ai-dock__contact-success {
+  color: var(--ai-dock-green);
+  background: rgba(63, 185, 80, 0.1);
 }
 
-.auth-bar__user-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.ai-dock__contact-error {
+  color: var(--ai-dock-red);
+  background: rgba(248, 81, 73, 0.1);
 }
 
-.auth-bar__user-info {
+/* ── User menu ────────────────────────────────────────────────── */
+.ai-dock__user-menu { display: flex; flex-direction: column; gap: 12px; }
+
+.ai-dock__user-info {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.auth-bar__user-info > div {
+.ai-dock__user-info > div {
   display: flex;
   flex-direction: column;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
 }
 
-.auth-bar__user-login {
-  color: var(--auth-bar-muted);
-  font-size: 0.75rem;
-}
+.ai-dock__user-login { color: var(--ai-dock-muted); font-size: 0.75rem; }
 
-.auth-bar__user-actions {
+.ai-dock__user-actions {
   display: flex;
   gap: 6px;
 }
 
-.auth-bar__user-actions .auth-bar__btn {
+.ai-dock__user-actions .ai-dock__btn {
   flex: 1;
   justify-content: center;
   font-size: 0.8rem;
-  padding: 6px 10px;
+  padding: 7px 10px;
 }
 
-.auth-bar__contact-success,
-.auth-bar__contact-error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  padding: 8px 10px;
-  border-radius: 6px;
+/* ── Role badge ───────────────────────────────────────────────── */
+.ai-dock__role-badge {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ai-dock-muted);
+  margin-left: 2px;
 }
 
-.auth-bar__contact-success {
-  color: #3fb950;
-  background: rgba(63, 185, 80, 0.1);
+.ai-dock__role-badge--godadmin {
+  background: var(--ai-dock-red);
+  color: #fff;
 }
 
-.auth-bar__contact-error {
-  color: var(--auth-bar-red);
-  background: rgba(248, 81, 73, 0.1);
+.ai-dock__role-badge--admin {
+  background: var(--ai-dock-accent);
+  color: #fff;
 }
 
-.auth-bar__overlay {
+.ai-dock__role-badge--user {
+  background: transparent;
+  border: 1px solid var(--ai-dock-border);
+}
+
+/* ── Backdrop ─────────────────────────────────────────────────── */
+.ai-dock__backdrop {
   position: fixed;
   inset: 0;
-  z-index: calc(var(--auth-bar-z) - 1);
-  background: transparent;
+  z-index: calc(var(--ai-dock-z) - 1);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: auto;
+  animation: fade-in 0.2s ease;
 }
 
-.auth-bar__overlay[hidden] {
-  display: none;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
+.ai-dock__backdrop[hidden] { display: none; }
+
+/* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .auth-bar {
-    top: 8px;
-    right: 8px;
+  .ai-dock__tab-label { display: none; }
+  .ai-dock__tab { padding: 6px 10px; }
+  .ai-dock__tab--login .ai-dock__tab-label { display: inline; }
+  .ai-dock__tab--user .ai-dock__tab-label { display: none; }
+  .ai-dock__sep { height: 22px; margin: 0 2px; }
+  .ai-dock__panel {
+    width: calc(100vw - 16px);
     left: 8px;
-    align-items: stretch;
+    right: 8px;
+    transform: none;
   }
-  .auth-bar__inner { align-items: stretch; }
-  .auth-bar__tabs {
-    justify-content: center;
+  @keyframes panel-sway-in {
+    0%   { opacity: 0; transform: translateY(20px) scaleX(0.94); }
+    40%  { opacity: 1; transform: translateY(-8px) scaleX(1.02); }
+    70%  { transform: translateY(3px) scaleX(0.995); }
+    100% { opacity: 1; transform: translateY(0) scaleX(1); }
   }
-  .auth-bar__panel {
-    width: 100%;
-  }
-  .auth-bar__tab span {
-    display: none;
-  }
-  .auth-bar__tab {
-    padding: 8px 10px;
+  @keyframes panel-sway-out {
+    0%   { opacity: 1; transform: translateY(0) scaleX(1); }
+    30%  { opacity: 0.5; transform: translateY(-3px) scaleX(1.01); }
+    100% { opacity: 0; transform: translateY(20px) scaleX(0.94); }
   }
 }
 
-/* svg-embed cross-repo truth */
+/* ── Nav LOGIN slot (synced by auth-bar.js) ──────────────────── */
+/* nav-login-slot is in site-nav; auth-bar.js toggles its children  */
+.nav-login-slot { display: inline-flex; align-items: center; }
+.nav-login-out { }
+.nav-login-in { display: inline-flex; align-items: center; }
+.nav-login-in-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  color: var(--fg-muted, #96a8b8);
+  font-family: var(--font-ui, system-ui, sans-serif);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.nav-login-in-btn:hover {
+  border-color: var(--accent, #58a6ff);
+  color: var(--accent, #58a6ff);
+  background: rgba(88, 166, 255, 0.08);
+}
+.nav-login-avatar { flex-shrink: 0; }
+.nav-login-role {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--fg-subtle, #6e7681);
+}
+.nav-login-role--godadmin { background: var(--red, #f85149); color: #fff; }
+.nav-login-role--admin    { background: var(--accent, #58a6ff); color: #fff; }
+
+/* ── svg-embed cross-repo truth (preserve from old file) ─────── */
 .svg-embed {
   margin: 1rem 0;
   text-align: center;

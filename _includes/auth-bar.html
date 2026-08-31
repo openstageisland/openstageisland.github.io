@@ -1,157 +1,191 @@
-<div class="auth-bar" role="navigation" aria-label="Account">
-  <div class="auth-bar__inner">
-    <div class="auth-bar__tabs" role="tablist">
+<div class="ai-dock" id="ai-dock" role="navigation" aria-label="AI assistant and account">
+  <div class="ai-dock__rail">
 
-      <button class="auth-bar__tab auth-bar__tab--contact"
-              role="tab"
-              aria-selected="false"
-              aria-controls="auth-bar__panel--contact"
-              id="auth-bar__tab--contact"
-              title="Contact or request access">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+    <button class="ai-dock__tab ai-dock__tab--ai"
+            role="tab"
+            aria-selected="false"
+            aria-controls="ai-dock__panel--ai"
+            id="ai-dock__tab--ai"
+            title="AI Assistant">
+      <span class="ai-dock__tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+          <path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 2a8 8 0 110 16 8 8 0 010-16zm-1 3v4.586l-2.707 2.707-1.414-1.414L11.293 9.88 8.586 7.172A1 1 0 009.586 6.172l3 3A1 1 0 0112 10.586V7a1 1 0 012 0v3a1 1 0 01-1 1h-3z"/>
+        </svg>
+      </span>
+      <span class="ai-dock__tab-label">AI</span>
+    </button>
+
+    <div class="ai-dock__sep" aria-hidden="true"></div>
+
+    <button class="ai-dock__tab ai-dock__tab--contact"
+            role="tab"
+            aria-selected="false"
+            aria-controls="ai-dock__panel--contact"
+            id="ai-dock__tab--contact"
+            title="Contact or request access">
+      <span class="ai-dock__tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
           <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
           <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
         </svg>
-        <span>Contact</span>
-      </button>
+      </span>
+      <span class="ai-dock__tab-label">Contact</span>
+    </button>
 
-      <button class="auth-bar__tab auth-bar__tab--login"
-              role="tab"
-              aria-selected="false"
-              aria-controls="auth-bar__panel--login"
-              id="auth-bar__tab--login"
-              title="Sign in with GitHub">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true">
+    <button class="ai-dock__tab ai-dock__tab--login"
+            role="tab"
+            aria-selected="false"
+            aria-controls="ai-dock__panel--login"
+            id="ai-dock__tab--login"
+            title="Sign in with GitHub">
+      <span class="ai-dock__tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
           <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
         </svg>
-        <span id="auth-bar__login-label">Login</span>
-      </button>
+      </span>
+      <span class="ai-dock__tab-label" id="ai-dock__login-label">Login</span>
+    </button>
 
-      <button class="auth-bar__tab auth-bar__tab--dashboard hidden"
-              role="tab"
-              aria-selected="false"
-              aria-controls="auth-bar__panel--dashboard"
-              id="auth-bar__tab--dashboard"
-              title="Go to dashboard">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+    <a class="ai-dock__tab ai-dock__tab--dashboard hidden"
+            id="ai-dock__tab--dashboard"
+            title="Dashboard"
+            href="/dashboard/">
+      <span class="ai-dock__tab-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
           <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
         </svg>
-        <span>Dashboard</span>
-      </button>
+      </span>
+      <span class="ai-dock__tab-label">Dashboard</span>
+    </a>
 
-      <button class="auth-bar__tab auth-bar__tab--user hidden"
-              role="tab"
-              aria-selected="false"
-              aria-controls="auth-bar__panel--user"
-              id="auth-bar__tab--user">
-        <img id="auth-bar__avatar" src="" alt="" width="20" height="20" style="border-radius:50%" loading="lazy">
-        <span id="auth-bar__username"></span>
-        <span class="auth-bar__role-badge" id="auth-bar__role"></span>
-      </button>
+    <button class="ai-dock__tab ai-dock__tab--user hidden"
+            role="tab"
+            aria-selected="false"
+            aria-controls="ai-dock__panel--user"
+            id="ai-dock__tab--user">
+      <img id="ai-dock__avatar" src="" alt="" width="20" height="20" style="border-radius:50%" loading="lazy">
+      <span id="ai-dock__username"></span>
+      <span class="ai-dock__role-badge" id="ai-dock__role"></span>
+    </button>
 
-    </div>
-
-    <div class="auth-bar__panels">
-
-      <div class="auth-bar__panel"
-           id="auth-bar__panel--contact"
-           role="tabpanel"
-           aria-labelledby="auth-bar__tab--contact"
-           hidden>
-        <div class="auth-bar__contact">
-          <p class="auth-bar__contact-intro">Send a message or request access to the private assistant.</p>
-          <form id="auth-bar__contact-form" class="auth-bar__contact-form" novalidate>
-            <textarea
-              id="auth-bar__contact-input"
-              name="message"
-              placeholder="What do you need? (e.g. 'request access', 'help with repo X', 'schedule a briefing')…"
-              rows="3"
-              maxlength="1000"
-              required></textarea>
-            <div class="auth-bar__contact-footer">
-              <span class="auth-bar__char-count" id="auth-bar__char-count">0 / 1000</span>
-              <button type="submit" class="auth-bar__btn auth-bar__btn--primary">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
-                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
-                </svg>
-                Send
-              </button>
-            </div>
-          </form>
-          <div class="auth-bar__contact-success hidden" id="auth-bar__contact-success">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-            </svg>
-            Message sent. You'll hear back shortly.
-          </div>
-          <div class="auth-bar__contact-error hidden" id="auth-bar__contact-error">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-            </svg>
-            <span id="auth-bar__contact-error-msg">Something went wrong. Try again.</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="auth-bar__panel"
-           id="auth-bar__panel--login"
-           role="tabpanel"
-           aria-labelledby="auth-bar__tab--login"
-           hidden>
-        <div class="auth-bar__login">
-          <p>Sign in with GitHub to access the dashboard, request features, or chat with the assistant.</p>
-          <button id="auth-bar__gh-btn" class="auth-bar__btn auth-bar__btn--github">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true">
-              <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-            </svg>
-            Continue with GitHub
-          </button>
-          <p class="auth-bar__login-note">Read-only access to your GitHub profile. No write permissions.</p>
-        </div>
-      </div>
-
-      <div class="auth-bar__panel"
-           id="auth-bar__panel--dashboard"
-           role="tabpanel"
-           aria-labelledby="auth-bar__tab--dashboard"
-           hidden>
-        <div class="auth-bar__dashboard">
-          <a id="auth-bar__dashboard-link" href="/dashboard/" class="auth-bar__btn auth-bar__btn--primary">
-            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
-              <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-            </svg>
-            Open Dashboard
-          </a>
-          <button id="auth-bar__logout-btn" class="auth-bar__btn auth-bar__btn--ghost">Sign out</button>
-        </div>
-      </div>
-
-      <div class="auth-bar__panel"
-           id="auth-bar__panel--user"
-           role="tabpanel"
-           aria-labelledby="auth-bar__tab--user"
-           hidden>
-        <div class="auth-bar__user-menu">
-          <div class="auth-bar__user-info">
-            <img id="auth-bar__user-avatar-lg" src="" alt="" width="36" height="36" style="border-radius:50%">
-            <div>
-              <div id="auth-bar__user-name"></div>
-              <div class="auth-bar__user-login" id="auth-bar__user-login"></div>
-            </div>
-          </div>
-          <div class="auth-bar__user-actions">
-            <a id="auth-bar__user-dashboard-link" href="/dashboard/" class="auth-bar__btn auth-bar__btn--ghost">
-              Dashboard
-            </a>
-            <button id="auth-bar__user-logout" class="auth-bar__btn auth-bar__btn--ghost">
-              Sign out
-            </button>
-          </div>
-        </div>
-      </div>
-
-    </div>
   </div>
 
-  <div class="auth-bar__overlay" id="auth-bar__overlay" hidden></div>
+  <div class="ai-dock__panels">
+
+    <div class="ai-dock__panel ai-dock__panel--ai"
+         id="ai-dock__panel--ai"
+         role="tabpanel"
+         aria-labelledby="ai-dock__tab--ai"
+         hidden>
+      <div class="ai-dock__ai-chat">
+        <p>Chat with the neohiro assistant. Powered by Brain + Mouth + private data.</p>
+        <div class="ai-dock__chat-placeholder">
+          <div class="ai-dock__chat-msg ai-dock__chat-msg--bot">
+            <span class="ai-dock__chat-avatar">🤖</span>
+            <div>
+              <div class="ai-dock__chat-name">neohiro Assistant</div>
+              <div class="ai-dock__chat-text">Hello! I can help with security hardening, repo navigation, system diagnostics, and more. What do you need?</div>
+            </div>
+          </div>
+        </div>
+        <form class="ai-dock__chat-form" novalidate>
+          <input type="text"
+                 id="ai-dock__chat-input"
+                 placeholder="Ask me anything…"
+                 maxlength="500"
+                 autocomplete="off"
+                 aria-label="Chat message">
+          <button type="submit" aria-label="Send">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="ai-dock__panel ai-dock__panel--contact"
+         id="ai-dock__panel--contact"
+         role="tabpanel"
+         aria-labelledby="ai-dock__tab--contact"
+         hidden>
+      <div class="ai-dock__contact">
+        <p class="ai-dock__contact-intro">Send a message or request access to the private assistant.</p>
+        <form id="ai-dock__contact-form" class="ai-dock__contact-form" novalidate>
+          <textarea
+            id="ai-dock__contact-input"
+            name="message"
+            placeholder="What do you need? (e.g. 'request access', 'help with repo X', 'schedule a briefing')…"
+            rows="3"
+            maxlength="1000"
+            required></textarea>
+          <div class="ai-dock__contact-footer">
+            <span class="ai-dock__char-count" id="ai-dock__char-count">0 / 1000</span>
+            <button type="submit" class="ai-dock__btn ai-dock__btn--primary">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true">
+                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+              </svg>
+              Send
+            </button>
+          </div>
+        </form>
+        <div class="ai-dock__contact-success hidden" id="ai-dock__contact-success">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          Message sent. You'll hear back shortly.
+        </div>
+        <div class="ai-dock__contact-error hidden" id="ai-dock__contact-error">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <span id="ai-dock__contact-error-msg">Something went wrong. Try again.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-dock__panel ai-dock__panel--login"
+         id="ai-dock__panel--login"
+         role="tabpanel"
+         aria-labelledby="ai-dock__tab--login"
+         hidden>
+      <div class="ai-dock__login">
+        <p>Sign in with GitHub to access the dashboard, request features, or chat with the assistant.</p>
+        <button id="ai-dock__gh-btn" class="ai-dock__btn ai-dock__btn--github">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true">
+            <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+          </svg>
+          Continue with GitHub
+        </button>
+        <p class="ai-dock__login-note">Read-only access to your GitHub profile. No write permissions.</p>
+      </div>
+    </div>
+
+    <div class="ai-dock__panel ai-dock__panel--user"
+         id="ai-dock__panel--user"
+         role="tabpanel"
+         aria-labelledby="ai-dock__tab--user"
+         hidden>
+      <div class="ai-dock__user-menu">
+        <div class="ai-dock__user-info">
+          <img id="ai-dock__user-avatar-lg" src="" alt="" width="36" height="36" style="border-radius:50%">
+          <div>
+            <div id="ai-dock__user-name"></div>
+            <div class="ai-dock__user-login" id="ai-dock__user-login"></div>
+          </div>
+        </div>
+        <div class="ai-dock__user-actions">
+          <a id="ai-dock__user-dashboard-link" href="/dashboard/" class="ai-dock__btn ai-dock__btn--ghost">
+            Dashboard
+          </a>
+          <button id="ai-dock__user-logout" class="ai-dock__btn ai-dock__btn--ghost">
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ai-dock__backdrop" id="ai-dock__backdrop" hidden></div>
 </div>

@@ -3,22 +3,16 @@
     {% if include.tagline %}
       {{ include.tagline }}
     {% else %}
-      Made with <span class="heart" aria-hidden="true">♥</span>
-      by openstageisland &middot;
-      <a href="https://github.com/{{ site.github_username | default: "openstageisland" }}"
-         target="_blank" rel="noopener">
-        github.com/{{ site.github_username | default: "openstageisland" }}
-      </a>
+      Made with <span class="heart" aria-hidden="true">♥</span> by neohiro · <a href="https://github.com/{{ site.github_username | default: 'neohiro' }}" target="_blank" rel="noopener">github.com/{{ site.github_username | default: 'neohiro' }}</a>
     {% endif %}
   </p>
   <div class="footer-button-row">
     <a href="https://frenzypenguin-media.github.io/" target="_blank" rel="noopener">🎬 FrenzyPenguin Media</a>
     <a href="https://transhumanists.github.io/" target="_blank" rel="noopener">🧬 transhumanists</a>
-    <a href="https://neohiro.github.io/" target="_blank" rel="noopener">🌐 neohiro.github.io</a>
-    <a href="https://github.com/sponsors/{{ site.github_username | default: "openstageisland" }}"
-       class="sponsor-red" target="_blank" rel="noopener">♥ Sponsor</a>
-    <a href="{{ "/privacy/" | relative_url }}">Privacy</a>
-    <a href="{{ "/tos/" | relative_url }}">Terms of Service</a>
+    <a href="https://neohiro.github.io/" {% unless include.org == 'neohiro' %}target="_blank" rel="noopener"{% endunless %}>🌐 neohiro.github.io</a>
+    <a href="https://github.com/sponsors/{{ site.github_username | default: 'neohiro' }}" class="sponsor-red" target="_blank" rel="noopener">♥ Sponsor</a>
+    <a href="{{ '/privacy/' | relative_url }}">Privacy</a>
+    <a href="{{ '/tos/' | relative_url }}">Terms of Service</a>
     <a href="https://frenzypenguin.media" target="_blank" rel="noopener">🌐 frenzypenguin.media</a>
   </div>
   {% if include.brand %}

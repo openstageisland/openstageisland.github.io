@@ -1,116 +1,94 @@
 /**
- * Shared auth bar — cross-site GitHub OAuth + private assistant contact.
+ * Shared AI dock — bottom bar with persistent sway + GitHub OAuth.
+ * SSOT: template-shared/assets/js/auth-bar.js
  *
- * Flow (simplest possible, matches the user's "gh auth only" spec):
- *   1. User clicks Login tab.
- *   2. Browser is redirected to github.com/login/oauth/authorize with
- *      client_id + redirect_uri + state. No tokens stored client-side.
- *   3. GitHub redirects back to /auth/callback?code=...&state=...
- *   4. The site's server (functions/api/auth.js) exchanges the code for
- *      a token, uses the host's `gh` CLI credentials to verify org
- *      membership, and returns a session_id derived from the role.
- *   5. Auth bar reads #session= from the URL, stores session_id in
- *      localStorage as the only client-side artifact, then displays
- *      the role-aware UI.
- *
- * Cross-domain session sharing:
- *   - Session key and OAuth state key are namespaced under a stable
- *     "neohiro_session_v1" / "neohiro_oauth_state_v1" prefix. This is
- *     INTENTIONAL: it lets the same user move from
- *     openstageisland.github.io → transhumanists.github.io →
- *     frenzypenguin-media.github.io → neohiro.github.io without
- *     re-authenticating, because the localStorage entries survive the
- *     host switch on a single browser profile. (LocalStorage is
- *     origin-bound in modern browsers, so the cross-site case requires
- *     either a shared parent domain OR a server-side session — the
- *     latter is what we use: every origin calls the same Brain
- *     /auth/state endpoint, which holds the canonical session.)
- *   - The Brain endpoint at /auth/state returns the session for
- *     whatever user has a live session_id stored server-side. The
- *     browser passes the session_id in the URL hash; the server looks
- *     it up. This is why the localStorage key is constant across
- *     hosts: the server is the source of truth, and the key just
- *     holds the opaque handle.
- *   - The auth bar resolves the Brain base URL via a global override
- *     (window.AUTH_BRAIN_BASE) so each site (neohiro, FPM, OSI, H+)
- *     can point at its nearest Brain. Default: / (same origin).
+ * Flow (simplest possible):
+ *   1. User clicks AI/Login/Contact/Dashboard/User tab in the bottom rail.
+ *   2. The corresponding panel slides up from the dock with a sway animation.
+ *   3. For Login: browser is redirected to github.com/login/oauth/authorize.
+ *   4. GitHub redirects back to /auth/callback?code=...&state=...
+ *   5. Server (functions/api/auth.js) exchanges code → session_id + role.
+ *   6. Auth bar reads #session= from URL, stores in localStorage, displays UI.
  *
  * Required:
- *   - auth-bar.html (markup)
- *   - auth-bar.css  (styles)
- *   - /auth/state, /auth/session, /auth/session DELETE, /auth/callback
- *     endpoints reachable from this origin (Brain or gateway in front
- *     of Brain)
+ *   - auth-bar.html (markup, with id="ai-dock"...)
+ *   - auth-bar.css  (styles, .ai-dock...)
+ *   - functions/api/auth.js (server endpoint) reachable from this origin
  *
  * Optional globals:
- *   window.OAUTH_CLIENT_ID    — required for login; configure per host
- *   window.AUTH_BRAIN_BASE    — override the API base (default '')
- *   window.AUTH_CALLBACK      — override callback path (default '/auth/callback')
- *   window.AUTH_GH_USER       — override the godadmin login check
- *   window.DASHBOARD_URL      — override dashboard URL (default '/dashboard/')
+ *   window.OAUTH_CLIENT_ID       — required; configure per host
+ *   window.OAUTH_REDIRECT_ORIGIN — override auth callback origin (default: window.location.origin)
+ *   window.AUTH_CALLBACK         — override callback path (default: /auth/callback)
+ *   window.AUTH_STATE_ENDPOINT   — override state endpoint (default: /auth/state)
+ *   window.Auth                  — legacy dashboard Auth object (overrides)
+ *
+ * Backwards-compat: exposes window.AuthBar.open(panelId) for older callers.
  */
-
 (function () {
   'use strict';
 
-  // Stable session keys: do not change between neohiro/FPM/OSI/H+ hosts.
-  // This is on purpose — see "Cross-domain session sharing" above.
-  var SESSION_KEY = 'neohiro_session_v1';
-  var OAUTH_STATE_KEY = 'neohiro_oauth_state_v1';
+  const GH_USER = 'neohiro';
+  const SESSION_KEY = 'neohiro_session_v1';
+  const OAUTH_STATE_KEY = 'neohiro_oauth_state_v1';
+  const AUTH_CALLBACK = (typeof window !== 'undefined' && window.AUTH_CALLBACK) || '/auth/callback';
+  const AUTH_STATE_ENDPOINT = (typeof window !== 'undefined' && window.AUTH_STATE_ENDPOINT) || '/auth/state';
+  const CONTACT_ENDPOINT = '/api/contact';
+  const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-  // Default fallback for the godadmin login check. Hosts can override via
-  // window.AUTH_GH_USER when a different user is the godadmin on that org.
-  var DEFAULT_GH_USER = 'neohiro';
-
-  var GH_USER = (typeof window !== 'undefined' && window.AUTH_GH_USER) || DEFAULT_GH_USER;
-  var BRAIN_BASE = (typeof window !== 'undefined' && window.AUTH_BRAIN_BASE) || '';
-  var AUTH_CALLBACK = (typeof window !== 'undefined' && window.AUTH_CALLBACK) || '/auth/callback';
-  var DASHBOARD_URL = (typeof window !== 'undefined' && window.DASHBOARD_URL) || '/dashboard/';
-  var AUTH_STATE_ENDPOINT = BRAIN_BASE + '/auth/state';
-  var AUTH_SESSION_ENDPOINT = BRAIN_BASE + '/auth/session';
-  var CONTACT_ENDPOINT = BRAIN_BASE + '/api/contact';
-  var SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-  var state = { activeTab: null };
+  const state = { activeTab: null };
 
   function $(id) { return document.getElementById(id); }
   function qa(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
 
   function show(panel) {
-    if (panel) { panel.hidden = false; panel.removeAttribute('hidden'); }
+    if (!panel) return;
+    panel.hidden = false;
+    panel.removeAttribute('hidden');
+    panel.removeAttribute('data-closing');
   }
   function hide(panel) {
-    if (panel) { panel.hidden = true; panel.setAttribute('hidden', ''); }
+    if (!panel) return;
+    panel.hidden = true;
+    panel.setAttribute('hidden', '');
+    panel.removeAttribute('data-closing');
   }
 
   function closeAll() {
-    qa('.auth-bar__panel').forEach(hide);
-    qa('.auth-bar__tab').forEach(t => {
+    qa('.ai-dock__panel').forEach(hide);
+    qa('.ai-dock__tab').forEach(t => {
       t.setAttribute('aria-selected', 'false');
       t.classList.remove('active');
     });
-    hide($('auth-bar__overlay'));
+    hide($('ai-dock__backdrop'));
     state.activeTab = null;
   }
 
   function selectTab(tabId) {
     if (!tabId) { closeAll(); return; }
-    qa('.auth-bar__panel').forEach(hide);
-    qa('.auth-bar__tab').forEach(t => {
+    qa('.ai-dock__panel').forEach(hide);
+    qa('.ai-dock__tab').forEach(t => {
       t.setAttribute('aria-selected', 'false');
       t.classList.remove('active');
     });
-    var tab = $(`auth-bar__tab--${tabId}`);
-    var panel = $(`auth-bar__panel--${tabId}`);
+    const tab = $(`ai-dock__tab--${tabId}`);
+    const panel = $(`ai-dock__panel--${tabId}`);
     if (!tab || !panel) return;
     tab.setAttribute('aria-selected', 'true');
     tab.classList.add('active');
     show(panel);
     state.activeTab = tabId;
-    var overlay = $('auth-bar__overlay');
-    if (tabId === 'contact' || tabId === 'login') show(overlay); else hide(overlay);
+
+    const backdrop = $('ai-dock__backdrop');
+    if (tabId === 'contact' || tabId === 'login' || tabId === 'ai') {
+      if (backdrop) backdrop.hidden = false;
+    } else {
+      if (backdrop) backdrop.hidden = true;
+    }
+
     if (tabId === 'contact') {
-      setTimeout(() => { var input = $('auth-bar__contact-input'); if (input) input.focus(); }, 350);
+      setTimeout(() => { const input = $('ai-dock__contact-input'); if (input) input.focus(); }, 350);
+    } else if (tabId === 'ai') {
+      setTimeout(() => { const input = $('ai-dock__chat-input'); if (input) input.focus(); }, 350);
     }
   }
 
@@ -120,25 +98,25 @@
   }
 
   function readSessionIdFromUrl() {
-    var hash = location.hash || '';
-    var m = hash.match(/session=([a-f0-9]+)/i);
+    const hash = location.hash || '';
+    const m = hash.match(/session=([a-f0-9]+)/i);
     if (m) return m[1];
-    var u = new URLSearchParams(location.search);
+    const u = new URLSearchParams(location.search);
     return u.get('session');
   }
 
   async function fetchState() {
     try {
-      var r = await fetch(AUTH_STATE_ENDPOINT, { credentials: 'same-origin' });
+      const r = await fetch(AUTH_STATE_ENDPOINT, { credentials: 'same-origin' });
       if (!r.ok) return null;
-      var data = await r.json();
+      const data = await r.json();
       return data && data.state;
     } catch (_) { return null; }
   }
 
   function storeSession(sessionId, profile, role) {
     if (!sessionId) return null;
-    var record = {
+    const record = {
       session_id: sessionId,
       login: profile.login,
       name: profile.name || null,
@@ -152,9 +130,9 @@
 
   function readStoredSession() {
     try {
-      var raw = localStorage.getItem(SESSION_KEY);
+      const raw = localStorage.getItem(SESSION_KEY);
       if (!raw) return null;
-      var s = JSON.parse(raw);
+      const s = JSON.parse(raw);
       if (!s || !s.session_id || !Number.isFinite(s.expiresAt) || s.expiresAt < Date.now()) {
         localStorage.removeItem(SESSION_KEY);
         return null;
@@ -164,31 +142,31 @@
   }
 
   function clearSession() {
-    var s = readStoredSession();
+    const s = readStoredSession();
     if (s && s.session_id) {
-      fetch(AUTH_SESSION_ENDPOINT + '?session=' + encodeURIComponent(s.session_id), { method: 'DELETE' }).catch(() => {});
+      fetch(`/auth/session?session=${encodeURIComponent(s.session_id)}`, { method: 'DELETE' }).catch(() => {});
     }
     localStorage.removeItem(SESSION_KEY);
   }
 
   function setUser(session) {
-    var loginTab = $('auth-bar__tab--login');
-    var dashboardTab = $('auth-bar__tab--dashboard');
-    var userTab = $('auth-bar__tab--user');
-    var dashboardLink = $('auth-bar__dashboard-link');
-    var userDashboardLink = $('auth-bar__user-dashboard-link');
+    const loginTab = $('ai-dock__tab--login');
+    const dashboardTab = $('ai-dock__tab--dashboard');
+    const userTab = $('ai-dock__tab--user');
+    const dashboardLink = $('ai-dock__dashboard-link');
+    const userDashboardLink = $('ai-dock__user-dashboard-link');
 
     if (session && session.login) {
       if (loginTab) loginTab.classList.add('hidden');
       if (dashboardTab) dashboardTab.classList.remove('hidden');
       if (userTab) userTab.classList.remove('hidden');
 
-      var avatar = $('auth-bar__avatar');
-      var avatarLg = $('auth-bar__user-avatar-lg');
-      var username = $('auth-bar__username');
-      var userName = $('auth-bar__user-name');
-      var userLogin = $('auth-bar__user-login');
-      var role = $('auth-bar__role');
+      const avatar = $('ai-dock__avatar');
+      const avatarLg = $('ai-dock__user-avatar-lg');
+      const username = $('ai-dock__username');
+      const userName = $('ai-dock__user-name');
+      const userLogin = $('ai-dock__user-login');
+      const role = $('ai-dock__role');
 
       if (avatar) avatar.src = appendSize(session.avatar_url, 40);
       if (avatarLg) avatarLg.src = appendSize(session.avatar_url, 72);
@@ -196,103 +174,130 @@
       if (userName) userName.textContent = session.name || session.login;
       if (userLogin) userLogin.textContent = '@' + session.login;
       if (role) {
-        var r = session.role || (session.login === GH_USER ? 'godadmin' : 'user');
+        const r = session.role || (session.login === GH_USER ? 'godadmin' : 'user');
         role.textContent = r;
-        role.className = 'auth-bar__role-badge auth-bar__role-badge--' + r;
+        role.className = 'ai-dock__role-badge ai-dock__role-badge--' + r;
       }
-      // Dashboard URL is host-configurable so OSI can route to its own
-      // dashboard on Brain without going through neohiro.
-      var dash;
-      try {
-        dash = new URL(DASHBOARD_URL, location.origin).toString();
-      } catch (_) {
-        dash = location.origin + DASHBOARD_URL;
-      }
-      var dashWithUser = dash + (dash.indexOf('?') >= 0 ? '&' : '?') + 'user=' + encodeURIComponent(session.login);
-      if (dashboardLink) dashboardLink.href = dashWithUser;
-      if (userDashboardLink) userDashboardLink.href = dashWithUser;
+
+      const dash = `https://neohiro.github.io/dashboard/?user=${encodeURIComponent(session.login)}`;
+      if (dashboardLink) dashboardLink.href = dash;
+      if (userDashboardLink) userDashboardLink.href = dash;
+
+      syncNavLoginSlot(session);
     } else {
       if (loginTab) loginTab.classList.remove('hidden');
       if (dashboardTab) dashboardTab.classList.add('hidden');
       if (userTab) userTab.classList.add('hidden');
+      syncNavLoginSlot(null);
     }
   }
 
+  /**
+   * Reflect session into any in-page nav LOGIN slot
+   * (.nav-login-slot). The slot accepts either an <a> (when signed out)
+   * or a <button>+<span> (when signed in) injected by Jekyll.
+   *
+   * We never overwrite site-defined nav content — only toggle hidden state
+   * and update text labels.
+   */
+  function syncNavLoginSlot(session) {
+    qa('.nav-login-slot').forEach(slot => {
+      const out = slot.querySelector('[data-mode="out"]');
+      const inn = slot.querySelector('[data-mode="in"]');
+      if (session && session.login) {
+        if (out) out.hidden = true;
+        if (inn) {
+          inn.hidden = false;
+          const nameEl = inn.querySelector('[data-bind="login"]');
+          const roleEl = inn.querySelector('[data-bind="role"]');
+          const avatarEl = inn.querySelector('[data-bind="avatar"]');
+          if (nameEl) nameEl.textContent = session.login;
+          if (roleEl) {
+            const r = session.role || (session.login === GH_USER ? 'godadmin' : 'user');
+            roleEl.textContent = r;
+            roleEl.className = 'nav-login-role nav-login-role--' + r;
+          }
+          if (avatarEl && session.avatar_url) avatarEl.src = appendSize(session.avatar_url, 32);
+        }
+      } else {
+        if (out) out.hidden = false;
+        if (inn) inn.hidden = true;
+      }
+    });
+  }
+
   async function startOAuth() {
-    var clientId = (typeof window !== 'undefined' && window.OAUTH_CLIENT_ID) || '';
+    const clientId = (typeof window !== 'undefined' && window.OAUTH_CLIENT_ID) || '';
     if (!clientId) {
-      console.warn('[auth-bar] OAUTH_CLIENT_ID not set — login unavailable on this host');
+      console.warn('[ai-dock] OAUTH_CLIENT_ID not set — login unavailable on this host');
       return;
     }
-    var stateVal = await fetchState();
+    const stateVal = await fetchState();
     if (!stateVal) {
-      console.warn('[auth-bar] failed to fetch OAuth state from server');
+      console.warn('[ai-dock] failed to fetch OAuth state from server');
       return;
     }
     sessionStorage.setItem(OAUTH_STATE_KEY, stateVal);
-    // Redirect back to the host's own callback so the localStorage key
-    // is set on the same origin where the user is browsing. The
-    // /auth/callback endpoint forwards the session_id to whatever URL
-    // is in the `return_to` query string.
-    var callbackUrl = new URL(AUTH_CALLBACK, location.origin).toString();
-    var returnTo = encodeURIComponent(location.pathname + location.search);
-    var url =
-      'https://github.com/login/oauth/authorize?client_id=' + encodeURIComponent(clientId) +
-      '&redirect_uri=' + encodeURIComponent(callbackUrl) +
-      '&scope=read:user%20read:org' +
-      '&state=' + encodeURIComponent(stateVal) +
-      '&return_to=' + returnTo;
+    const origin = (typeof window !== 'undefined' && window.OAUTH_REDIRECT_ORIGIN) || window.location.origin;
+    const redirect = encodeURIComponent(origin + AUTH_CALLBACK);
+    const returnTo = encodeURIComponent(location.pathname + location.search);
+    const url =
+      `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}` +
+      `&redirect_uri=${redirect}` +
+      `&scope=read:user%20read:org` +
+      `&state=${encodeURIComponent(stateVal)}` +
+      `&return_to=${returnTo}`;
     location.href = url;
   }
 
   async function consumeCallback() {
-    var sessionId = readSessionIdFromUrl();
+    const sessionId = readSessionIdFromUrl();
     if (!sessionId) return false;
     if (location.hash.includes('session=')) {
       history.replaceState({}, '', location.pathname + location.search);
     } else {
-      var u = new URLSearchParams(location.search);
+      const u = new URLSearchParams(location.search);
       u.delete('session');
-      var q = u.toString();
+      const q = u.toString();
       history.replaceState({}, '', location.pathname + (q ? '?' + q : ''));
     }
     try {
-      var r = await fetch(AUTH_SESSION_ENDPOINT + '?session=' + encodeURIComponent(sessionId));
+      const r = await fetch(`/auth/session?session=${encodeURIComponent(sessionId)}`);
       if (!r.ok) return false;
-      var profile = await r.json();
+      const profile = await r.json();
       storeSession(sessionId, profile, profile.role);
       return profile;
     } catch (_) { return false; }
   }
 
   async function sendContact() {
-    var form = $('auth-bar__contact-form');
-    var success = $('auth-bar__contact-success');
-    var error = $('auth-bar__contact-error');
-    var errorMsg = $('auth-bar__contact-error-msg');
-    var input = $('auth-bar__contact-input');
-    var submitBtn = form ? form.querySelector('[type=submit]') : null;
+    const form = $('ai-dock__contact-form');
+    const success = $('ai-dock__contact-success');
+    const error = $('ai-dock__contact-error');
+    const errorMsg = $('ai-dock__contact-error-msg');
+    const input = $('ai-dock__contact-input');
+    const submitBtn = form ? form.querySelector('[type=submit]') : null;
 
     if (!input || !input.value.trim()) return;
     if (submitBtn) submitBtn.disabled = true;
     hide(success); hide(error);
 
-    var session = readStoredSession();
+    const session = readStoredSession();
     try {
-      var body = {
+      const body = {
         message: input.value.trim(),
         source: location.origin + location.pathname,
         ts: new Date().toISOString(),
       };
       if (session) body.session_id = session.session_id;
 
-      var r = await fetch(CONTACT_ENDPOINT, {
+      const r = await fetch(CONTACT_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       if (!r.ok) {
-        var d = await r.json().catch(() => ({}));
+        const d = await r.json().catch(() => ({}));
         throw new Error(d.error || `HTTP ${r.status}`);
       }
       hide(form);
@@ -307,12 +312,12 @@
   }
 
   function initContactForm() {
-    var form = $('auth-bar__contact-form');
-    var input = $('auth-bar__contact-input');
-    var charCount = $('auth-bar__char-count');
+    const form = $('ai-dock__contact-form');
+    const input = $('ai-dock__contact-input');
+    const charCount = $('ai-dock__char-count');
     if (input && charCount) {
       input.addEventListener('input', () => {
-        var len = input.value.length;
+        const len = input.value.length;
         charCount.textContent = `${len} / 1000`;
         charCount.style.color = len > 900 ? 'var(--red, #f85149)' : '';
       });
@@ -320,32 +325,39 @@
     if (form) form.addEventListener('submit', (e) => { e.preventDefault(); sendContact(); });
   }
 
-  function initOverlay() {
-    var overlay = $('auth-bar__overlay');
-    if (overlay) overlay.addEventListener('click', () => selectTab(null));
+  function initBackdrop() {
+    const backdrop = $('ai-dock__backdrop');
+    if (backdrop) backdrop.addEventListener('click', () => selectTab(null));
+  }
+
+  function initEscClose() {
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && state.activeTab) selectTab(null);
+    });
   }
 
   async function init() {
     await consumeCallback();
 
-    qa('.auth-bar__tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        var id = tab.id.replace('auth-bar__tab--', '');
+    qa('.ai-dock__tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        // Anchor tabs (dashboard) should still navigate
+        if (tab.tagName === 'A' && tab.getAttribute('href')) return;
+        e.preventDefault();
+        const id = tab.id.replace('ai-dock__tab--', '');
         selectTab(id === state.activeTab ? null : id);
       });
     });
 
-    var ghBtn = $('auth-bar__gh-btn');
+    const ghBtn = $('ai-dock__gh-btn');
     if (ghBtn) ghBtn.addEventListener('click', startOAuth);
 
-    var logoutDashboard = $('auth-bar__logout-btn');
-    var logoutUser = $('auth-bar__user-logout');
-    [logoutDashboard, logoutUser].forEach(btn => {
-      if (btn) btn.addEventListener('click', () => { clearSession(); setUser(null); });
-    });
+    const logoutUser = $('ai-dock__user-logout');
+    if (logoutUser) logoutUser.addEventListener('click', () => { clearSession(); setUser(null); closeAll(); });
 
     initContactForm();
-    initOverlay();
+    initBackdrop();
+    initEscClose();
     setUser(readStoredSession());
   }
 
