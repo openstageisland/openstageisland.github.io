@@ -15,6 +15,13 @@
   {%- endif %}
   <link rel="stylesheet" href="{{ "/assets/style.css" | relative_url }}">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
+  {# Content-Security-Policy. Restricts the live-data iframe to the SL
+     destination origin and the counter beacon to freevisitorcounters.
+     'unsafe-inline' is required because jekyll-seo-tag and a few inline
+     event handlers exist; the iframe sandbox attribute provides
+     defense-in-depth for the embed. #}
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com; base-uri 'self'; form-action 'self'">
   {% seo %}
 </head>
 <body>

@@ -8,6 +8,14 @@
  *   - Live local clock ticker
  *
  * No external deps. Targets ES5 for broad compatibility (no padStart).
+ *
+ * Privacy notes:
+ *  - The counter image sets referrerPolicy="no-referrer" so freevisitorcounters
+ *    cannot learn the visitor page. Many ad blockers (EasyPrivacy etc.) block
+ *    freevisitorcounters.com entirely; in that case loadCounter's onerror
+ *    fires and the slot shows "offline" — this is expected, not a bug.
+ *  - The iframe uses referrerpolicy="no-referrer-when-downgrade" so the SL
+ *    destination does not receive a Referer with the visitor's exact page.
  */
 (function (root) {
   "use strict";
@@ -16,6 +24,9 @@
   var DEST_URL   = "https://secondlife.com/destination/open-stage-island";
   var SLURL_HREF = "https://maps.secondlife.com/secondlife/Derwent/248/128/22";
   var TIMEOUT_MS = 6500;
+  // Counter slot ids are 7-digit numbers assigned by freevisitorcounters.
+  // Validate at call site to keep this function safe for any caller.
+  var SLOT_RE = /^\d{6,8}$/;
 
   function byId(id) { return document.getElementById(id); }
 
@@ -83,27 +94,25 @@
   }
 
   function loadCounter(slot, targetId, okClass) {
+    if (!SLOT_RE.test(slot)) return; // invalid slot id — silently no-op
     var img = new Image();
     // Counter provider must not learn the visitor page via Referer.
     img.referrerPolicy = "no-referrer";
     img.alt = "";
-    img.style.display = "none";
+    // Not attached to the DOM — Image() loads in the background; once onload
+    // or onerror fires, the closure ends and the object is GC'd. No need to
+    // append/remove it from the body.
     img.src = "https://www.freevisitorcounters.com/en/home/counter/" + slot + "/t/1?cb=" + Date.now();
 
-    var cleanup = function () {
-      img.onload = img.onerror = null;
-      if (img.parentNode) img.parentNode.removeChild(img);
-    };
-
     img.onload = function () {
-      cleanup();
+      img.onload = img.onerror = null;
       var t = byId(targetId);
       if (!t) return;
       t.textContent = "live \xb7 #" + slot;
       if (okClass) t.classList.add(okClass);
     };
     img.onerror = function () {
-      cleanup();
+      img.onload = img.onerror = null;
       var t = byId(targetId);
       if (!t) return;
       t.textContent = "offline";
