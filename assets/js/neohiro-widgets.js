@@ -110,11 +110,13 @@
       img.onload = function () {
         meta.textContent = 'Updated just now · Refreshes every heartbeat cycle';
         meta.className = 'nhw-svg-meta nhw-meta-ok';
+        img.onload = img.onerror = null;
       };
       img.onerror = function () {
         meta.textContent = 'Heartbeat unavailable — will retry shortly';
         meta.className = 'nhw-svg-meta nhw-meta-err';
         img.style.opacity = '0.3';
+        img.onload = img.onerror = null;
       };
 
       var pollMs = opts.pollMs || 300000; // default 5 min
