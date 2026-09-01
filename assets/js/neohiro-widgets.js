@@ -653,7 +653,9 @@
   var _fetchCache = {};
   var _pendingFetch = {};
   var _fetchOrder = [];
+  var _fetchFailures = {};
   var _MAX_FETCH_CACHE = 20;
+  var _MAX_BACKOFF_MS = 60000;
 
   function fetchJson(url, cb) {
     var token = _cfg.apiToken;
@@ -664,27 +666,43 @@
 
     if (_pendingFetch[url]) return;
 
-    _pendingFetch[url] = true;
-    fetch(url, { cache: 'no-store', headers: token ? { Authorization: 'Bearer ' + token } : {} })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) {
-        delete _pendingFetch[url];
-        if (d) {
-          _fetchCache[url] = { data: d, ts: Date.now() };
-          var idx = _fetchOrder.indexOf(url);
-          if (idx !== -1) _fetchOrder.splice(idx, 1);
-          _fetchOrder.push(url);
-          while (_fetchOrder.length > _MAX_FETCH_CACHE) {
-            var evict = _fetchOrder.shift();
-            delete _fetchCache[evict];
+    var failures = _fetchFailures[url] || 0;
+    var backoffMs = Math.min(1000 * Math.pow(2, failures), _MAX_BACKOFF_MS);
+    if (backoffMs > 1000) {
+      setTimeout(doFetch, backoffMs);
+      return;
+    }
+    doFetch();
+
+    function doFetch() {
+      if (_pendingFetch[url]) return;
+      _pendingFetch[url] = true;
+      fetch(url, { cache: 'no-store', headers: token ? { Authorization: 'Bearer ' + token } : {} })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (d) {
+          delete _pendingFetch[url];
+          _fetchFailures[url] = 0;
+          if (d) {
+            _fetchCache[url] = { data: d, ts: Date.now() };
+            var idx = _fetchOrder.indexOf(url);
+            if (idx !== -1) _fetchOrder.splice(idx, 1);
+            _fetchOrder.push(url);
+            while (_fetchOrder.length > _MAX_FETCH_CACHE) {
+              var evict = _fetchOrder.shift();
+              delete _fetchCache[evict];
+            }
           }
-        }
-        cb(d);
-      })
-      .catch(function () {
-        delete _pendingFetch[url];
-        cb(null);
-      });
+          cb(d);
+        })
+        .catch(function () {
+          delete _pendingFetch[url];
+          _fetchFailures[url] = (_fetchFailures[url] || 0) + 1;
+          cb(null);
+        });
+    }
   }
 
   function fetchGitHubEvents(repos, token, cb) {
