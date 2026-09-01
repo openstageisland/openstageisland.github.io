@@ -53,10 +53,16 @@
 
   function destroyAllTimers() {
     _timers.forEach(function (id) { clearInterval(id); });
+    // Clear any pending fetch backoff timers
+    Object.keys(_fetchBackoffTimer).forEach(function (url) {
+      clearTimeout(_fetchBackoffTimer[url]);
+    });
     _timers = [];
     _fetchCache = {};
     _fetchOrder = [];
     _pendingFetch = {};
+    _fetchFailures = {};
+    _fetchBackoffTimer = {};
   }
 
   var _autoDestroyWired = false;
@@ -654,6 +660,7 @@
   var _pendingFetch = {};
   var _fetchOrder = [];
   var _fetchFailures = {};
+  var _fetchBackoffTimer = {};
   var _MAX_FETCH_CACHE = 20;
   var _MAX_BACKOFF_MS = 60000;
 
@@ -666,15 +673,21 @@
 
     if (_pendingFetch[url]) return;
 
+    // If a backoff timer is already scheduled, don't schedule another
+    if (_fetchBackoffTimer[url]) return;
+
     var failures = _fetchFailures[url] || 0;
     var backoffMs = Math.min(1000 * Math.pow(2, failures), _MAX_BACKOFF_MS);
     if (backoffMs > 1000) {
-      setTimeout(doFetch, backoffMs);
+      var timerId = setTimeout(doFetch, backoffMs);
+      _fetchBackoffTimer[url] = timerId;
+      _timers.push(timerId);
       return;
     }
     doFetch();
 
     function doFetch() {
+      delete _fetchBackoffTimer[url];
       if (_pendingFetch[url]) return;
       _pendingFetch[url] = true;
       fetch(url, { cache: 'no-store', headers: token ? { Authorization: 'Bearer ' + token } : {} })
