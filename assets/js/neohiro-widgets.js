@@ -4,6 +4,7 @@
   var _cfg = {};
   var _counters = {};
   var _timers = [];
+  var _timerTypes = {};
   var _sharedIO = null;
 
   /* ──────────────────────────────────────────────────────────────────────────
@@ -48,12 +49,26 @@
       fn();
     }, ms);
     _timers.push(id);
+    _timerTypes[id] = 'interval';
+    return id;
+  }
+
+  function trackTimeout(fn, ms) {
+    var id = setTimeout(fn, ms);
+    _timers.push(id);
+    _timerTypes[id] = 'timeout';
     return id;
   }
 
   function destroyAllTimers() {
-    _timers.forEach(function (id) { clearInterval(id); });
-    // Clear any pending fetch backoff timers
+    _timers.forEach(function (id) {
+      // _timers holds a mix of setInterval and setTimeout IDs; clearInterval
+      // is a no-op on a finished timeout but is a semantic hazard in spec-
+      // strict hosts. Use the recorded type to clear correctly.
+      if (_timerTypes[id] === 'timeout') clearTimeout(id);
+      else clearInterval(id);
+    });
+    // Clear any pending fetch backoff timers (defensive — already in _timers)
     Object.keys(_fetchBackoffTimer).forEach(function (url) {
       clearTimeout(_fetchBackoffTimer[url]);
     });
@@ -62,6 +77,7 @@
       _sharedIO = null;
     }
     _timers = [];
+    _timerTypes = {};
     _fetchCache = {};
     _fetchOrder = [];
     _pendingFetch = {};
@@ -677,7 +693,10 @@
     var token = _cfg.apiToken;
 
     if (_fetchCache[url] && Date.now() - _fetchCache[url].ts < 60000) {
-      cb(_fetchCache[url].data);
+      // SWR: serve stale immediately, revalidate in background.
+      // Wrap user-supplied cb to prevent library from crashing the page on
+      // throw — the background revalidation still runs regardless.
+      try { cb(_fetchCache[url].data); } catch (e) { /* ignore user callback error */ }
     }
 
     if (_pendingFetch[url]) return;
@@ -691,6 +710,7 @@
       var timerId = setTimeout(doFetch, backoffMs);
       _fetchBackoffTimer[url] = timerId;
       _timers.push(timerId);
+      _timerTypes[timerId] = 'timeout';
       return;
     }
     doFetch();
@@ -717,12 +737,12 @@
               delete _fetchCache[evict];
             }
           }
-          cb(d);
+          try { cb(d); } catch (e) { /* swallow user callback error */ }
         })
         .catch(function () {
           delete _pendingFetch[url];
           _fetchFailures[url] = (_fetchFailures[url] || 0) + 1;
-          cb(null);
+          try { cb(null); } catch (e) { /* swallow */ }
         });
     }
   }
