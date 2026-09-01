@@ -57,6 +57,10 @@
     Object.keys(_fetchBackoffTimer).forEach(function (url) {
       clearTimeout(_fetchBackoffTimer[url]);
     });
+    if (_sharedIO) {
+      _sharedIO.disconnect();
+      _sharedIO = null;
+    }
     _timers = [];
     _fetchCache = {};
     _fetchOrder = [];
@@ -558,6 +562,7 @@
     var reconnectDelay = 1000;
     var maxDelay = 30000;
     var closed = false;
+    var reconnectTimer = null;
 
     function connect() {
       if (closed) return;
@@ -577,7 +582,8 @@
         es.close();
         if (closed) return;
         if (handlers.onError) handlers.onError();
-        setTimeout(connect, reconnectDelay);
+        reconnectTimer = setTimeout(connect, reconnectDelay);
+        _timers.push(reconnectTimer);
         reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
       };
     }
@@ -586,6 +592,7 @@
       close: function () {
         closed = true;
         if (es) es.close();
+        if (reconnectTimer) clearTimeout(reconnectTimer);
       }
     };
   }
