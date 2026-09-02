@@ -1,5 +1,5 @@
 <!-- TEMPLATE-SHARED:HEADER -->
-{# readme-header.html â€" used as the top of every repo README.md.
+{# readme-header.html — used as the top of every repo README.md.
 
    Variables:
      org:    neohiro | fpm | osi | hplus
@@ -15,7 +15,7 @@
 
 ---
 
-> **DEPRECATED** — This repo is archived.
+> **DEPRECATED** - This repo is archived.
 > The Open Stage Island counter and docs site have moved to
 > `openstageisland/openstageisland.github.io` (GitHub org creation pending).
 > Counter slot `1631175` is reserved there. All traffic, issues, and PRs are
@@ -35,7 +35,7 @@
 ---
 
 <!-- TEMPLATE-SHARED:FOOTER -->
-{# readme-footer.html â€” used at the bottom of every repo README.md. #}
+{# readme-footer.html — used at the bottom of every repo README.md. #}
 
 ---
 {% include legal-block.html %}
@@ -43,15 +43,10 @@
 {% include sponsor-buttons.html %}
 {% include heartbeat-status.html %}
 
-<sub>Synced from <code>template-shared/_includes/</code> â€” last publish: {{ site.time | date: '%Y-%m-%d %H:%M UTC' }}</sub>
-
-{# readme-footer.html â€” used at the bottom of every repo README.md. #}
+<sub>Synced from <code>template-shared/_includes/</code> — last publish: {{ site.time | date: '%Y-%m-%d %H:%M UTC' }}</sub>
 
 ---
-{% include legal-block.html %}
-{% include social-links.html %}
-{% include sponsor-buttons.html %}
-{% include heartbeat-status.html %}
 
-<sub>Synced from <code>template-shared/_includes/</code> â€” last publish: {{ site.time | date: '%Y-%m-%d %H:%M UTC' }}</sub>
-
+<div align="center">
+  <a href="https://www.freevisitorcounters.com/en/home/stats/id/1631171" rel="noopener noreferrer nofollow no-referrer"><img src="https://www.freevisitorcounters.com/en/counter/render/1631171/t/1" alt="Visitor counter" /></a>
+</div>
