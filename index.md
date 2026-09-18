@@ -152,9 +152,7 @@ preload_hero: true
       <noscript>
         <p class="osi-live-status">
           Live counters require JavaScript.
-          <a href="https://www.freevisitorcounters.com/">
-            View counters on freevisitorcounters.com
-          </a>
+          <a href="https://visitorbadge.io/status?path=github.com%2Fopenstageisland.github.io">`n            View visitor statistics`n          </a>
         </p>
       </noscript>
     </div>

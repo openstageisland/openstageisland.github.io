@@ -17,7 +17,8 @@
   <link rel="stylesheet" href="{{ "/assets/css/auth-bar.css" | relative_url }}">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
   {# Content-Security-Policy. Restricts the live-data iframe to the SL
-     destination origin and the counter beacon to freevisitorcounters.
+     destination origin. The visitor counter is a visitor-badge image served
+     over https (covered by img-src https:); no third-party scripts run.
      'unsafe-inline' is required because jekyll-seo-tag and a few inline
      event handlers exist; the iframe sandbox attribute provides
      defense-in-depth for the embed. #}

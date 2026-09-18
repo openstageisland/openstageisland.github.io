@@ -14,7 +14,7 @@
     cfg = cfg || {};
     _cfg = {
       heartbeatBase: cfg.heartbeatBase || '',
-      visitorCounterBase: cfg.visitorCounterBase || 'https://www.freevisitorcounters.com/en/home/counter',
+      visitorCounterBase: cfg.visitorCounterBase || 'https://api.visitorbadge.io/api/visitors?path=github.com%2Fopenstageisland.github.io%2F',
       apiBase: cfg.apiBase || '',
       apiToken: cfg.apiToken || '',
       pollInterval: cfg.pollInterval || 30000,
@@ -159,7 +159,7 @@
     var base = _cfg.visitorCounterBase;
     var img = new Image();
     img.referrerPolicy = 'no-referrer';
-    img.src = base + '/' + slotId + '/t/1?cb=' + Date.now();
+    img.src = base + slotId + '&cb=' + Date.now();
     img.onload = function () {
       target.textContent = 'live · #' + slotId;
       target.className = 'nhw-stat-value nhw-ok';
@@ -177,7 +177,7 @@
         trackTimer(function () {
           var i = new Image();
           i.referrerPolicy = 'no-referrer';
-          i.src = imgBase + '/' + sl + '/t/1?cb=' + Date.now();
+          i.src = imgBase + sl + '&cb=' + Date.now();
           i.onload = function () { tgt.textContent = 'live · #' + sl; tgt.className = 'nhw-stat-value nhw-ok'; i.onload = i.onerror = null; };
           i.onerror = function () { tgt.textContent = 'counter offline'; tgt.className = 'nhw-stat-value nhw-warn'; i.onload = i.onerror = null; };
         }, opts.pollMs);

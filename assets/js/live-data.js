@@ -3,17 +3,17 @@
  * inside a sandboxed iframe with graceful fallback when blocked.
  *
  * Counters:
- *   - Site visits (freevisitorcounters slot 1631175)
- *   - SL destination traffic (slot 1631180)
+ *   - Site visits (visitor-badge path github.com/openstageisland.github.io/1631175)
+ *   - SL destination traffic (visitor-badge path .../1631180)
  *   - Live local clock ticker
  *
  * No external deps. Targets ES5 for broad compatibility (no padStart).
  *
  * Privacy notes:
- *  - The counter image sets referrerPolicy="no-referrer" so freevisitorcounters
- *    cannot learn the visitor page. Many ad blockers (EasyPrivacy etc.) block
- *    freevisitorcounters.com entirely; in that case loadCounter's onerror
- *    fires and the slot shows "offline" — this is expected, not a bug.
+ *  - The counter image sets referrerPolicy="no-referrer" so the badge provider
+ *    cannot learn the visitor page. The badge renders a static SVG; a failure
+ *    fires loadCounter's onerror and the slot shows "offline" — this is
+ *    expected (e.g. offline hosts), not a bug.
  *  - The iframe uses referrerpolicy="no-referrer-when-downgrade" so the SL
  *    destination does not receive a Referer with the visitor's exact page.
  */
@@ -24,7 +24,10 @@
   var DEST_URL   = "https://secondlife.com/destination/open-stage-island";
   var SLURL_HREF = "https://maps.secondlife.com/secondlife/Derwent/248/128/22";
   var TIMEOUT_MS = 6500;
-  // Counter slot ids are 7-digit numbers assigned by freevisitorcounters.
+  // Visitor-badge identity for this site. Slots are appended as path suffixes
+  // to disambiguate counters (site visits vs SL destination traffic).
+  var VISITOR_BADGE_BASE = "https://api.visitorbadge.io/api/visitors?path=github.com%2Fopenstageisland.github.io%2F";
+  // Slot ids are 7-digit numbers that make each badge unique.
   // Validate at call site to keep this function safe for any caller.
   var SLOT_RE = /^\d{6,8}$/;
 
@@ -85,9 +88,9 @@
       "aria-atomic": "false"
     });
     stats.appendChild(renderStatSlot("osi-stat-site", "Site visits",
-      "freevisitorcounters #1631175"));
+      "visitor badge live"));
     stats.appendChild(renderStatSlot("osi-stat-sl", "Destination traffic",
-      "freevisitorcounters #1631180"));
+      "visitor badge live"));
     stats.appendChild(renderStatSlot("osi-stat-time", "Local time",
       "updates every second"));
     return stats;
@@ -102,7 +105,7 @@
     // Not attached to the DOM — Image() loads in the background; once onload
     // or onerror fires, the closure ends and the object is GC'd. No need to
     // append/remove it from the body.
-    img.src = "https://www.freevisitorcounters.com/en/home/counter/" + slot + "/t/1?cb=" + Date.now();
+    img.src = VISITOR_BADGE_BASE + slot + "&cb=" + Date.now();
 
     img.onload = function () {
       img.onload = img.onerror = null;
