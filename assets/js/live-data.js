@@ -12,8 +12,7 @@
  * Privacy notes:
  *  - The counter image sets referrerPolicy="no-referrer" so the badge provider
  *    cannot learn the visitor page. The badge renders a static SVG; a failure
- *    fires loadCounter's onerror and the slot shows "offline" — this is
- *    expected (e.g. offline hosts), not a bug.
+ *    fires loadCounter's onerror and the slot shows "offline" — this is expected (e.g. offline hosts).
  *  - The iframe uses referrerpolicy="no-referrer-when-downgrade" so the SL
  *    destination does not receive a Referer with the visitor's exact page.
  */

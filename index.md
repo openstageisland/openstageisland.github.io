@@ -14,6 +14,11 @@ preload_hero: true
        fetchpriority="high"
        decoding="async">
   <div class="hero-overlay">
+    <img class="hero-avatar"
+         src="https://github.com/openstageisland.png"
+         alt="Open Stage Island avatar"
+         width="92" height="92"
+         fetchpriority="high">
     <p class="eyebrow">Second Life Destination</p>
     <h1>Open Stage Island</h1>
     <p class="tagline">A free, 24/7 open-air music stage in Second Life</p>

@@ -14,6 +14,7 @@
   <link rel="preload" as="image" href="{{ "/images/destination-image.png" | relative_url }}" fetchpriority="high">
   {%- endif %}
   <link rel="stylesheet" href="{{ "/assets/style.css" | relative_url }}">
+  <link rel="stylesheet" href="{{ "/assets/css/network-ux.css" | relative_url }}">
   <link rel="stylesheet" href="{{ "/assets/css/auth-bar.css" | relative_url }}">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
   {# Content-Security-Policy. Restricts the live-data iframe to the SL
@@ -23,7 +24,7 @@
      event handlers exist; the iframe sandbox attribute provides
      defense-in-depth for the embed. #}
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com; base-uri 'self'; form-action 'self'">
+        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://neohiro.github.io; base-uri 'self'; form-action 'self'">
   {% seo %}
 </head>
 <body>
@@ -40,6 +41,7 @@
   {% include auth-bar.html %}
 
   <script src="{{ "/assets/js/auth-bar.js" | relative_url }}" defer></script>
+  <script src="{{ "/assets/js/network-ux.js" | relative_url }}" defer></script>
   <script src="{{ "/assets/js/live-data.js" | relative_url }}" defer></script>
 </body>
 </html>
