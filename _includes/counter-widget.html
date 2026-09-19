@@ -1,4 +1,5 @@
-{# counter-widget.html — unified visitor counter partial for the neohiro/FPM/OSI/H+ Jekyll sites.
+{% comment %}
+counter-widget.html — unified visitor counter partial for the neohiro/FPM/OSI/H+ Jekyll sites.
    Include with:   {% include counter-widget.html %}
    Reads the visitor path from site config (preferred) or a local override:
      - site.counter_path (set in _config.yml) — auto-populated for all sites
@@ -15,7 +16,7 @@
      4. Validator + CI ensure no other embed pattern ships.
    NOTE: freevisitorcounters was retired from embeds (JS-dependent, broken on
    GitHub). Visitor badges render a static SVG, so they work everywhere.
-#}
+{% endcomment %}
 {%- assign _path = include.counter_path | default: site.counter_path -%}
 {%- if _path -%}
 <div align="center">

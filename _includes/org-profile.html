@@ -1,4 +1,5 @@
-{# org-profile.md — single source of truth for the org description block.
+{% comment %}
+org-profile.md — single source of truth for the org description block.
 
    Used in:
      - README.md (jekyll include with {% capture %})
@@ -6,7 +7,8 @@
      - heartbeat-generated public summaries
 
    Variables expected (from caller):
-     org: 'neohiro' | 'fpm' | 'osi' | 'hplus' #}
+     org: 'neohiro' | 'fpm' | 'osi' | 'hplus'
+{% endcomment %}
 
 {%- case include.org -%}
 {%- when 'neohiro' -%}

@@ -1,7 +1,9 @@
-{# contact-card.html — README + dashboard contact snippet.
+{% comment %}
+contact-card.html — README + dashboard contact snippet.
 
    Pulls the live contact URL from _data/contact.yml (published by Heart).
-   Falls back to GitHub Issues on the source repo. #}
+   Falls back to GitHub Issues on the source repo.
+{% endcomment %}
 
 {%- assign c = site.data.contact -%}
 {%- assign url = c.url | default: 'https://github.com/' | append: site.github_username | append: '/' | append: site.github_repo | append: '/issues/new' -%}

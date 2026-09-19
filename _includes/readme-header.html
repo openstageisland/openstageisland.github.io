@@ -1,4 +1,5 @@
-{# readme-header.html — used as the top of every repo README.md.
+{% comment %}
+readme-header.html — used as the top of every repo README.md.
 
    Variables:
      org:    neohiro | fpm | osi | hplus
@@ -6,7 +7,8 @@
      blurb:  one-line description
 
    Heartbeat also publishes /shared/repos/{owner}_{repo}/header.md which
-   can be appended after this for project-specific badges/stats. #}
+   can be appended after this for project-specific badges/stats.
+{% endcomment %}
 
 {%- assign org_label = include.org -%}
 {%- case include.org -%}

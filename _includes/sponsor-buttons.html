@@ -1,7 +1,9 @@
-{# sponsor-buttons.html — used in READMEs and site pages.
+{% comment %}
+sponsor-buttons.html — used in READMEs and site pages.
 
    Heartbeat updates _data/sponsor.yml with active tiers. Falls back to
-   the GitHub Sponsors link for the configured github_username. #}
+   the GitHub Sponsors link for the configured github_username.
+{% endcomment %}
 
 {%- assign gh = site.github_username | default: 'neohiro' -%}
 <p class="sponsor-buttons">

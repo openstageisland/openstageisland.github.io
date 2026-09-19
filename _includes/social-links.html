@@ -1,7 +1,9 @@
-{# social-links.html — single source of truth for "find us on" block.
+{% comment %}
+social-links.html — single source of truth for "find us on" block.
 
    Used in READMEs and site footers. Heartbeat fills _data/social.yml
-   with current handles; this include falls back to neohiro defaults. #}
+   with current handles; this include falls back to neohiro defaults.
+{% endcomment %}
 
 {%- assign s = site.data.social -%}
 <span class="social-links">

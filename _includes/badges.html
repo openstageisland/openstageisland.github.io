@@ -1,4 +1,5 @@
-{# badges.html — shields.io + custom badges for any repo/org.
+{% comment %}
+badges.html — shields.io + custom badges for any repo/org.
 
    Usage:
      {% include badges.html org="neohiro" %}
@@ -6,7 +7,8 @@
 
    Heartbeat also generates a per-repo badge bundle and writes it to
    /shared/badges/{owner}_{repo}.html. Sites with a _data/badges/{repo}.yml
-   get richer badges (latest release, build status). #}
+   get richer badges (latest release, build status).
+{% endcomment %}
 
 {%- if include.repo -%}
   {%- assign parts = include.repo | split: '/' -%}

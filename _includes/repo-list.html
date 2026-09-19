@@ -1,10 +1,12 @@
-{# repo-list.md — single source of truth for "all repos in this org".
+{% comment %}
+repo-list.md — single source of truth for "all repos in this org".
 
    Heartbeat writes /shared/repos/{org}.yaml. This include reads via a
    per-site _data/repos.yml that Heart publishes (see publish-shared.ps1).
 
    Falls back to a hardcoded list if the data file is missing so builds
-   never break. #}
+   never break.
+{% endcomment %}
 {%- assign repos = site.data.repos[include.org] -%}
 {%- unless repos -%}
   {%- case include.org -%}

@@ -1,7 +1,9 @@
-{# heartbeat-status.html — a tiny badge that shows "Heart is alive".
+{% comment %}
+heartbeat-status.html — a tiny badge that shows "Heart is alive".
 
    Reads _data/heartbeat.yml (published every cycle by Heart).
-   Falls back to a neutral "no data" badge if missing. #}
+   Falls back to a neutral "no data" badge if missing.
+{% endcomment %}
 
 {%- assign h = site.data.heartbeat -%}
 {%- if h and h.last_run -%}
