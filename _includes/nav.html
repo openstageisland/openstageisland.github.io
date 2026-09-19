@@ -4,13 +4,13 @@
   <a href="{{ '/media/' | relative_url }}" class="nav-link">Media</a>
   <a href="{{ '/dashboard/' | relative_url }}" class="nav-link">Dashboard</a>
 
-  {# Dynamic LOGIN slot — populated by auth-bar.js on auth state change #}
+  <!-- Dynamic LOGIN slot — populated by auth-bar.js on auth state change -->
   <span class="nav-login-slot" aria-live="polite">
-    {# Signed-out state: shown by default; hidden once auth-bar.js sets session #}
+    <!-- Signed-out state: shown by default; hidden once auth-bar.js sets session -->
     <a href="#" class="nav-link nav-login-out" data-mode="out" id="nav-login-link">
       Login
     </a>
-    {# Signed-in state: hidden until auth-bar.js reveals it + fills in user info #}
+    <!-- Signed-in state: hidden until auth-bar.js reveals it + fills in user info -->
     <span class="nav-login-in hidden" data-mode="in">
       <button class="nav-link nav-login-in-btn" id="nav-login-in-btn" aria-haspopup="true" aria-expanded="false">
         <img class="nav-login-avatar" data-bind="avatar" src="" alt="" width="20" height="20" style="border-radius:50%" loading="lazy">
