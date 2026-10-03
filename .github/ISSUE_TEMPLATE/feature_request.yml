@@ -1,0 +1,45 @@
+name: Feature request
+description: Propose a new feature, event, or improvement for the venue
+labels: ["enhancement", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea for the venue? We'd love to hear it. Please describe what
+        you're proposing and why it would improve the Open Stage Island experience.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Event / DJ night
+        - Venue improvement
+        - Technical fix
+        - Community
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the feature
+      description: "What would it do? Who would benefit?"
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: "What else did you consider? Why is this better?"
+
+  - type: input
+    id: contact
+    attributes:
+      label: Your Second Life avatar name (optional)
+      description: "If you'd like to be contacted about this request."
+      placeholder: "Firstname Lastname"
