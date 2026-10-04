@@ -112,6 +112,13 @@ class CheckerTest(unittest.TestCase):
         got = self.problems_for(page("<h1>a</h1><h1>b</h1>"))
         self.assertIn("exactly one <h1>", got)
 
+    def test_zero_h1_message_points_at_the_bom_cause(self):
+        # The real cause of a missing h1 on CODE_OF_CONDUCT was a UTF-8 BOM
+        # between the front matter and the '#' heading, which stops kramdown
+        # treating it as a heading. The message should say so.
+        got = self.problems_for(page("<p>no heading here</p>"))
+        self.assertIn("BOM", got)
+
     def test_catches_skipped_heading_level(self):
         got = self.problems_for(page("<h1>a</h1><h3>b</h3>"))
         self.assertIn("heading level skipped", got)

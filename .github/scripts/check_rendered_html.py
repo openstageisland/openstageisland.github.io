@@ -106,7 +106,12 @@ def check_page(path: str, site_dir: str) -> list[str]:
     levels = [int(h[1]) for h in HEADING.findall(html)]
     h1s = levels.count(1)
     if h1s != 1:
-        bad(f"expected exactly one <h1>, found {h1s}")
+        bad(
+            f"expected exactly one <h1>, found {h1s}"
+            + (" — a UTF-8 BOM before a Markdown '#' heading stops kramdown"
+               " recognising it, so the line renders as literal text"
+               if h1s == 0 else "")
+        )
     for a, b in zip(levels, levels[1:]):
         if b - a > 1:
             bad(f"heading level skipped: h{a} -> h{b}")

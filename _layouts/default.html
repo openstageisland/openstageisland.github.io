@@ -50,8 +50,16 @@
   {%- comment -%}
   Persistent section menu for the single-page guide. Docked above the auth dock
   by site-chrome.css so the two do not overlap.
+
+  Scoped to the guide: every anchor in the bar points at a section that only
+  exists on the home page, so rendering it on /destinations/, /CONTRIBUTING/,
+  /SECURITY/ or /CODE_OF_CONDUCT/ produced 15 dead links per page. The
+  `body:has(.bottom-bar)` rule in site-chrome.css keys the reserved padding off
+  the bar's presence, so non-guide pages need no extra space.
   {%- endcomment -%}
+  {%- if page.url == '/' -%}
   {% include bottom-bar.html %}
+  {%- endif -%}
 
   {% include auth-bar.html %}
 
