@@ -968,6 +968,114 @@ body.ai-conv-active .ai-conv { bottom: 0; }
 }
 .ai-conv__privacy:hover { color: var(--accent-strong, #9d7aff); }
 
+/* ── Voicemail triage ─────────────────────────────────────────────────────
+   Sits below the conversation, collapsed by default, so asking a question
+   never looks like a contact form. The two triage questions come first: they
+   are what decides where the message ends up. */
+.ai-conv__message-toggle {
+  background: transparent;
+  border: 1px solid var(--border, #1f2a36);
+  border-radius: 999px;
+  padding: 5px 13px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted, #96a8b8);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+.ai-conv__message-toggle:hover {
+  color: var(--fg, #eceff1);
+  border-color: var(--accent, #7c4dff);
+}
+.ai-conv__message-toggle[aria-expanded="true"] {
+  color: #fff;
+  background: var(--accent, #7c4dff);
+  border-color: var(--accent, #7c4dff);
+}
+
+.ai-conv__triage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--border, #1f2a36);
+  background: var(--bg, #0b0e12);
+}
+.ai-conv__triage.hidden { display: none; }
+
+.ai-conv__triage-lede {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--fg-subtle, #6d7f8f);
+}
+
+.ai-conv__triage-row { display: flex; flex-direction: column; gap: 5px; }
+.ai-conv__triage-row > span:first-child {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-subtle, #6d7f8f);
+}
+.ai-conv__triage-pair { display: flex; gap: 8px; flex-wrap: wrap; }
+.ai-conv__triage-pair input { flex: 1 1 140px; min-width: 0; }
+
+.ai-conv__triage input,
+.ai-conv__triage textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  font-family: var(--font-ui, 'Space Grotesk', system-ui, sans-serif);
+  font-size: 0.85rem;
+  color: var(--fg, #eceff1);
+  background: var(--bg-card, #111820);
+  border: 1px solid var(--border, #1f2a36);
+  border-radius: 8px;
+  resize: vertical;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.ai-conv__triage input::placeholder,
+.ai-conv__triage textarea::placeholder { color: var(--fg-subtle, #6d7f8f); }
+.ai-conv__triage input:focus,
+.ai-conv__triage textarea:focus {
+  outline: none;
+  border-color: var(--accent, #7c4dff);
+  box-shadow: 0 0 0 3px var(--accent-dim, rgba(124, 77, 255, 0.2));
+}
+
+.ai-conv__triage-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ai-conv__triage-send {
+  padding: 8px 20px;
+  font-family: var(--font-ui, system-ui, sans-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent, #7c4dff);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: filter 0.18s ease, opacity 0.18s ease;
+}
+.ai-conv__triage-send:hover:not(:disabled) { filter: brightness(1.12); }
+.ai-conv__triage-send:disabled { opacity: 0.55; cursor: progress; }
+.ai-conv__triage-status {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.72rem;
+  color: var(--fg-subtle, #6d7f8f);
+}
+@media (max-width: 560px) {
+  .ai-conv__footer { flex-wrap: wrap; }
+  .ai-conv__message-toggle { order: -1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ai-conv--open { animation: none; }
   .ai-conv--closing { animation: none; }

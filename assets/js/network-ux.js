@@ -360,13 +360,48 @@
           </div>
         </div>
         <div class="ai-conv__footer">
+          <button type="button" class="ai-conv__message-toggle" id="ai-conv__message-toggle"
+                  aria-expanded="false" aria-controls="ai-conv__triage">
+            Leave a message
+          </button>
           <span class="ai-conv__notice">We collect information so we can learn more about you</span>
           <a class="ai-conv__privacy" href="https://neohiro.github.io/privacy/" rel="noopener" target="_blank">Privacy</a>
         </div>
+
+        {# Voicemail triage. Two questions decide where a message ends up, so
+           they are asked before the message itself. Hidden until requested, and
+           it never blocks reading the conversation above it. #}
+        <form class="ai-conv__triage hidden" id="ai-conv__triage" novalidate>
+          <p class="ai-conv__triage-lede">
+            This goes to a person, not the assistant. Two quick answers so it lands
+            in the right place.
+          </p>
+          <label class="ai-conv__triage-row">
+            <span>Who are you?</span>
+            <span class="ai-conv__triage-pair">
+              <input type="text" name="name" maxlength="120" placeholder="name" aria-label="Your name" autocomplete="name">
+              <input type="text" name="contact" maxlength="200" placeholder="email or handle" aria-label="How to reply to you" autocomplete="email">
+            </span>
+          </label>
+          <label class="ai-conv__triage-row">
+            <span>What is it about?</span>
+            <input type="text" name="about" maxlength="200" placeholder="a bug, access, docs, an idea…" aria-label="What this is about">
+          </label>
+          <label class="ai-conv__triage-row">
+            <span>Message</span>
+            <textarea name="message" rows="3" maxlength="4000" required
+                      placeholder="Say it here. Nothing is stored in your browser."></textarea>
+          </label>
+          <div class="ai-conv__triage-actions">
+            <button type="submit" class="ai-conv__triage-send" id="ai-conv__triage-send">Send</button>
+            <span class="ai-conv__triage-status" id="ai-conv__triage-status" role="status" aria-live="polite"></span>
+          </div>
+        </form>
       </div>
     `;
     document.body.appendChild(modal);
     fillAvatarSlots(modal); // org avatar in conversation header + welcome bubble
+    wireVoicemail(modal);
     // Close handlers
     document.getElementById('ai-conv__close').addEventListener('click', hideConversationModal);
     // Esc to close (handler is page-singleton; no leak)
@@ -399,6 +434,69 @@
   function isConvOpen() {
     const m = document.getElementById('ai-conv');
     return m && !m.classList.contains('hidden');
+  }
+
+  /* ── Voicemail triage wiring ────────────────────────────────────────────
+     The point of this form is that a message is never lost. brain-bridge
+     fsyncs before it acknowledges, so a "queued" receipt means it is on disk;
+     on failure we say so plainly and leave the text in the box so the visitor
+     can copy it rather than retype it. */
+  function wireVoicemail(modal) {
+    var toggle = modal.querySelector('#ai-conv__message-toggle');
+    var form = modal.querySelector('#ai-conv__triage');
+    if (!toggle || !form) return;
+
+    toggle.addEventListener('click', function () {
+      var open = form.classList.contains('hidden');
+      form.classList.toggle('hidden', !open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        var name = form.querySelector('[name="name"]');
+        // Pre-fill from the GitHub session when there is one: signed-in visitors
+        // should not have to identify themselves twice.
+        var auth = currentAuth();
+        if (auth && name && !name.value) name.placeholder = auth.login + ' (signed in)';
+        if (name) name.focus();
+      }
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var status = form.querySelector('#ai-conv__triage-status');
+      var send = form.querySelector('#ai-conv__triage-send');
+      var message = (form.querySelector('[name="message"]').value || '').trim();
+      if (!message) {
+        status.textContent = 'Add a message first.';
+        form.querySelector('[name="message"]').focus();
+        return;
+      }
+
+      var who = {
+        name: (form.querySelector('[name="name"]').value || '').trim(),
+        contact: (form.querySelector('[name="contact"]').value || '').trim()
+      };
+      var about = (form.querySelector('[name="about"]').value || '').trim();
+
+      send.disabled = true;
+      status.textContent = 'Sending…';
+
+      sendVoicemail(message, who, about).then(function (res) {
+        send.disabled = false;
+        if (res.ok) {
+          appendConvMessage('assistant',
+            'Queued for a human' + (res.receipt ? ' — reference ' + res.receipt : '') +
+            '. It is on disk now, so it will not be lost.');
+          form.reset();
+          form.classList.add('hidden');
+          toggle.setAttribute('aria-expanded', 'false');
+          status.textContent = '';
+        } else {
+          // Do not clear the box. The visitor keeps their words and can retry or
+          // copy them out.
+          status.textContent = 'Could not reach the inbox — your text is still here. Copy it and try again shortly.';
+        }
+      });
+    });
   }
 
   var _prevFocus = null;
@@ -759,7 +857,41 @@ function renderSafeHtml(html) {
     'https://neohiro.github.io/.well-known/heartbeat',
     'https://neohiro.github.io/heartbeats/health.json'
   ];
-  const MOUTH_ENDPOINT = 'https://neohiro.github.io/.well-known/ask';
+
+  /* Where the assistant's traffic actually goes.
+   *
+   * The four public sites are GitHub Pages — static files with no compute — so
+   * nothing on that origin can answer /.well-known/ask. brain-bridge is the
+   * process that does: it runs on the mainframe node, calls Brain, falls back to
+   * Mouth, and durably queues anything that is really a message to a human.
+   * See network/brain_bridge/README.md.
+   *
+   * A fork can point at its own bridge without editing this file:
+   *   <script>window.NEOHIRO_BRIDGE = 'https://brain.example.internal';</script>
+   */
+  const BRIDGE_URL = (window.NEOHIRO_BRIDGE || 'https://neohiro.github.io').replace(/\/+$/, '');
+  const MOUTH_ENDPOINT = BRIDGE_URL + '/.well-known/ask';
+  const VOICEMAIL_ENDPOINT = BRIDGE_URL + '/.well-known/voicemail';
+  const SITE_KEY = (function () {
+    var h = (location.hostname || '').toLowerCase();
+    if (h.indexOf('transhumanists') >= 0) return 'transhumanists';
+    if (h.indexOf('openstageisland') >= 0) return 'openstageisland';
+    if (h.indexOf('frenzypenguin') >= 0) return 'frenzypenguin-media';
+    return 'neohiro';
+  })();
+
+  // The GitHub session, when the visitor is signed in, so the bridge knows who
+  // is writing instead of guessing from an email-shaped string.
+  function currentAuth() {
+    try {
+      var raw = localStorage.getItem('neohiro_session_v1');
+      if (!raw) return null;
+      var s = JSON.parse(raw);
+      if (!s || !s.login || !Number.isFinite(s.expiresAt) || s.expiresAt < Date.now()) return null;
+      return { login: s.login, role: s.role || (s.login === 'neohiro' ? 'godadmin' : 'user') };
+    } catch (_) { return null; }
+  }
+
   let _heartUp = null;
   let _heartProbed = false;
 
@@ -793,13 +925,44 @@ function renderSafeHtml(html) {
 
   function fetchMouthReply(q) {
     return fetchWithTimeout(
-      MOUTH_ENDPOINT + '?q=' + encodeURIComponent(q),
+      MOUTH_ENDPOINT + '?q=' + encodeURIComponent(q) +
+        '&site=' + encodeURIComponent(SITE_KEY),
       { cache: 'no-store', mode: 'cors' },
       10000
     )
       .then(function (r) { if (!r.ok) throw new Error('Mouth HTTP ' + r.status); return r.json(); })
       .then(function (j) { return j && (j.reply || j.answer || j.text) || null; })
       .catch(function () { return null; });
+  }
+
+  /* ── Voicemail ──────────────────────────────────────────────────────────
+     A question the assistant cannot answer becomes a message for a human, and
+     that message must not evaporate. It is POSTed to brain-bridge, which
+     fsyncs it before acknowledging, so a "queued" receipt is a promise.
+     Returns {ok, receipt} — the caller shows the receipt either way. */
+  function sendVoicemail(message, who, about) {
+    return fetchWithTimeout(
+      VOICEMAIL_ENDPOINT,
+      {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-store',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message: message,
+          site: SITE_KEY,
+          page: location.pathname,
+          referrer: document.referrer || null,
+          about: about || '',
+          who: who || {},
+          auth: currentAuth()
+        })
+      },
+      12000
+    )
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+      .then(function (res) { return { ok: res.ok, receipt: (res.body && res.body.id) || null }; })
+      .catch(function () { return { ok: false, receipt: null }; });
   }
 
   function detectStranger() {
