@@ -327,6 +327,33 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual(mod.HTML_COMMENT.sub(" ", "a<!-- x -->b"), "a b")
         self.assertEqual(mod.HTML_COMMENT.sub(" ", "a<!--\nmultiline\n-->b"), "a b")
 
+    def test_inline_js_building_an_anchor_is_not_a_dangling_anchor(self):
+        got = self.problems_for(page(
+            "<h1>x</h1><script>"
+            "var D='https://example.com/';"
+            "document.write('<a href=\"' + D + '\">go</a>');"
+            "</script>"
+        ))
+        self.assertEqual(got, "")
+
+    def test_style_block_anchor_is_not_scanned(self):
+        got = self.problems_for(page(
+            "<h1>x</h1><style>/* href='#nope' */</style>"
+        ))
+        self.assertEqual(got, "")
+
+    def test_script_body_removed_but_markup_after_it_still_checked(self):
+        got = self.problems_for(page(
+            "<h1>x</h1><script>var a=1;</script><a href=\"#nope\">go</a>"
+        ))
+        self.assertIn("nope", got)
+
+    def test_strip_non_markup_keeps_script_tags(self):
+        out = mod.strip_non_markup("<script>var a='<b>';</script><p>k</p>")
+        self.assertIn("<script>", out)
+        self.assertIn("<p>k</p>", out)
+        self.assertNotIn("var a", out)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

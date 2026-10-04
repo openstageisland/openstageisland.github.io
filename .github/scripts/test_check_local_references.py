@@ -8,6 +8,7 @@ fail, and missing page links must only warn.
 
 import importlib.util
 import os
+import posixpath
 import shutil
 import tempfile
 import unittest
@@ -158,6 +159,63 @@ class ReferenceCheckTest(unittest.TestCase):
 
     def test_no_pages_is_an_error(self):
         self.assertEqual(self.run_check(), 1)
+
+    # ---- inline JS building HTML must not be read as markup
+    def test_inline_js_string_concatenation_is_not_a_reference(self):
+        # live.html builds a link as '<a href="' + DEST_URL + '" ...>'. A naive
+        # href scan reads that as a reference to the literal text
+        # "' + DEST_URL + '", which is how a phantom target got reported.
+        self.write("index.html", page(
+            "<h1>x</h1><script>"
+            "var DEST_URL='https://example.com/';"
+            "document.write('<a href=\"' + DEST_URL + '\">go</a>');"
+            "</script>"
+        ))
+        self.assertEqual(self.run_check(), 0)
+
+    def test_style_block_content_is_not_a_reference(self):
+        self.write("index.html", page(
+            "<h1>x</h1><style>/* content: '/assets/nope.png' */</style>"
+        ))
+        self.assertEqual(self.run_check(), 0)
+
+    def test_comment_content_is_not_a_reference(self):
+        self.write("index.html", page(
+            "<h1>x</h1><!-- href=\"/assets/gone.css\" -->"
+        ))
+        self.assertEqual(self.run_check(), 0)
+
+    def test_real_markup_after_a_script_is_still_checked(self):
+        # Stripping script bodies must not swallow the rest of the document.
+        self.write("index.html", page(
+            "<h1>x</h1><script>var a=1;</script>"
+            '<link rel="stylesheet" href="/assets/missing.css">'
+        ))
+        self.assertEqual(self.run_check(), 1)
+
+    def test_strip_non_markup_keeps_tags(self):
+        out = mod.strip_non_markup("<script>var a='<b>';</script><p>keep</p>")
+        self.assertIn("<script>", out)
+        self.assertIn("<p>keep</p>", out)
+        self.assertNotIn("var a", out)
+
+    # ---- the ".." invariant, pinned rather than assumed
+    def test_dot_dot_cannot_escape_the_site_root(self):
+        # me_dir is always absolute, so posixpath.normpath clamps leading ".."
+        # at the root and the joined path can never point outside _site. Pinned
+        # because resolving against a relative base later would reintroduce a
+        # traversal, and a ".." target that silently escaped would be invisible.
+        for me_dir, ref in (("/", "../../releases"), ("/privacy/", "../../releases"),
+                            ("/", "../../../etc/passwd")):
+            with self.subTest(me_dir=me_dir, ref=ref):
+                normed = posixpath.normpath(posixpath.join(me_dir, ref))
+                self.assertFalse(normed.startswith(".."))
+                self.assertTrue(normed.startswith("/"))
+
+    def test_dot_dot_reference_is_reported_not_resolved_outside(self):
+        self.write("SECURITY.html", page('<h1>x</h1><a href="../../releases">R</a>'))
+        self.assertEqual(self.run_check(), 0)  # warns, does not fail
+        self.assertTrue(os.path.isdir(self.site))
 
     # ---- mirrors the real homepage, to de-risk a spurious CI failure
     def test_real_homepage_shape_passes_with_warnings_only(self):

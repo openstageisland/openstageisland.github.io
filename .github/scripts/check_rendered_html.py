@@ -56,6 +56,18 @@ CSP_META = re.compile(
 # otherwise be read as a real element and produce phantom findings. Stripped
 # once, up front, so every rule below sees only rendered content.
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+# Inline JS frequently builds HTML by string concatenation. live.html has
+# '<a href="' + DEST_URL + '" ...', which a naive href scan reads as a reference
+# to the literal text "' + DEST_URL + '". Tags are kept so the CSP rule can
+# still count them; only the bodies are dropped.
+SCRIPT_STYLE_BODY = re.compile(
+    r"(<(?:script|style)\b[^>]*>).*?(</(?:script|style)\s*>)", re.I | re.S
+)
+
+
+def strip_non_markup(html: str) -> str:
+    """Drop comments and <script>/<style> bodies, keeping the tags themselves."""
+    return SCRIPT_STYLE_BODY.sub(r"\1\2", HTML_COMMENT.sub(" ", html))
 
 SCRIPT_TAG = re.compile(r"<script(?P<attrs>[^>]*)>", re.I)
 SCRIPT_TYPE = re.compile(r"\stype\s*=\s*[\"']?([^\"'\s>]+)", re.I)
@@ -165,7 +177,7 @@ def check_csp(html: str, rel: str) -> list[str]:
 def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
     rel = os.path.relpath(path, site_dir).replace(os.sep, "/")
     with open(path, encoding="utf-8", errors="replace") as fh:
-        html = HTML_COMMENT.sub(" ", fh.read())
+        html = strip_non_markup(fh.read())
 
     problems: list[str] = []
 

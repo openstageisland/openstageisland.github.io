@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import os
 import posixpath
+import re
 import sys
 
 # href/src prefixes that are not local file references.
@@ -42,6 +43,23 @@ ASSET_EXTENSIONS = {
     ".mp3", ".mp4", ".webm", ".ogg", ".wav",
     ".json", ".xml", ".txt", ".pdf", ".zip",
 }
+
+# <script>/<style> bodies are not markup. Inline JS frequently builds HTML as
+# string concatenation -- live.html has '<a href="' + DEST_URL + '" ...' -- and a
+# naive href/src scan reads that as a reference to the literal text
+# "' + DEST_URL + '". The tags are kept (so CSP rules can still see them); only
+# the bodies are dropped.
+SCRIPT_STYLE_BODY = re.compile(
+    r"(<(?:script|style)\b[^>]*>).*?(</(?:script|style)\s*>)",
+    re.I | re.S,
+)
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+
+
+def strip_non_markup(html: str) -> str:
+    """Blank out comments and <script>/<style> bodies, keeping the tags."""
+    html = HTML_COMMENT.sub(" ", html)
+    return SCRIPT_STYLE_BODY.sub(r"\1\2", html)
 
 
 def load_baseurl(config_path: str) -> str:
@@ -123,7 +141,7 @@ def check_page(path: str, site_dir: str, baseurl: str) -> tuple[list[tuple[str, 
     me_dir = posixpath.dirname(me) or "/"
 
     with open(path, encoding="utf-8", errors="replace") as fh:
-        html = fh.read()
+        html = strip_non_markup(fh.read())
 
     errors: list[tuple[str, str]] = []
     warnings: list[tuple[str, str]] = []
