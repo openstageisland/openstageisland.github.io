@@ -31,12 +31,3 @@ jobs:
     uses: openstageisland/doctor/.github/workflows/reusable-doctor.yml@main
     with:
       target_repo: ${{ github.repository }}
-
-  # Full profile, on a schedule or a manual dispatch: adds the cross-repo stages
-  # and applies the safe fixes the doctor is allowed to make.
-  stage-c:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: openstageisland/doctor/.github/workflows/reusable-doctor.yml@main
-    with:
-      target_repo: ${{ github.repository }}
-      fix: true
