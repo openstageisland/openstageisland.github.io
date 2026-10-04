@@ -17,6 +17,40 @@
   --chrome-gap: 12px;
   /* Total always-on chrome at the bottom of the viewport. */
   --chrome-bottom: calc(var(--ai-dock-h, 52px) + var(--bottom-bar-h));
+
+  /* ---------------------------------------------------------------------
+   * Shared-widget token bridge.
+   *
+   * assets/css/network-ux.css and assets/css/auth-bar.css are synced to all
+   * four *.github.io sites from template-shared/ and read a neutral vocabulary
+   * (--bg, --fg, --border, --accent, ...). This site defines its own tokens
+   * (--color-*). Every one of those shared reads carried a hard-coded dark
+   * fallback, so the assistant dock, the screenwide conversation sheet and the
+   * network widgets all rendered dark-on-light: 24 tokens unresolved, and all
+   * 16 of this site's own tokens unread by the shared CSS.
+   *
+   * Aliased rather than forked. The shared CSS is left untouched, so a
+   * template-shared sync cannot reintroduce the mismatch, and both themes stay
+   * correct because every alias resolves through a --color-* token that
+   * style.css redefines under prefers-color-scheme: dark.
+   *
+   * Enforced by .github/scripts/check_css_tokens.py.
+   * ------------------------------------------------------------------- */
+  --bg: var(--color-bg);
+  --bg-card: var(--color-surface);
+  --bg-elevated: var(--color-surface);
+  --fg: var(--color-text);
+  --muted: var(--color-text);
+  --fg-muted: color-mix(in srgb, var(--color-text) 74%, transparent);
+  --fg-subtle: color-mix(in srgb, var(--color-text) 56%, transparent);
+  --border: var(--color-border);
+  --accent: var(--color-accent);
+  --accent-strong: var(--color-accent-hover);
+  --accent-dim: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius-sm: 6px;
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
 /* Reserve room so content can scroll clear of the fixed chrome at the bottom

@@ -75,6 +75,7 @@ jobs:
           python3 .github/scripts/test_check_rendered_html.py
           python3 .github/scripts/test_check_local_references.py
           python3 .github/scripts/test_check_config.py
+          python3 .github/scripts/test_check_css_tokens.py
           node --test .github/scripts/test_check_workflows.test.js
           node --test .github/scripts/test_check_workflows_expressions.test.js
 
@@ -87,6 +88,16 @@ jobs:
         # --no-network keeps it deterministic and credential-free; cross-repo
         # reusable-workflow resolution needs `gh` and is run manually.
         run: python3 .github/scripts/check_workflows.py --no-network
+
+      - name: Validate design-token bridge
+        # network-ux.css and auth-bar.css are synced to all four *.github.io
+        # sites and read a neutral vocabulary (--fg, --bg-card, --border,
+        # --accent). This site defines --color-*. Every shared read carries a
+        # hard-coded fallback, so a missing token is silent and the assistant
+        # dock, the screenwide conversation sheet and the network widgets render
+        # in the fallback palette instead of the site's. site-chrome.css bridges
+        # the two; this asserts the bridge still covers the shared CSS.
+        run: python3 .github/scripts/check_css_tokens.py --site .
 
       - name: Validate _config.yml
         # Was an inline `python3 -c "..."` block whose Python sat at column 0
