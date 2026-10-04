@@ -34,7 +34,7 @@
        sponsor-cta.html set style="" attributes and network-ux.js assigns
        element.style.cssText, both of which style-src governs. -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://neohiro.github.io; base-uri 'self'; form-action 'self'">
+        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://neohiro.github.io https://mainframe.taild879f3.ts.net; base-uri 'self'; form-action 'self'">
   {% seo %}
 </head>
 <body>
@@ -54,6 +54,8 @@
     {% include counter-widget.html %}
     <p>&copy; 2021&ndash;2026 Open Stage Island documentation hub</p>
     {% include footer-button-row.html org="openstageisland" %}{% include ecosystem-network.html %}
+        {% include heartbeat-status.html %}
+
   </footer>
 
   {%- comment -%}
