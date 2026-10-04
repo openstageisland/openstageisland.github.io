@@ -73,6 +73,7 @@ jobs:
         run: |
           python3 .github/scripts/test_check_publish_artifacts.py
           python3 .github/scripts/test_check_rendered_html.py
+          python3 .github/scripts/test_check_local_references.py
           python3 .github/scripts/test_check_config.py
 
       - name: Validate _config.yml
@@ -108,33 +109,14 @@ jobs:
         # exclusion actually took effect.
         run: python3 .github/scripts/check_publish_artifacts.py --site _site --config _config.yml
 
-      - name: Validate local asset references in generated HTML
-        run: |
-          set -euo pipefail
-          # For every src/href in generated HTML, verify local paths resolve
-          warnings=0
-          while IFS= read -r ref; do
-            clean="${ref%%#*}"
-            clean="${clean%%\?*}"
-            clean="${clean//\"/}"
-            [ -n "$clean" ] || continue
-            # Skip absolute URLs and special schemes
-            [[ "$clean" =~ ^https?:// ]] && continue
-            [[ "$clean" =~ ^// ]] && continue
-            [[ "$clean" =~ ^secondlife:// ]] && continue
-            [[ "$clean" =~ ^mailto: ]] && continue
-            [[ "$clean" =~ ^data: ]] && continue
-            [[ "$clean" =~ ^# ]] && continue
-            [[ "$clean" =~ ^/ ]] && continue
-            [[ -z "$clean" ]] && continue
-            if [ ! -f "_site/$clean" ] && [ ! -d "_site/$clean" ]; then
-              echo "::warning file=_site/$clean::Broken local reference in site: $ref -> '$clean'"
-              warnings=$((warnings+1))
-            fi
-          done < <(grep -rhoE '(href|src)="[^"]*"' _site/ | sed -E 's/^(href|src)="//; s/"$//' | sort -u)
-          echo "Local reference check complete: $warnings warning(s)"
-          # Fail only on real broken refs (not minor)
-          # Emit a summary even if warnings exist so CI is informative
+      - name: Validate local asset references
+        # Replaces a shell pipeline that skipped every reference starting with
+        # "/". Because `relative_url` emits root-absolute paths when baseurl is
+        # empty, it inspected zero references on this site while reporting
+        # success, and missed three live 404s. Missing assets fail; missing
+        # page links warn, because the network's shared partials link to pages
+        # (/privacy/, /tos/, /dashboard/) that only the hub site serves.
+        run: python3 .github/scripts/check_local_references.py --site _site --config _config.yml
 
   deploy:
     runs-on: ubuntu-24.04

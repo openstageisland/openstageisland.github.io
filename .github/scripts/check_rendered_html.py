@@ -59,7 +59,7 @@ def find_pages(site_dir: str) -> list[str]:
     return sorted(pages)
 
 
-def check_page(path: str, site_dir: str) -> list[str]:
+def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
     rel = os.path.relpath(path, site_dir).replace(os.sep, "/")
     with open(path, encoding="utf-8", errors="replace") as fh:
         html = fh.read()
@@ -106,11 +106,16 @@ def check_page(path: str, site_dir: str) -> list[str]:
         bad("duplicate element id(s): " + ", ".join(dupes[:6]))
 
     # Internal anchors must resolve on the same page. Both bare fragments
-    # ("#faq") and absolute links to this same page ("/#faq", used by the
-    # global top bar) count as same-document; a link to a *different* page is
-    # out of scope here and is left to the reference validator.
+    # ("#faq") and absolute links to this same page ("/#faq", used by the global
+    # top bar) count as same-document; a link to a *different* page is out of
+    # scope here and is left to the reference validator.
+    #
+    # baseurl matters: with a non-empty baseurl every generated path is
+    # prefixed, so comparing raw hrefs against the output-relative URL would
+    # silently exempt every anchor. With --baseurl passed, coverage is kept.
     me = page_url(rel)
     dangling = set()
+    checked = 0
     for href in ANY_LINK.findall(html):
         hash_at = href.find("#")
         if hash_at == -1:
@@ -118,15 +123,24 @@ def check_page(path: str, site_dir: str) -> list[str]:
         frag = href[hash_at + 1:]
         if not frag:
             continue
-        path = href[:hash_at]
-        # Strip any query string; only the path decides the document.
-        path = path.split("?")[0]
+        path = href[:hash_at].split("?")[0]
+        if baseurl:
+            if path == baseurl:
+                path = "/"
+            elif path.startswith(baseurl + "/"):
+                path = path[len(baseurl):]
         if path and path != me:
             continue
+        checked += 1
         if frag not in set(ids):
             dangling.add(frag)
     if dangling:
         bad("anchor(s) with no target: " + ", ".join(sorted(dangling)[:8]))
+    elif baseurl and checked == 0:
+        print(
+            f"::warning file={args.site}/{rel}::no same-document anchors were checked; "
+            f"is --baseurl {baseurl!r} correct?"
+        )
 
     # Heading structure.
     levels = [int(h[1]) for h in HEADING.findall(html)]
@@ -149,11 +163,16 @@ def check_page(path: str, site_dir: str) -> list[str]:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site", default="_site")
+    parser.add_argument("--baseurl", default="",
+                        help="site.baseurl, so root-absolute anchors are still "
+                             "recognised as same-document")
     args = parser.parse_args(argv)
 
     if not os.path.isdir(args.site):
         print(f"::error::{args.site}/ does not exist - did the build run?")
         return 2
+
+    baseurl = args.baseurl.strip().rstrip("/")
 
     pages = find_pages(args.site)
     if not pages:
@@ -162,7 +181,7 @@ def main(argv: list[str]) -> int:
 
     all_problems: list[str] = []
     for page in pages:
-        all_problems.extend(check_page(page, args.site))
+        all_problems.extend(check_page(page, args.site, baseurl))
 
     if all_problems:
         print(f"::error::{len(all_problems)} structural problem(s) in {len(pages)} page(s):")

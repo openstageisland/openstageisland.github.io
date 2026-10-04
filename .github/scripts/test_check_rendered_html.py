@@ -66,9 +66,9 @@ class CheckerTest(unittest.TestCase):
     def run_check(self):
         return mod.main(["--site", self.site])
 
-    def problems_for(self, content: str) -> str:
+    def problems_for(self, content: str, baseurl: str = "") -> str:
         path = self.write("index.html", content)
-        return " | ".join(mod.check_page(path, self.site))
+        return " | ".join(mod.check_page(path, self.site, baseurl))
 
     # ---- the happy path must stay green
     def test_clean_page_passes(self):
@@ -131,6 +131,22 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual(mod.page_url("index.html"), "/")
         self.assertEqual(mod.page_url("privacy/index.html"), "/privacy/")
         self.assertEqual(mod.page_url("live.html"), "/live.html")
+
+    def test_baseurl_prefixed_anchor_is_still_same_document(self):
+        # With baseurl "/blog", the top bar emits "/blog/#faq". Without baseurl
+        # handling this would be treated as another page and silently skipped.
+        got = self.problems_for(
+            page('<h1>x</h1><section id="faq"></section><a href="/blog/#missing">go</a>'),
+            baseurl="/blog",
+        )
+        self.assertIn("missing", got)
+
+    def test_baseurl_prefixed_anchor_resolves_when_present(self):
+        got = self.problems_for(
+            page('<h1>x</h1><section id="faq"></section><a href="/blog/#faq">go</a>'),
+            baseurl="/blog",
+        )
+        self.assertEqual(got, "")
 
     def test_catches_duplicate_h1(self):
         got = self.problems_for(page("<h1>a</h1><h1>b</h1>"))
