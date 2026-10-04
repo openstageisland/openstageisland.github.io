@@ -58,23 +58,53 @@ class TokenGateTest(unittest.TestCase):
         self.write("assets/css/site-chrome.css", BRIDGE)
         self.assertEqual(self.run_gate(), 0)
 
-    def test_shared_css_may_define_its_own_tokens(self):
-        # A token the shared sheet both reads and declares needs no alias.
+    def test_alias_in_any_local_stylesheet_counts(self):
+        # The site sheets are discovered by glob, not a fixed list, so the gate
+        # stays correct on a site whose palette lives in assets/main.css.
+        self.write("assets/css/palette.css", ":root { --fg: #333; --bg-card: #fff; --border: #ddd; --accent: #09f; }")
+        self.assertEqual(self.run_gate(), 0)
+
+    def test_a_token_defined_only_in_a_shared_sheet_needs_no_alias(self):
         self.write("assets/css/network-ux.css", ":root { --fg: #fff; }\n" + SHARED)
         self.write("assets/css/site-chrome.css", BRIDGE)
         self.assertEqual(self.run_gate(), 0)
 
-    def test_status_colours_may_stay_unresolved(self):
-        # A fixed value is the correct behaviour for a status colour, so --green
-        # must not be reported.
-        self.write("assets/css/site-chrome.css", BRIDGE)
-        self.assertEqual(self.run_gate(), 0)
-
-    def test_alias_must_be_in_a_root_that_is_actually_loaded(self):
-        # Declaring the bridge in a stylesheet nothing links would not help, so
-        # the gate only trusts the two files the layout actually loads.
-        self.write("assets/css/unused.css", BRIDGE)
+    def test_commented_out_declaration_does_not_count(self):
+        # The silent-pass failure mode this gate exists to prevent: leaving the
+        # explanation of a deleted bridge behind would otherwise still satisfy it.
+        self.write("assets/css/site-chrome.css",
+                   "/* retired bridge:\n   :root { --fg: #333; --bg-card: #fff; "
+                   "--border: #ddd; --accent: #09f; }\n*/\n")
         self.assertEqual(self.run_gate(), 1)
+
+    def test_commented_var_reference_is_not_a_real_read(self):
+        # Prose mentioning var(--green) must not make an unresolved --green count
+        # as read in a way that masks a genuine mismatch.
+        self.write("assets/css/network-ux.css",
+                   SHARED + "\n/* documentation: var(--fg) explains the alias */\n")
+        self.assertEqual(self.run_gate(), 1)
+
+    def test_allowlist_holds_no_entries_the_shared_css_never_reads(self):
+        # The allowlist is sized against the real synced stylesheets, not against
+        # a fixture, so this invariant can only be checked against the repo.
+        # An entry nothing reads is a false promise of cover: it implies a token
+        # was reviewed when it may never have existed.
+        repo = os.path.normpath(os.path.join(HERE, "..", ".."))
+        used = set()
+        found_any = False
+        for rel in mod.SHARED_STYLESHEETS:
+            path = os.path.join(repo, *rel.split("/"))
+            if os.path.isfile(path):
+                found_any = True
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    used |= set(mod.USE.findall(mod.COMMENT.sub(" ", fh.read())))
+        if not found_any:
+            self.skipTest("shared stylesheets not present in this checkout")
+        stale = mod.ALLOWED_UNRESOLVED - used
+        self.assertEqual(
+            sorted(stale), [],
+            f"allowlist entries the shared CSS never reads: {sorted(stale)}",
+        )
 
     def test_missing_site_dir_is_an_error(self):
         shutil.rmtree(self.tmp)

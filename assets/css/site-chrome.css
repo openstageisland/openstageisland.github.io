@@ -41,8 +41,17 @@
   --bg-elevated: var(--color-surface);
   --fg: var(--color-text);
   --muted: var(--color-text);
-  --fg-muted: color-mix(in srgb, var(--color-text) 74%, transparent);
-  --fg-subtle: color-mix(in srgb, var(--color-text) 56%, transparent);
+  /* Muted and subtle foregrounds are the text colour composited toward the
+   * surface. Alphas are chosen so both clear WCAG AA (4.5:1) in BOTH themes
+   * while staying visibly stepped apart:
+   *   --fg-muted   light 6.71:1   dark 8.33:1
+   *   --fg-subtle  light 4.94:1   dark 6.74:1
+   * --fg-subtle at 0.56 was 3.33:1 on the light surface and failed AA.
+   * For reference the shared CSS's own fallbacks (#96a8b8, #6d7f8f) were written
+   * for a dark surface and manage only 2.44:1 and 4.13:1 on white, so aliasing
+   * to the site palette is what makes this legible in light mode at all. */
+  --fg-muted: color-mix(in srgb, var(--color-text) 80%, transparent);
+  --fg-subtle: color-mix(in srgb, var(--color-text) 70%, transparent);
   --border: var(--color-border);
   --accent: var(--color-accent);
   --accent-strong: var(--color-accent-hover);
