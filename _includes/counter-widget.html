@@ -4,12 +4,12 @@ counter-widget.html — unified visitor counter partial for the neohiro/FPM/OSI/
    Reads the visitor path from site config (preferred) or a local override:
      - site.counter_path (set in _config.yml) — auto-populated for all sites
      - include counter_path="..."           — manual override (rare)
-   The embed:
-     - Uses a visitor-badge image (no JS; Camo/GitHub-safe)
-     - Wraps in <div align="center"> for visual consistency
-     - Wraps in a no-referrer rel="noopener noreferrer nofollow" link for accessibility
-     - paths live in links-secret / visitor-counters.spec.yaml (SSOT)
-   Architecture (per AGENTS.md §template-shared):
+    The embed:
+      - Uses a visitor-badge image (no JS; Camo/GitHub-safe)
+      - Wraps in <div align="center"> for visual consistency
+      - Wraps in a no-referrer rel="noopener noreferrer nofollow" link for accessibility
+      - paths live in links-secret/counter-surfaces.spec.yaml (SSOT)
+    Architecture (per AGENTS.md §template-shared):
      1. Authoritative source: template-shared/_includes/counter-widget.html
      2. Synced to 4 sites via template-shared/sync-shared.sh
      3. Sites expose counter_path via _config.yml (site.counter_path)

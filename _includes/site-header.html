@@ -1,0 +1,40 @@
+{%- comment -%}
+site-header.html — top bar for the single-page visitor guide.
+
+Class structure mirrors the sibling Jekyll sites (neohiro.github.io,
+transhumanists.github.io):
+  .site-header > .container > .site-brand + .site-nav > .nav-link
+
+Two deliberate differences from those sites:
+
+  1. It is NOT sticky. assets/css/site-chrome.css pins it to `position:
+     static` so it scrolls away with the document; the persistent bottom bar
+     is the only always-on chrome. The siblings pin their header with
+     `position: sticky`, which must not be copied here.
+
+  2. There is no static login slot. The shared template's nav.html carries a
+     hand-written `.nav-login-slot`, but assets/js/network-ux.js
+     injectNavAuth() also injects Login / Dashboard / user chips into
+     `.site-nav`. Shipping both would render two Login controls, so this
+     include omits the static slot and lets injectNavAuth() own auth state.
+
+injectNavAuth() inserts its chips immediately before `.nav-sponsor`, so the
+sponsor link has to remain the final child of .site-nav.
+{%- endcomment -%}
+<header class="site-header" role="banner">
+  <div class="container">
+    <a class="site-brand" href="{{ '/' | relative_url }}" aria-label="Open Stage Island — home">
+      <span class="logo-mark" aria-hidden="true">&#127925;</span>
+      <span class="logo-text">Open Stage Island</span>
+    </a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="#welcome" class="nav-link">Guide</a>
+      <a href="#open-stage" class="nav-link">Play</a>
+      <a href="#reservations" class="nav-link">Book</a>
+      <a href="#location" class="nav-link">Visit</a>
+      <a href="#faq" class="nav-link">FAQ</a>
+      <a href="https://github.com/sponsors/{{ site.github_username | default: 'openstageisland' }}"
+         class="nav-link nav-sponsor" target="_blank" rel="noopener">&#9829; Sponsor</a>
+    </nav>
+  </div>
+</header>

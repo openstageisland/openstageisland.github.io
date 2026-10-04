@@ -5,7 +5,12 @@ baseurl: ""
 github_username: openstageisland
 github_repo: openstageisland.github.io
 
-# Visitor counter (SSOT: links-secret/counter-surfaces.spec.yaml)
+# Visitor counter. Rendered via _includes/counter-widget.html, which this
+# layout includes exactly once (in the footer) so a page view counts once.
+# NOTE: counter-surfaces.spec.yaml still records this site's freevisitorcounters
+# display_id (1631175), but the embeds here migrated to visitor-badge paths
+# (see that partial's changelog note). The path below is the live identity;
+# keep it in sync with any *_SLOT suffixes used by assets/js/live-data.js.
 counter_path: "github.com/openstageisland.github.io"
 
 markdown: kramdown
@@ -13,12 +18,19 @@ kramdown:
   input: GFM
   syntax_highlighter: rouge
 
+# {% seo %} in _layouts/default.html needs this plugin registered. Declared
+# explicitly (rather than relying on the GitHub Pages whitelist) so a local
+# `jekyll build` and the ci.yml build behave the same as production.
+plugins:
+  - jekyll-seo-tag
+
 exclude:
   - Gemfile
   - Gemfile.lock
   - node_modules
   - vendor
   - .github
+  - tests
   - README.md
   - LICENSE
   - "*.ps1"
