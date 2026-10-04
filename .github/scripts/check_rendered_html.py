@@ -39,7 +39,15 @@ BACKTICK_ARTIFACT = re.compile(r"`[nr]\b")
 
 HEADING = re.compile(r"<(h[1-6])[\s>]", re.I)
 ID_ATTR = re.compile(r"\sid=\"([^\"]+)\"", re.I)
-HASH_LINK = re.compile(r"href=\"#([^\"]+)\"", re.I)
+ANY_LINK = re.compile(r"href=\"([^\"]+)\"", re.I)
+
+
+def page_url(rel: str) -> str:
+    """Map an output file to the URL a browser would request for it."""
+    url = "/" + rel
+    if url.endswith("/index.html"):
+        return url[: -len("index.html")]
+    return url
 
 
 def find_pages(site_dir: str) -> list[str]:
@@ -97,10 +105,28 @@ def check_page(path: str, site_dir: str) -> list[str]:
     if dupes:
         bad("duplicate element id(s): " + ", ".join(dupes[:6]))
 
-    # Internal anchors must resolve on the same page.
-    dangling = sorted({a for a in HASH_LINK.findall(html) if a and a not in set(ids)})
+    # Internal anchors must resolve on the same page. Both bare fragments
+    # ("#faq") and absolute links to this same page ("/#faq", used by the
+    # global top bar) count as same-document; a link to a *different* page is
+    # out of scope here and is left to the reference validator.
+    me = page_url(rel)
+    dangling = set()
+    for href in ANY_LINK.findall(html):
+        hash_at = href.find("#")
+        if hash_at == -1:
+            continue
+        frag = href[hash_at + 1:]
+        if not frag:
+            continue
+        path = href[:hash_at]
+        # Strip any query string; only the path decides the document.
+        path = path.split("?")[0]
+        if path and path != me:
+            continue
+        if frag not in set(ids):
+            dangling.add(frag)
     if dangling:
-        bad("anchor(s) with no target: " + ", ".join(dangling[:6]))
+        bad("anchor(s) with no target: " + ", ".join(sorted(dangling)[:8]))
 
     # Heading structure.
     levels = [int(h[1]) for h in HEADING.findall(html)]

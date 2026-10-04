@@ -108,6 +108,30 @@ class CheckerTest(unittest.TestCase):
         got = self.problems_for(page('<h1>x</h1><a href="#nope">go</a>'))
         self.assertIn("anchor(s) with no target", got)
 
+    def test_absolute_link_to_same_page_is_checked(self):
+        # The global top bar links to the guide as "/#faq". On the guide that
+        # is same-document and must resolve; on another page it is out of scope.
+        got = self.problems_for(
+            page('<h1>x</h1><section id="faq"></section><a href="/#missing">go</a>')
+        )
+        self.assertIn("missing", got)
+
+    def test_absolute_link_to_same_page_resolves_when_present(self):
+        got = self.problems_for(
+            page('<h1>x</h1><section id="faq"></section><a href="/#faq">go</a>')
+        )
+        self.assertEqual(got, "")
+
+    def test_link_to_another_page_is_out_of_scope(self):
+        # "/privacy/#faq" from the guide is not this page's anchor to validate.
+        got = self.problems_for(page('<h1>x</h1><a href="/privacy/#faq">go</a>'))
+        self.assertEqual(got, "")
+
+    def test_nested_page_url_is_derived_correctly(self):
+        self.assertEqual(mod.page_url("index.html"), "/")
+        self.assertEqual(mod.page_url("privacy/index.html"), "/privacy/")
+        self.assertEqual(mod.page_url("live.html"), "/live.html")
+
     def test_catches_duplicate_h1(self):
         got = self.problems_for(page("<h1>a</h1><h1>b</h1>"))
         self.assertIn("exactly one <h1>", got)
