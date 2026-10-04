@@ -613,5 +613,5 @@ body.ai-conv-active .ai-dock {
 .svg-embed figcaption {
   margin-top: 0.5rem;
   font-size: 0.8rem;
-  color: var(--muted, #6e7681);
+  color: var(--fg-muted, #6e7681);
 }
