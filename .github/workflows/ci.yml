@@ -75,6 +75,18 @@ jobs:
           python3 .github/scripts/test_check_rendered_html.py
           python3 .github/scripts/test_check_local_references.py
           python3 .github/scripts/test_check_config.py
+          node --test .github/scripts/test_check_workflows.test.js
+          node --test .github/scripts/test_check_workflows_expressions.test.js
+
+      - name: Validate workflow definitions
+        # A workflow whose YAML does not parse cannot be loaded by GitHub at
+        # all: the run is reported as failed with zero jobs and no logs, which
+        # is indistinguishable from infrastructure flakiness in review. ci.yml
+        # and heartbeat.yml were both unloadable here for their whole life.
+        # Runs first so a malformed workflow is reported before anything else.
+        # --no-network keeps it deterministic and credential-free; cross-repo
+        # reusable-workflow resolution needs `gh` and is run manually.
+        run: python3 .github/scripts/check_workflows.py --no-network
 
       - name: Validate _config.yml
         # Was an inline `python3 -c "..."` block whose Python sat at column 0

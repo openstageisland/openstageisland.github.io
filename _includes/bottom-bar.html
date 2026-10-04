@@ -15,7 +15,16 @@ aria-current="true" on the chip for the section currently in view.
 {%- endcomment -%}
 {%- assign guide_ids = "welcome,music,open-stage,reservations,streaming,hosting,membership,about,features,location,live,faq,estate,links,network" | split: "," -%}
 {%- assign guide_labels = "Welcome,Music,Open Stage,Reservations,Streaming,Hosting,Membership,About,Features,Visit,Live,FAQ,Estate,Links,Network" | split: "," -%}
-<nav class="bottom-bar" aria-label="Guide sections">
+<nav class="bottom-bar" aria-label="Guide sections and Second Life signup">
+  {%- comment -%}
+     Signup CTA, a sibling of the chip strip rather than a chip inside it: the
+     strip scrolls horizontally, and a chip in it would scroll out of sight
+     after a few sections. Out here it stays put for the whole guide. It is the
+     only control in the bar that leaves the page, so it carries its own
+     rel="noopener", and it deliberately has no data-section-link:
+     assets/js/section-nav.js follows that attribute and would otherwise try to
+     scroll to a section that does not exist.
+  {%- endcomment -%}
   <ul class="bottom-bar__list">
 {%- for guide_id in guide_ids -%}
 {%- comment -%} Fall back to the id so a forgotten label degrades to a usable
@@ -26,4 +35,9 @@ aria-current="true" on the chip for the section currently in view.
 </li>
 {%- endfor -%}
   </ul>
+  <a class="bottom-bar__cta" href="https://join.secondlife.com/" rel="noopener"
+     title="Create a free Second Life account — it costs nothing to make an avatar">
+    <span class="bottom-bar__cta-icon" aria-hidden="true">🎟️</span>
+    Register free
+  </a>
 </nav>

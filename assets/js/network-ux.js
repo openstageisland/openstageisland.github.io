@@ -31,9 +31,34 @@
     mountAssistantBar();
     fillAvatarSlots(document.body); // ai-dock chat avatar (site identity)
     injectNavAuth();
+    wireDockToConversation();
     detectStranger();
     wireInteractions();
     runDiagnostics();
+  }
+
+  /* ── Dock → conversation hand-off ──────────────────────────────────────
+     AI and Contact are one surface. The dock's Assistant tab does not open a
+     dock panel: it slides the dock down and lets the screenwide sheet come up in
+     its place. Selecting Assistant twice, or pressing Esc, puts the dock back. */
+  function wireDockToConversation() {
+    var tab = document.getElementById('ai-dock__tab--ai');
+    if (tab && !tab.dataset.convWired) {
+      tab.dataset.convWired = '1';
+      tab.addEventListener('click', function () {
+        // Collapse any dock panel first so the rail is its resting state.
+        if (window.AuthBar && typeof window.AuthBar.selectTab === 'function') {
+          window.AuthBar.selectTab(null);
+        }
+        if (isConvOpen()) hideConversationModal();
+        else showConversationModal();
+      });
+    }
+    // The rail and the ask bar occupy the same bottom slot; let CSS know so it
+    // can stack them instead of overlapping.
+    if (document.getElementById('ai-dock')) {
+      document.body.classList.add('ai-dock-present');
+    }
   }
 
   /* ── Universal interaction wiring (ripples, tilt, reveal) ─── */
@@ -211,10 +236,16 @@
    * (transhumanists/openstageisland allow https:). */
   var SITE_AVATAR = (function () {
     var host = (location.hostname || '').toLowerCase();
-    if (host.indexOf('frenzypenguin') === 0)    return '/assets/profile.png';
-    if (host.indexOf('transhumanists') === 0)   return 'https://github.com/transhumanists.png';
-    if (host.indexOf('openstageisland') === 0)  return 'https://github.com/openstageisland.png';
-    if (host.indexOf('neohiro') === 0)          return '/assets/profile.png';
+    // Exact hostname match to prevent subdomain spoofing (e.g. frenzypenguin-attacker.com)
+    var exact = {
+      'neohiro.github.io':           '/assets/profile.png',
+      'frenzypenguin-media.github.io': '/assets/profile.png',
+      'transhumanists.github.io':    'https://github.com/transhumanists.png',
+      'openstageisland.github.io':   'https://github.com/openstageisland.png',
+    };
+    if (exact[host]) return exact[host];
+    // Fallback: known subdomains of neohiro org
+    if (host.endsWith('.neohiro.github.io') || host === 'neohiro.github.io') return '/assets/profile.png';
     return '/assets/profile.png';
   })();
 
@@ -231,7 +262,7 @@
   }
 
   // Injects the org avatar into every assistant avatar slot + the
-  // conversation header brand. The slot's existing glyph (✦ / 🤖) stays
+  // conversation header brand. The slot's existing glyph (✦ / ðŸ¤–) stays
   // underneath as a graceful offline fallback: if the image errors out it
   // is removed and the glyph + tinted circle remain.
   function fillAvatarSlots(root) {
@@ -329,13 +360,48 @@
           </div>
         </div>
         <div class="ai-conv__footer">
+          <button type="button" class="ai-conv__message-toggle" id="ai-conv__message-toggle"
+                  aria-expanded="false" aria-controls="ai-conv__triage">
+            Leave a message
+          </button>
           <span class="ai-conv__notice">We collect information so we can learn more about you</span>
           <a class="ai-conv__privacy" href="https://neohiro.github.io/privacy/" rel="noopener" target="_blank">Privacy</a>
         </div>
+
+        {# Voicemail triage. Two questions decide where a message ends up, so
+           they are asked before the message itself. Hidden until requested, and
+           it never blocks reading the conversation above it. #}
+        <form class="ai-conv__triage hidden" id="ai-conv__triage" novalidate>
+          <p class="ai-conv__triage-lede">
+            This goes to a person, not the assistant. Two quick answers so it lands
+            in the right place.
+          </p>
+          <label class="ai-conv__triage-row">
+            <span>Who are you?</span>
+            <span class="ai-conv__triage-pair">
+              <input type="text" name="name" maxlength="120" placeholder="name" aria-label="Your name" autocomplete="name">
+              <input type="text" name="contact" maxlength="200" placeholder="email or handle" aria-label="How to reply to you" autocomplete="email">
+            </span>
+          </label>
+          <label class="ai-conv__triage-row">
+            <span>What is it about?</span>
+            <input type="text" name="about" maxlength="200" placeholder="a bug, access, docs, an idea…" aria-label="What this is about">
+          </label>
+          <label class="ai-conv__triage-row">
+            <span>Message</span>
+            <textarea name="message" rows="3" maxlength="4000" required
+                      placeholder="Say it here. Nothing is stored in your browser."></textarea>
+          </label>
+          <div class="ai-conv__triage-actions">
+            <button type="submit" class="ai-conv__triage-send" id="ai-conv__triage-send">Send</button>
+            <span class="ai-conv__triage-status" id="ai-conv__triage-status" role="status" aria-live="polite"></span>
+          </div>
+        </form>
       </div>
     `;
     document.body.appendChild(modal);
     fillAvatarSlots(modal); // org avatar in conversation header + welcome bubble
+    wireVoicemail(modal);
     // Close handlers
     document.getElementById('ai-conv__close').addEventListener('click', hideConversationModal);
     // Esc to close (handler is page-singleton; no leak)
@@ -370,6 +436,69 @@
     return m && !m.classList.contains('hidden');
   }
 
+  /* ── Voicemail triage wiring ────────────────────────────────────────────
+     The point of this form is that a message is never lost. brain-bridge
+     fsyncs before it acknowledges, so a "queued" receipt means it is on disk;
+     on failure we say so plainly and leave the text in the box so the visitor
+     can copy it rather than retype it. */
+  function wireVoicemail(modal) {
+    var toggle = modal.querySelector('#ai-conv__message-toggle');
+    var form = modal.querySelector('#ai-conv__triage');
+    if (!toggle || !form) return;
+
+    toggle.addEventListener('click', function () {
+      var open = form.classList.contains('hidden');
+      form.classList.toggle('hidden', !open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        var name = form.querySelector('[name="name"]');
+        // Pre-fill from the GitHub session when there is one: signed-in visitors
+        // should not have to identify themselves twice.
+        var auth = currentAuth();
+        if (auth && name && !name.value) name.placeholder = auth.login + ' (signed in)';
+        if (name) name.focus();
+      }
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var status = form.querySelector('#ai-conv__triage-status');
+      var send = form.querySelector('#ai-conv__triage-send');
+      var message = (form.querySelector('[name="message"]').value || '').trim();
+      if (!message) {
+        status.textContent = 'Add a message first.';
+        form.querySelector('[name="message"]').focus();
+        return;
+      }
+
+      var who = {
+        name: (form.querySelector('[name="name"]').value || '').trim(),
+        contact: (form.querySelector('[name="contact"]').value || '').trim()
+      };
+      var about = (form.querySelector('[name="about"]').value || '').trim();
+
+      send.disabled = true;
+      status.textContent = 'Sending…';
+
+      sendVoicemail(message, who, about).then(function (res) {
+        send.disabled = false;
+        if (res.ok) {
+          appendConvMessage('assistant',
+            'Queued for a human' + (res.receipt ? ' — reference ' + res.receipt : '') +
+            '. It is on disk now, so it will not be lost.');
+          form.reset();
+          form.classList.add('hidden');
+          toggle.setAttribute('aria-expanded', 'false');
+          status.textContent = '';
+        } else {
+          // Do not clear the box. The visitor keeps their words and can retry or
+          // copy them out.
+          status.textContent = 'Could not reach the inbox — your text is still here. Copy it and try again shortly.';
+        }
+      });
+    });
+  }
+
   var _prevFocus = null;
   var _closeTid = 0;
 
@@ -385,10 +514,17 @@
     void m.offsetWidth;
     m.classList.add('ai-conv--open');
     m.setAttribute('aria-modal', 'true');
-    // Focus first focusable element inside the modal chrome.
-    var first = m.querySelector('input, textarea, button, [tabindex]:not([tabindex="-1"])');
-    if (first) first.focus();
-    else m.focus();
+    // Body-level flag: slides the ask bar down and keeps the dock out of the way.
+    document.body.classList.add('ai-conv-active');
+    // Move the reader's focus to the close button rather than the first focusable
+    // (which is the heart status pill) so Esc-and-dismiss is discoverable.
+    var close = m.querySelector('.ai-conv__close');
+    if (close) close.focus();
+    else {
+      var first = m.querySelector('input, textarea, button, [tabindex]:not([tabindex="-1"])');
+      if (first) first.focus();
+      else m.focus();
+    }
   }
 
   function hideConversationModal() {
@@ -403,6 +539,7 @@
       m.classList.remove('ai-conv--closing');
     }, 240);
     m.setAttribute('aria-modal', 'false');
+    document.body.classList.remove('ai-conv-active');
     // Restore focus to the element that was active before the modal opened.
     // Guard: the original element may have been removed from the DOM
     // (e.g. a card that got re-rendered). Only restore if still focusable.
@@ -720,7 +857,41 @@ function renderSafeHtml(html) {
     'https://neohiro.github.io/.well-known/heartbeat',
     'https://neohiro.github.io/heartbeats/health.json'
   ];
-  const MOUTH_ENDPOINT = 'https://neohiro.github.io/.well-known/ask';
+
+  /* Where the assistant's traffic actually goes.
+   *
+   * The four public sites are GitHub Pages — static files with no compute — so
+   * nothing on that origin can answer /.well-known/ask. brain-bridge is the
+   * process that does: it runs on the mainframe node, calls Brain, falls back to
+   * Mouth, and durably queues anything that is really a message to a human.
+   * See network/brain_bridge/README.md.
+   *
+   * A fork can point at its own bridge without editing this file:
+   *   <script>window.NEOHIRO_BRIDGE = 'https://brain.example.internal';</script>
+   */
+  const BRIDGE_URL = (window.NEOHIRO_BRIDGE || 'https://neohiro.github.io').replace(/\/+$/, '');
+  const MOUTH_ENDPOINT = BRIDGE_URL + '/.well-known/ask';
+  const VOICEMAIL_ENDPOINT = BRIDGE_URL + '/.well-known/voicemail';
+  const SITE_KEY = (function () {
+    var h = (location.hostname || '').toLowerCase();
+    if (h.indexOf('transhumanists') >= 0) return 'transhumanists';
+    if (h.indexOf('openstageisland') >= 0) return 'openstageisland';
+    if (h.indexOf('frenzypenguin') >= 0) return 'frenzypenguin-media';
+    return 'neohiro';
+  })();
+
+  // The GitHub session, when the visitor is signed in, so the bridge knows who
+  // is writing instead of guessing from an email-shaped string.
+  function currentAuth() {
+    try {
+      var raw = localStorage.getItem('neohiro_session_v1');
+      if (!raw) return null;
+      var s = JSON.parse(raw);
+      if (!s || !s.login || !Number.isFinite(s.expiresAt) || s.expiresAt < Date.now()) return null;
+      return { login: s.login, role: s.role || (s.login === 'neohiro' ? 'godadmin' : 'user') };
+    } catch (_) { return null; }
+  }
+
   let _heartUp = null;
   let _heartProbed = false;
 
@@ -754,13 +925,44 @@ function renderSafeHtml(html) {
 
   function fetchMouthReply(q) {
     return fetchWithTimeout(
-      MOUTH_ENDPOINT + '?q=' + encodeURIComponent(q),
+      MOUTH_ENDPOINT + '?q=' + encodeURIComponent(q) +
+        '&site=' + encodeURIComponent(SITE_KEY),
       { cache: 'no-store', mode: 'cors' },
       10000
     )
       .then(function (r) { if (!r.ok) throw new Error('Mouth HTTP ' + r.status); return r.json(); })
       .then(function (j) { return j && (j.reply || j.answer || j.text) || null; })
       .catch(function () { return null; });
+  }
+
+  /* ── Voicemail ──────────────────────────────────────────────────────────
+     A question the assistant cannot answer becomes a message for a human, and
+     that message must not evaporate. It is POSTed to brain-bridge, which
+     fsyncs it before acknowledging, so a "queued" receipt is a promise.
+     Returns {ok, receipt} — the caller shows the receipt either way. */
+  function sendVoicemail(message, who, about) {
+    return fetchWithTimeout(
+      VOICEMAIL_ENDPOINT,
+      {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-store',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          message: message,
+          site: SITE_KEY,
+          page: location.pathname,
+          referrer: document.referrer || null,
+          about: about || '',
+          who: who || {},
+          auth: currentAuth()
+        })
+      },
+      12000
+    )
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+      .then(function (res) { return { ok: res.ok, receipt: (res.body && res.body.id) || null }; })
+      .catch(function () { return { ok: false, receipt: null }; });
   }
 
   function detectStranger() {
@@ -784,7 +986,7 @@ function renderSafeHtml(html) {
   }
 
   /* ── AI assistant input bar (full width) ──────────────────────── */
-  function mountAssistantBar() {
+function mountAssistantBar() {
     if (document.getElementById('ai-bar')) return;
 
     recordCurrent(); // register this page for the cross-domain back button
@@ -827,19 +1029,26 @@ function renderSafeHtml(html) {
       </div>
     `;
 
-    // Insert into hero-content if present (hero middle), otherwise fall back to body
-    const heroContent = document.querySelector('.hero-content');
-    if (heroContent) {
-      heroContent.appendChild(wrap);
+    // Mount point. Preference order:
+    //   1. an explicit [data-ai-bar-slot] the site provides (full control)
+    //   2. the hero CTA row (this is where the ask bar belongs)
+    //   3. the live-signal section (legacy fallback)
+    // It must NOT land in the live-signal section by default any more: that
+    // section is now below the fold behind a full-height hero, and the ask bar
+    // is meant to read as the hero's primary action.
+    const slot = document.querySelector('[data-ai-bar-slot]');
+    const heroCta = document.querySelector('.hero-cta');
+    const typewriterWrap = document.querySelector('.typewriter-wrap');
+    if (slot) {
+      slot.appendChild(wrap);
+    } else if (heroCta && heroCta.parentNode) {
+      heroCta.parentNode.insertBefore(wrap, heroCta.nextSibling);
+    } else if (typewriterWrap) {
+      typewriterWrap.parentNode.insertBefore(wrap, typewriterWrap);
     } else {
       document.body.appendChild(wrap);
     }
-
-    // Add bottom padding so the bar doesn't cover content (idempotent)
-    if (!document.documentElement.style.getPropertyValue('--ai-bar-pad')) {
-      document.documentElement.style.setProperty('--ai-bar-pad', '110px');
-      document.documentElement.style.paddingBottom = 'var(--ai-bar-pad)';
-    }
+    document.body.classList.add('ai-bar-mounted');
 
     const form = document.getElementById('ai-bar__form');
     const input = document.getElementById('ai-bar__input');
@@ -847,12 +1056,13 @@ function renderSafeHtml(html) {
     form.addEventListener('submit', onAsk);
     // Live char counter: shows how much is left so users self-correct
     // before hitting the 600-char cap and getting a silent truncation.
-    function updateCounter() {
-      var n = input.value.length;
-      counter.textContent = n + ' / 600';
-      counter.classList.toggle('ai-bar__counter--near', n >= 540);
-      counter.classList.toggle('ai-bar__counter--over', n > 600);
-    }
+function updateCounter() {
+        var n = input.value.length;
+        counter.textContent = n + ' / 600';
+        counter.classList.toggle('ai-bar__counter--near', n >= 540);
+        counter.classList.toggle('ai-bar__counter--over', n > 600);
+        form.classList.toggle('has-content', n > 0);
+      }
     input.addEventListener('input', updateCounter);
     updateCounter();
     // Cute dynamic cursor: shift placeholder text on focus/blur
@@ -1016,7 +1226,7 @@ If you want to see heartbeats for the org, open [/heartbeats/](https://neohiro.g
     }
     if (isMedia) {
       return `
-**Media hub:** [FrenzyPenguin Media](https://neohiro.github.io/media/) — video deep-dives on hardening, exploit mitigation, and privacy engineering.
+**Media hub:** [FrenzyPenguin Media](https://neohiro.github.io/media/) — music artist recordings and creative content.
 
 **YouTube:** [@FrenzyPenguinMedia](https://www.youtube.com/FrenzyPenguinMedia?sub_confirmation=1)
       `.trim();
@@ -1120,8 +1330,15 @@ Got it — I can help you with that. To give you the most useful answer, tell me
     const nav = document.querySelector('.site-nav') || document.querySelector('header nav') || document.querySelector('nav');
     if (!nav) return;
 
-    // Skip if already present
-    if (nav.querySelector('[data-nav-auth]')) return;
+    // nav.html now renders the auth slot statically (with data-nav-auth), so the
+    // common case is "markup already present". Only build the legacy inline
+    // version when it is missing — but ALWAYS run the state sync, otherwise the
+    // static buttons would sit on "Login" forever.
+    if (nav.querySelector('[data-nav-auth]')) {
+      wireNavAuthControls();
+      syncAuthFromBar();
+      return;
+    }
 
     const frag = document.createDocumentFragment();
 
@@ -1142,10 +1359,10 @@ Got it — I can help you with that. To give you the most useful answer, tell me
       if (window.AuthBar && typeof window.AuthBar.selectTab === 'function') {
         window.AuthBar.selectTab('login');
       } else {
-        // Fallback: try to open the GitHub auth-bar drawer
-        const authTab = document.getElementById('auth-bar__tab--login');
+        // Fallback: try to open the bottom AI dock login tab
+        const authTab = document.getElementById('ai-dock__tab--login');
         if (authTab) authTab.click();
-        else showToast('Sign in: open the Login tab in the floating panel (top right).');
+        else showToast('Sign in: open the Login tab in the AI dock (bottom of the page).');
       }
     });
     frag.appendChild(login);
@@ -1182,8 +1399,29 @@ Got it — I can help you with that. To give you the most useful answer, tell me
     if (sponsor) nav.insertBefore(frag, sponsor);
     else nav.appendChild(frag);
 
+    wireNavAuthControls();
+
     // Sync with auth-bar's existing session if any
     syncAuthFromBar();
+  }
+
+  // One delegated handler for the Login control, whether it was just injected or
+  // came from nav.html. Guarded by a data flag so repeated boots cannot stack
+  // duplicate listeners on the same element.
+  function wireNavAuthControls() {
+    var login = document.getElementById('nav-auth__login');
+    if (login && !login.dataset.navAuthWired) {
+      login.dataset.navAuthWired = '1';
+      login.addEventListener('click', function () {
+        if (window.AuthBar && typeof window.AuthBar.selectTab === 'function') {
+          window.AuthBar.selectTab('login');
+        } else {
+          var authTab = document.getElementById('ai-dock__tab--login');
+          if (authTab) authTab.click();
+          else showToast('Sign in with the Login button in the top bar.');
+        }
+      });
+    }
   }
 
   function syncAuthFromBar() {
@@ -1348,3 +1586,4 @@ Got it — I can help you with that. To give you the most useful answer, tell me
   // Expose
   window.NEohiro = NEohiro;
 })();
+

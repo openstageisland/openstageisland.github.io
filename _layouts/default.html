@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="{{ "/assets/css/network-ux.css" | relative_url }}">
   <link rel="stylesheet" href="{{ "/assets/css/auth-bar.css" | relative_url }}">
   <link rel="stylesheet" href="{{ "/assets/css/site-chrome.css" | relative_url }}">
+  <link rel="stylesheet" href="{{ "/assets/css/ecosystem-network.css" | relative_url }}">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
   <!-- Content-Security-Policy. Restricts the live-data iframe to the SL
        destination origin. The visitor counter is a visitor-badge image served
@@ -53,9 +54,18 @@
   <footer role="contentinfo">
     {% include counter-widget.html %}
     <p>&copy; 2021&ndash;2026 Open Stage Island documentation hub</p>
-    {% include footer-button-row.html org="openstageisland" %}{% include ecosystem-network.html %}
-        {% include heartbeat-status.html %}
-
+    {% include footer-button-row.html org="openstageisland" %}
+    {%- comment -%}
+    Ecosystem Network frame: the unified cross-site footer block, included once
+    per page so every page carries the same four-card directory of the network.
+    Sits last in the footer, below the copyright note and the button row, with
+    clear space above it. ecosystem-network.css reserves room underneath for the
+    AI/contact dock and, where the guide's persistent section bar is rendered,
+    for that bar too, so the frame is never trapped under the fixed chrome.
+    `current` marks this site's own card.
+    {%- endcomment -%}
+    {% include ecosystem-network.html current="openstageisland" %}
+    {% include heartbeat-status.html %}
   </footer>
 
   {%- comment -%}
@@ -78,5 +88,6 @@
   <script src="{{ "/assets/js/network-ux.js" | relative_url }}" defer></script>
   <script src="{{ "/assets/js/live-data.js" | relative_url }}" defer></script>
   <script src="{{ "/assets/js/section-nav.js" | relative_url }}" defer></script>
+  <script src="{{ "/assets/js/heartbeat-status.js" | relative_url }}" defer></script>
 </body>
 </html>
