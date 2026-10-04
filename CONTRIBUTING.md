@@ -1,3 +1,9 @@
+---
+layout: default
+title: "Contributing"
+description: "How to contribute to Open Stage Island: reporting issues, suggesting improvements and sending patches."
+canonical: "https://openstageisland.github.io/CONTRIBUTING/"
+---
 # Contributing to Open Stage Island
 
 Thank you for contributing to the Open Stage Island documentation hub!
