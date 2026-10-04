@@ -67,75 +67,58 @@ jobs:
         # `node --test` are not portable across Node 20-24.
         run: node --test tests/*.test.js
 
-      - name: Validate _config.yml
+      - name: Validate workflow definitions
+        # A workflow whose YAML does not parse cannot be loaded by GitHub at all:
+        # the run is reported as failed with zero jobs and no logs. ci.yml was
+        # itself unloadable for exactly that reason, so this gate could not live
+        # only in ci.yml. Runs first and fails fast.
         run: |
-          set -euo pipefail
-          python3 -c "
-import sys, yaml
-try:
-    with open('_config.yml', encoding='utf-8') as f:
-        c = yaml.safe_load(f)
-    for k in ('url', 'github_username'):
-        if k not in c:
-            print(f'::error::Missing required key: {k}')
-            sys.exit(1)
-    print(f'url: {c[\"url\"]}')
-    print(f'github_username: {c[\"github_username\"]}')
-    print('valid _config.yml')
-except Exception as e:
-    print(f'::error::YAML parse error: {e}')
-    sys.exit(1)
-" 2>&1 || { echo "YAML validation failed"; exit 1; }
+          # --no-network keeps this gate deterministic and credential-free: it
+          # validates only this repo's files. Cross-repo reusable-workflow
+          # resolution (archived deps, missing workflow_call) needs `gh` and is
+          # run manually via `python3 scripts/check-workflows.py`.
+          python3 scripts/check-workflows.py --no-network
+
+      - name: Validate _config.yml
+        run: python3 scripts/check-config.py _config.yml
 
       - name: Set up Ruby and Jekyll
-        run: |
-          set -euo pipefail
-          ruby_version=$(grep -oP 'ruby "\K[^"]+' Gemfile 2>/dev/null || echo "3.3.0")
-          echo "Installing Ruby ${ruby_version}..."
-          # Install bundler and gems
-          gem install bundler --no-document
-          bundle install --jobs=4 --retry=3
+        # Replaces a hand-rolled `gem install bundler`, which fails on
+        # ubuntu-24.04 with Gem::FilePermissionError: the runner's system gem
+        # directory (/var/lib/gems/3.2.0) is not writable, so setup never
+        # completed and the build step was skipped. setup-ruby provisions a
+        # user-writable Ruby and `bundler-cache` runs bundle install for us.
+        # Same change as the other openstageisland ci fix; needed here so this
+        # branch's build can actually run and be verified.
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
 
       - name: Build site
         run: bundle exec jekyll build --trace 2>&1
 
+      # Publish the rendered site even when a later validation step fails.
+      # Without this, a failure in the HTML checks is undiagnosable: the
+      # annotations only say which assertion failed, never what was rendered.
+      - name: Upload rendered site
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ github.run_number }}-${{ github.sha }}
+          path: _site
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Validate generated HTML
-        run: |
-          set -euo pipefail
-          failures=0
-          for f in _site/**/*.html _site/*.html; do
-            [ -f "$f" ] || continue
-            ok=1
-            if ! grep -qi "<!doctype html>" "$f"; then
-              echo "::error file=$f::Missing <!DOCTYPE html>"
-              ok=0
-            fi
-            if ! grep -q '<html[^>]*\blang=' "$f"; then
-              echo "::error file=$f::Missing <html lang=...>"
-              ok=0
-            fi
-            if ! grep -q '<title>[^<]+</title>' "$f"; then
-              echo "::error file=$f::Missing or empty <title>"
-              ok=0
-            fi
-            if ! grep -q 'name="description"' "$f"; then
-              echo "::error file=$f::Missing meta description"
-              ok=0
-            fi
-            # Section balance check
-            open=$(grep -c '<section\b' "$f" 2>/dev/null || echo 0)
-            close=$(grep -c '</section>' "$f" 2>/dev/null || echo 0)
-            if [ "$open" -ne "$close" ]; then
-              echo "::error file=$f::Unbalanced <section> tags ($open open vs $close close)"
-              ok=0
-            fi
-            if [ "$ok" -eq 1 ]; then
-              echo "✓ $f passed structural checks"
-            else
-              failures=$((failures+1))
-            fi
-          done
-          [ "$failures" -eq 0 ] || { echo "$failures HTML file(s) failed"; exit 1; }
+        # Replaces grep-based assertions such as
+        #   grep -q '<title>[^<]+</title>' "$f"
+        # which reported every page as "Missing or empty <title>" despite the
+        # rendered pages all carrying a title. Byte-oriented grep over HTML is
+        # fragile - multi-byte characters, entities and the `+` quantifier after
+        # a negated class all change the result without changing the document.
+        # Parsing does not have that failure mode.
+        run: python3 scripts/check-html.py _site
 
       - name: Validate local asset references in generated HTML
         run: |
