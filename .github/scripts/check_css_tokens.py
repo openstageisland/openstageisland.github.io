@@ -36,26 +36,49 @@ import sys
 
 DECL = re.compile(r"(--[A-Za-z0-9_-]+)\s*:")
 USE = re.compile(r"var\(\s*(--[A-Za-z0-9_-]+)")
+# Comments are not CSS. A commented-out `:root { --fg: ... }` must not count as
+# a declaration, or deleting the bridge and leaving its explanation behind would
+# still satisfy the gate -- the same silent-pass failure mode this exists to
+# catch. Prose such as "see var(--fg) for details" is likewise not a real read.
+COMMENT = re.compile(r"/\*.*?\*/", re.S)
 
 # Stylesheets synced across the network. These read the neutral vocabulary.
 SHARED_STYLESHEETS = ("assets/css/network-ux.css", "assets/css/auth-bar.css")
 
-# Local stylesheets that define this site's palette.
-SITE_STYLESHEETS = ("assets/style.css", "assets/css/site-chrome.css")
+# Glob for the site's own stylesheets rather than a fixed list. A hardcoded pair
+# was wrong twice over: it missed assets/css/ecosystem-network.css and
+# neohiro-widgets.css here, and the same script copied to neohiro.github.io or
+# frenzypenguin-media.github.io -- whose palette lives in assets/main.css -- would
+# have reported every token unresolved.
+SITE_CSS_GLOB = "assets/**/*.css"
 
 # Tokens whose value is intentionally the same on every site, so a fallback is
-# the correct behaviour rather than a theme mismatch.
+# the correct behaviour rather than a theme mismatch. Kept to only those the
+# shared CSS actually reads; an entry nothing reads is a false promise of cover.
 ALLOWED_UNRESOLVED = {
     # status / semantic colours, fixed per meaning across the network
-    "--green", "--amber", "--red", "--cyan", "--purple", "--blue", "--pink",
+    "--green", "--amber", "--red", "--cyan", "--purple",
     # spacing and sizing steppers local to a component
-    "--mx", "--my", "--sx", "--sy", "--ai-bar-pad", "--dock-h",
+    "--mx", "--my", "--sy", "--ai-bar-pad",
 }
 
 
 def read(path: str) -> str:
     with open(path, encoding="utf-8", errors="replace") as fh:
-        return fh.read()
+        return COMMENT.sub(" ", fh.read())
+
+
+def site_stylesheets(root: str) -> list[str]:
+    """Every stylesheet on the site except the synced pair, in stable order."""
+    import glob as _glob
+
+    shared = set(SHARED_STYLESHEETS)
+    found = []
+    for abs_path in _glob.glob(os.path.join(root, *SITE_CSS_GLOB.split("/")), recursive=True):
+        rel = os.path.relpath(abs_path, root).replace(os.sep, "/")
+        if rel not in shared:
+            found.append(rel)
+    return sorted(found)
 
 
 def collect(paths, pattern, root):
@@ -78,7 +101,7 @@ def main(argv: list[str]) -> int:
         print(f"::error::{args.site} is not a directory")
         return 2
 
-    declared = set(collect(SITE_STYLESHEETS, DECL, args.site))
+    declared = set(collect(site_stylesheets(args.site), DECL, args.site))
     declared |= set(collect(SHARED_STYLESHEETS, DECL, args.site))
     used = collect(SHARED_STYLESHEETS, USE, args.site)
 
