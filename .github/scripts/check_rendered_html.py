@@ -50,9 +50,36 @@ CSP_META = re.compile(
     r"content=(?P<q>[\"'])(?P<policy>.*?)(?P=q)",
     re.I | re.S,
 )
-INLINE_SCRIPT = re.compile(r"<script(?![^>]*\ssrc=)[^>]*>", re.I)
+SCRIPT_TAG = re.compile(r"<script(?P<attrs>[^>]*)>", re.I)
+SCRIPT_TYPE = re.compile(r"\stype\s*=\s*[\"']?([^\"'\s>]+)", re.I)
 # on*="..." as an attribute, e.g. onclick=, onerror=, onload=
 EVENT_ATTR = re.compile(r"\son[a-z]+\s*=\s*[\"']", re.I)
+
+# A <script> whose type is absent or executable runs, and is therefore governed
+# by script-src. Anything else -- application/ld+json, application/json,
+# text/template -- is a data block: the browser never executes it and CSP does
+# not apply. jekyll-seo-tag emits JSON-LD data blocks, so counting those as
+# inline script would report every page as broken.
+EXECUTABLE_SCRIPT_TYPES = {
+    "", "module", "importmap", "speculationrules",
+    "text/javascript", "application/javascript",
+    "text/ecmascript", "application/ecmascript",
+    "text/x-javascript", "application/x-javascript",
+}
+
+
+def inline_executable_scripts(html: str) -> int:
+    """Count inline <script> elements that the browser would actually execute."""
+    count = 0
+    for match in SCRIPT_TAG.finditer(html):
+        attrs = match.group("attrs")
+        if re.search(r"\ssrc\s*=", attrs, re.I):
+            continue
+        type_match = SCRIPT_TYPE.search(attrs)
+        script_type = type_match.group(1).strip().lower() if type_match else ""
+        if script_type in EXECUTABLE_SCRIPT_TYPES:
+            count += 1
+    return count
 
 
 def page_url(rel: str) -> str:
@@ -101,7 +128,7 @@ def check_csp(html: str, rel: str) -> list[str]:
     if not script_src:
         return problems  # absent script-src falls back to default-src; not checked
 
-    inline_scripts = len(INLINE_SCRIPT.findall(html))
+    inline_scripts = inline_executable_scripts(html)
     event_handlers = len(EVENT_ATTR.findall(html))
     inline_total = inline_scripts + event_handlers
     permits_inline = "'unsafe-inline'" in script_src
@@ -122,7 +149,6 @@ def check_csp(html: str, rel: str) -> list[str]:
             "script or event handler; drop it to narrow the XSS surface"
         )
     return problems
-
 
 def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
     rel = os.path.relpath(path, site_dir).replace(os.sep, "/")

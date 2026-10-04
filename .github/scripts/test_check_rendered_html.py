@@ -254,6 +254,39 @@ class CheckerTest(unittest.TestCase):
         csp = "default-src 'self'"
         self.assertEqual(self.problems_for(page("<h1>x</h1>", csp=csp)), "")
 
+    def test_json_ld_data_block_is_not_inline_script(self):
+        # jekyll-seo-tag emits <script type="application/ld+json">. The browser
+        # never executes it and CSP does not apply, so counting it would report
+        # every page as broken. Caught on the first live CI run.
+        ld = '<script type="application/ld+json">{"@type":"WebSite"}</script>'
+        got = self.problems_for(page(f"<h1>x</h1>{ld}{ld}", csp=self.TIGHT))
+        self.assertEqual(got, "", "JSON-LD must not count as inline script")
+
+    def test_json_ld_does_not_satisfy_a_stale_unsafe_inline(self):
+        ld = '<script type="application/ld+json">{"@type":"WebSite"}</script>'
+        got = self.problems_for(page(f"<h1>x</h1>{ld}", csp=self.LOOSE))
+        self.assertIn("drop it", got,
+                      "a data block must not excuse a stale unsafe-inline")
+
+    def test_executable_types_still_counted(self):
+        for stype in ('type="module"', 'type="text/javascript"',
+                      'type="application/javascript"', ""):
+            with self.subTest(type=stype):
+                attr = f" {stype}" if stype else ""
+                got = self.problems_for(
+                    page(f'<h1>x</h1><script{attr}>go()</script>', csp=self.TIGHT)
+                )
+                self.assertIn("lacks 'unsafe-inline'", got)
+
+    def test_non_executable_types_not_counted(self):
+        for stype in ("application/ld+json", "application/json", "text/template"):
+            with self.subTest(type=stype):
+                got = self.problems_for(
+                    page(f'<h1>x</h1><script type="{stype}">data</script>',
+                         csp=self.TIGHT)
+                )
+                self.assertEqual(got, "")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
