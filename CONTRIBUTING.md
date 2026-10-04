@@ -41,5 +41,6 @@ For large changes, open an issue first to discuss the approach.
 
 ## Code of conduct
 
-All contributors are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+All contributors are expected to follow our
+[Code of Conduct](https://github.com/openstageisland/openstageisland.github.io/blob/main/CODE_OF_CONDUCT.md).
 This project is LGBTQI+ friendly and furry-friendly. Be respectful to all visitors.

@@ -67,20 +67,32 @@ jobs:
         # `node --test` are not portable across Node 20-24.
         run: node --test tests/*.test.js
 
-      - name: Validate workflow definitions
-        # A workflow whose YAML does not parse cannot be loaded by GitHub at all:
-        # the run is reported as failed with zero jobs and no logs. ci.yml was
-        # itself unloadable for exactly that reason, so this gate could not live
-        # only in ci.yml. Runs first and fails fast.
+      - name: Unit tests (CI gate scripts)
+        # The gates below can only be exercised against a real build, so their
+        # own logic is tested here against synthetic fixtures.
         run: |
-          # --no-network keeps this gate deterministic and credential-free: it
-          # validates only this repo's files. Cross-repo reusable-workflow
-          # resolution (archived deps, missing workflow_call) needs `gh` and is
-          # run manually via `python3 scripts/check-workflows.py`.
-          python3 scripts/check-workflows.py --no-network
+          python3 .github/scripts/test_check_publish_artifacts.py
+          python3 .github/scripts/test_check_rendered_html.py
+          python3 .github/scripts/test_check_local_references.py
+          python3 .github/scripts/test_check_config.py
+          node --test .github/scripts/test_check_workflows.test.js
+          node --test .github/scripts/test_check_workflows_expressions.test.js
+
+      - name: Validate workflow definitions
+        # A workflow whose YAML does not parse cannot be loaded by GitHub at
+        # all: the run is reported as failed with zero jobs and no logs, which
+        # is indistinguishable from infrastructure flakiness in review. ci.yml
+        # and heartbeat.yml were both unloadable here for their whole life.
+        # Runs first so a malformed workflow is reported before anything else.
+        # --no-network keeps it deterministic and credential-free; cross-repo
+        # reusable-workflow resolution needs `gh` and is run manually.
+        run: python3 .github/scripts/check_workflows.py --no-network
 
       - name: Validate _config.yml
-        run: python3 scripts/check-config.py _config.yml
+        # Was an inline `python3 -c "..."` block whose Python sat at column 0
+        # inside this `run: |` scalar. That terminated the block and made the
+        # whole workflow file invalid YAML, so ci.yml never ran at all.
+        run: python3 .github/scripts/check_config.py --config _config.yml
 
       - name: Set up Ruby and Jekyll
         # Replaces a hand-rolled `gem install bundler`, which fails on
@@ -88,8 +100,6 @@ jobs:
         # directory (/var/lib/gems/3.2.0) is not writable, so setup never
         # completed and the build step was skipped. setup-ruby provisions a
         # user-writable Ruby and `bundler-cache` runs bundle install for us.
-        # Same change as the other openstageisland ci fix; needed here so this
-        # branch's build can actually run and be verified.
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
@@ -98,55 +108,27 @@ jobs:
       - name: Build site
         run: bundle exec jekyll build --trace 2>&1
 
-      # Publish the rendered site even when a later validation step fails.
-      # Without this, a failure in the HTML checks is undiagnosable: the
-      # annotations only say which assertion failed, never what was rendered.
-      - name: Upload rendered site
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: site-${{ github.run_number }}-${{ github.sha }}
-          path: _site
-          retention-days: 7
-          if-no-files-found: error
-
       - name: Validate generated HTML
-        # Replaces grep-based assertions such as
-        #   grep -q '<title>[^<]+</title>' "$f"
-        # which reported every page as "Missing or empty <title>" despite the
-        # rendered pages all carrying a title. Byte-oriented grep over HTML is
-        # fragile - multi-byte characters, entities and the `+` quantifier after
-        # a negated class all change the result without changing the document.
-        # Parsing does not have that failure mode.
-        run: python3 scripts/check-html.py _site
+        # Replaces an inline grep pipeline. The same basics are still checked
+        # (doctype, lang, title, description, balanced <section>) and are now
+        # joined by rules that need real rendered output: unrendered Liquid,
+        # duplicate ids, dangling #anchors, and heading structure.
+        run: python3 .github/scripts/check_rendered_html.py --site _site
 
-      - name: Validate local asset references in generated HTML
-        run: |
-          set -euo pipefail
-          # For every src/href in generated HTML, verify local paths resolve
-          warnings=0
-          while IFS= read -r ref; do
-            clean="${ref%%#*}"
-            clean="${clean%%\?*}"
-            clean="${clean//\"/}"
-            [ -n "$clean" ] || continue
-            # Skip absolute URLs and special schemes
-            [[ "$clean" =~ ^https?:// ]] && continue
-            [[ "$clean" =~ ^// ]] && continue
-            [[ "$clean" =~ ^secondlife:// ]] && continue
-            [[ "$clean" =~ ^mailto: ]] && continue
-            [[ "$clean" =~ ^data: ]] && continue
-            [[ "$clean" =~ ^# ]] && continue
-            [[ "$clean" =~ ^/ ]] && continue
-            [[ -z "$clean" ]] && continue
-            if [ ! -f "_site/$clean" ] && [ ! -d "_site/$clean" ]; then
-              echo "::warning file=_site/$clean::Broken local reference in site: $ref -> '$clean'"
-              warnings=$((warnings+1))
-            fi
-          done < <(grep -rhoE '(href|src)="[^"]*"' _site/ | sed -E 's/^(href|src)="//; s/"$//' | sort -u)
-          echo "Local reference check complete: $warnings warning(s)"
-          # Fail only on real broken refs (not minor)
-          # Emit a summary even if warnings exist so CI is informative
+      - name: Validate published artifacts
+        # _config.yml's exclude: list is the only thing keeping working files
+        # out of the public site, and it fails silently. This asserts the
+        # exclusion actually took effect.
+        run: python3 .github/scripts/check_publish_artifacts.py --site _site --config _config.yml
+
+      - name: Validate local asset references
+        # Replaces a shell pipeline that skipped every reference starting with
+        # "/". Because `relative_url` emits root-absolute paths when baseurl is
+        # empty, it inspected zero references on this site while reporting
+        # success, and missed three live 404s. Missing assets fail; missing
+        # page links warn, because the network's shared partials link to pages
+        # (/privacy/, /tos/, /dashboard/) that only the hub site serves.
+        run: python3 .github/scripts/check_local_references.py --site _site --config _config.yml
 
   deploy:
     runs-on: ubuntu-24.04
@@ -160,9 +142,10 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Ruby and Jekyll
-        run: |
-          gem install bundler --no-document
-          bundle install --jobs=4 --retry=3
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
 
       - name: Build site
         run: bundle exec jekyll build

@@ -1,5 +1,5 @@
 /*
- * Regression tests for the expression check in scripts/check-workflows.py.
+ * Regression tests for the expression check in .github/scripts/check_workflows.py.
  *
  * The bug: GitHub validates `${{ }}` expressions with a grammar stricter than
  * YAML. Property access, indexing and built-in functions are fine; method calls
@@ -27,8 +27,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const REPO = path.resolve(__dirname, '..');
-const CHECKER = path.join(REPO, 'scripts', 'check-workflows.py');
+const REPO = path.resolve(__dirname, '..', '..');
+const CHECKER = path.join(REPO, '.github', 'scripts', 'check_workflows.py');
 
 const PYTHON = (() => {
   for (const candidate of ['python3', 'python']) {

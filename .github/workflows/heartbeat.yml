@@ -19,9 +19,10 @@ jobs:
           git diff --staged --quiet || (git -c user.name="N3Vr0Tr4nsm1tt3r" -c user.email="cns@neohiro.io" commit -m "OSI FB feed sync [skip ci]" && git push)
 
       - name: Generate OSI heartbeats
-        # The SVG is a multi-line JS template literal. Inlined in a `run: |`
-        # block, its column-0 lines terminated the YAML block scalar, so the
-        # workflow could never be parsed. See scripts/check-workflows.py.
+        # The SVG is a multi-line JS template literal. Inlined in this `run: |`
+        # block, the lines starting at column 0 terminated the YAML block scalar,
+        # so the workflow could never be parsed and failed on all 26 recorded
+        # runs. frenzypenguin-media hit the same bug and fixed it the same way.
         run: node scripts/generate-heartbeat.js
 
       - name: Commit

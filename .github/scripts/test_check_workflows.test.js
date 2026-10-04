@@ -1,5 +1,5 @@
 /*
- * Regression tests for scripts/check-workflows.py.
+ * Regression tests for .github/scripts/check_workflows.py.
  *
  * The bug class: a workflow whose YAML does not parse cannot be loaded by
  * GitHub at all. The run shows as failed with zero jobs and no logs, so it is
@@ -22,8 +22,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const REPO = path.resolve(__dirname, '..');
-const CHECKER = path.join(REPO, 'scripts', 'check-workflows.py');
+const REPO = path.resolve(__dirname, '..', '..');
+const CHECKER = path.join(REPO, '.github', 'scripts', 'check_workflows.py');
 
 // Windows runners expose `python`, POSIX runners `python3`. Try both.
 const PYTHON = (() => {

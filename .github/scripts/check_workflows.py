@@ -29,7 +29,7 @@ What it checks
 
 Usage
 -----
-    python3 scripts/check-workflows.py [--dir .github/workflows] [--no-network]
+    python3 .github/scripts/check_workflows.py [--dir .github/workflows] [--no-network]
 
 Exit codes: 0 = all good, 1 = at least one problem (all problems are reported).
 `--no-network` skips check 4 so the script runs offline in unit tests.

@@ -47,6 +47,9 @@ function makeEnv(opts) {
   const win = {
     innerHeight: viewportH,
     pageYOffset: opts.currentY || 0,
+    /* Pathname of the document under test; opts.path overrides it so a test can
+     * pretend to be on a non-guide page. */
+    location: { pathname: opts.path || "/", hash: opts.hash || "" },
     focused: null,
     /* Recorded scroll targets, in call order. */
     scrolls: [],
@@ -461,8 +464,9 @@ test("moves keyboard focus into the target section", () => {
     "heading needs tabindex=-1 to be programmatically focusable");
 });
 
-test("intercepts guide links but leaves the skip link to the browser", () => {
+test("intercepts guide links but leaves other pages and the skip link to the browser", () => {
   const env = makeEnv({ sections: { faq: 4000 }, currentY: 0 });
+  const here = env.win.location.pathname;
 
   function click(target, extra) {
     const ev = Object.assign({
@@ -475,7 +479,8 @@ test("intercepts guide links but leaves the skip link to the browser", () => {
   }
 
   /* Builds an anchor stub with a real classList, so class-based guards in the
-   * production code are exercised the way the browser would exercise them. */
+   * production code are exercised the way the browser would exercise them.
+   * `path` is the href's resolved pathname, mirroring how the DOM reports it. */
   function anchorStub(href, className) {
     const classes = String(className || "").split(/\s+/).filter(Boolean);
     return {
@@ -483,6 +488,7 @@ test("intercepts guide links but leaves the skip link to the browser", () => {
       classList: {
         contains(c) { return classes.indexOf(c) !== -1; }
       },
+      pathname: href.charAt(0) === "#" ? here : href.split("#")[0],
       getAttribute(n) { return n === "href" ? href : null; }
     };
   }
@@ -490,6 +496,24 @@ test("intercepts guide links but leaves the skip link to the browser", () => {
   const guideEvent = click({ closest: () => anchorStub("#faq") });
   assert.strictEqual(guideEvent.defaultPrevented, true,
     "guide anchor clicks should be handled");
+
+  /* The global top bar uses "/#faq". On the guide that resolves to the current
+   * document, so it must animate in place rather than navigate. */
+  const absoluteSameDoc = click({ closest: () => anchorStub("/#faq") });
+  assert.strictEqual(absoluteSameDoc.defaultPrevented, true,
+    "an absolute link to this same page should animate, not navigate");
+
+  /* On another page the same href points somewhere else: let the browser go. */
+  const otherEnv = makeEnv({ sections: { faq: 4000 }, currentY: 0, path: "/privacy/" });
+  const absoluteElsewhere = {
+    button: 0, defaultPrevented: false,
+    preventDefault() { this.defaultPrevented = true; },
+    target: { closest: () => anchorStub("/#faq") }
+  };
+  otherEnv.docHandlers.click.forEach((fn) => fn(absoluteElsewhere));
+  assert.strictEqual(absoluteElsewhere.defaultPrevented, false,
+    "a link to another page must be left to the browser");
+  assert.deepStrictEqual(otherEnv.win.scrolls, []);
 
   /* A skip link must jump instantly: an animated overshoot would delay the
    * content the user asked to skip to, which defeats the point of the link. */
@@ -506,6 +530,7 @@ test("modified clicks are left to the browser", () => {
     target: {
       closest: () => ({
         classList: { contains() { return false; } },
+        pathname: "/",
         getAttribute: () => "#faq"
       })
     }

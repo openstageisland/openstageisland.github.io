@@ -142,6 +142,13 @@ html {
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+  /* The chip strip and the signup CTA share the bar as a centred group. The
+     strip carries the overflow; the CTA does not shrink. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-inline: 0.5rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -155,10 +162,14 @@ html {
   align-items: center;
   gap: 0.15rem;
   list-style: none;
+  /* Shrink-to-fit so the strip scrolls inside whatever the CTA leaves, rather
+     than pushing the CTA off the bar. min-width:0 is what lets a flex item
+     shrink past its content width, which is what makes the scroll possible. */
+  flex: 0 1 auto;
+  min-width: 0;
   margin: 0;
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem 0.25rem;
   max-width: var(--max-content);
-  margin-inline: auto;
   /* 15 sections do not fit narrow viewports — scroll them instead of wrapping,
      so the bar keeps a constant height. */
   overflow-x: auto;
@@ -195,6 +206,54 @@ html {
   background: var(--color-stage);
   color: #fff;
   font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * Signup CTA
+ *
+ * The chip strip scrolls horizontally, so the "Register free" chip lives
+ * outside it as a non-shrinking sibling: the offer to make a free Second Life
+ * account — the one action that unlocks the venue — stays on screen however far
+ * the visitor has scrolled the sections.
+ *
+ * It is a sibling rather than a sticky item inside .bottom-bar__list on
+ * purpose. Sticky would pin it over the leading section chips, which
+ * assets/js/section-nav.js cannot scroll out from under it: revealChip() can
+ * only move the strip right, so those chips would stay hidden behind it.
+ * Keeping it out of the list also leaves revealChip()'s measurements — and the
+ * tests in tests/section-nav.test.js — measuring the same box they always did.
+ * ------------------------------------------------------------------------- */
+
+.bottom-bar__cta {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: var(--color-stage);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.bottom-bar__cta:hover,
+.bottom-bar__cta:focus-visible {
+  background: var(--color-stage-hover);
+  color: #fff;
+  text-decoration: none;
+}
+/* Darker yellow than --color-focus: the stage pink behind it needs more than
+   the usual 3:1 to stay visible. */
+.bottom-bar__cta:focus-visible {
+  outline: 3px solid #b8860b;
+  outline-offset: 2px;
+}
+
+.bottom-bar__cta-icon {
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 /* Keep the current chip in view when the observer moves the marker. */
@@ -399,6 +458,14 @@ a.estate-card .estate-name {
   .bottom-bar__link {
     padding: 0.3rem 0.55rem;
     font-size: 0.8rem;
+  }
+  /* Matched to the chips above so the two read as one control row. */
+  .bottom-bar__cta {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.8rem;
+  }
+  .bottom-bar__cta-icon {
+    display: none;
   }
   .guide-section > h2 {
     font-size: 1.35rem;

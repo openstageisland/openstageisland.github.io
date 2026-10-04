@@ -24,6 +24,23 @@ preload_hero: true
     <p class="tagline">A free, 24/7 open-air music stage in Second Life</p>
     <p class="tagline-secondary">Your paradise for electronic music!</p>
     <div class="cta-group">
+      {%- comment -%}
+      Signup CTA. First in the group and in the loudest colour on purpose: on a
+      phone the group wraps, so the first item is also the topmost and the one
+      a first-time visitor reads first. The stage is only reachable by people
+      who already have a Second Life account, and the hero's "Second Life
+      Destination" eyebrow is the mention this sits next to. Mirrored as a chip
+      in the persistent bottom bar (_includes/bottom-bar.html) so the offer
+      stays on screen for the whole guide.
+      {%- endcomment -%}
+      <a href="https://join.secondlife.com/" class="cta-button cta-join" rel="noopener"
+         title="Create a free Second Life account — it costs nothing to make an avatar">
+        <svg class="cta-join-icon" aria-hidden="true" focusable="false"
+             viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+        </svg>
+        Register free
+      </a>
       <a href="secondlife://Derwent/248/128/22" class="cta-button">
         Teleport in Second Life
       </a>
@@ -32,10 +49,12 @@ preload_hero: true
         Open in Web Maps
       </a>
     </div>
+    <p class="cta-hint">
+      New to Second Life? <strong>Creating an avatar is free</strong> — the
+      stage is open to every electronic music artist, no booking and no fee.
+    </p>
   </div>
 </header>
-
-<main id="main">
 
   <section class="intro-card" aria-labelledby="intro-heading">
     <h2 id="intro-heading" class="intro-heading">Take the stage. It's free.</h2>
@@ -46,12 +65,19 @@ preload_hero: true
       newcomers, LGBTQI+ residents, and furries in a magical-realism setting.
       The stage is yours whenever you want it.
     </p>
-    <a href="https://join.secondlife.com/" class="cta-button cta-themed" rel="noopener">
+    {%- comment -%}
+    Restates the hero's signup CTA once the visitor has read what the venue is.
+    Same wording ("Register free") as the hero button and the persistent
+    bottom-bar chip so the action has one name across the page, but a quieter
+    outline treatment: the hero owns the loud version.
+    {%- endcomment -%}
+    <a href="https://join.secondlife.com/" class="cta-button cta-outline" rel="noopener"
+       title="Create a free Second Life account — it costs nothing to make an avatar">
       <svg class="cta-themed-icon" aria-hidden="true" focusable="false"
            viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
         <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
       </svg>
-      Join Free on Second Life
+      Register free
     </a>
   </section>
 
@@ -538,4 +564,3 @@ preload_hero: true
     </div>
   </section>
 
-</main>
