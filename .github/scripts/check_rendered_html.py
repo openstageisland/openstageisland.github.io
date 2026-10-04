@@ -50,6 +50,13 @@ CSP_META = re.compile(
     r"content=(?P<q>[\"'])(?P<policy>.*?)(?P=q)",
     re.I | re.S,
 )
+# HTML comments are not rendered, so they must not be scanned as markup. A
+# comment that merely *mentions* a tag -- such as the CSP note in
+# _layouts/default.html, which discusses <script> and on*= handlers -- would
+# otherwise be read as a real element and produce phantom findings. Stripped
+# once, up front, so every rule below sees only rendered content.
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.S)
+
 SCRIPT_TAG = re.compile(r"<script(?P<attrs>[^>]*)>", re.I)
 SCRIPT_TYPE = re.compile(r"\stype\s*=\s*[\"']?([^\"'\s>]+)", re.I)
 # on*="..." as an attribute, e.g. onclick=, onerror=, onload=
@@ -111,8 +118,13 @@ def check_csp(html: str, rel: str) -> list[str]:
         at all means the permission has gone stale and is quietly widening the
         XSS surface. That is the failure this whole gate exists to prevent, so
         it is reported rather than left to rot.
+
+    Comments are stripped here as well as in check_page, so this function is
+    correct for any caller. The layout's own CSP note mentions <script> and
+    on*= in prose, and reading that as markup reported every page as broken.
     """
     problems: list[str] = []
+    html = HTML_COMMENT.sub(" ", html)
     match = CSP_META.search(html)
     if not match:
         return problems
@@ -153,7 +165,7 @@ def check_csp(html: str, rel: str) -> list[str]:
 def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
     rel = os.path.relpath(path, site_dir).replace(os.sep, "/")
     with open(path, encoding="utf-8", errors="replace") as fh:
-        html = fh.read()
+        html = HTML_COMMENT.sub(" ", fh.read())
 
     problems: list[str] = []
 

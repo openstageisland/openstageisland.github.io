@@ -287,6 +287,46 @@ class CheckerTest(unittest.TestCase):
                 )
                 self.assertEqual(got, "")
 
+    # ---- comments are not markup
+    def test_comment_mentioning_script_is_not_inline_script(self):
+        # The CSP note in _layouts/default.html discusses <script> and on*=
+        # handlers in prose. Reading that as markup flagged all six pages.
+        got = self.problems_for(page(
+            "<h1>x</h1><!-- this layout has no inline <script> or on*= handler -->",
+            csp=self.TIGHT,
+        ))
+        self.assertEqual(got, "")
+
+    def test_comment_mentioning_on_handler_is_not_a_handler(self):
+        got = self.problems_for(page(
+            '<h1>x</h1><!-- see onclick= for details -->', csp=self.TIGHT
+        ))
+        self.assertEqual(got, "")
+
+    def test_commented_out_section_does_not_break_balance(self):
+        got = self.problems_for(page(
+            "<h1>x</h1><section><h2>a</h2></section><!-- <section>old</section> -->"
+        ))
+        self.assertEqual(got, "")
+
+    def test_commented_id_is_not_a_duplicate(self):
+        got = self.problems_for(page(
+            '<h1>x</h1><div id="dup"></div><!-- <span id="dup"></span> -->'
+        ))
+        self.assertEqual(got, "")
+
+    def test_commented_anchor_is_ignored_but_a_live_one_is_still_reported(self):
+        got = self.problems_for(page(
+            '<h1>x</h1><!-- <a href="#gone">x</a> --><a href="#alsogone">y</a>'
+        ))
+        # Assert the exact reported fragment: "gone" is a substring of
+        # "alsogone", so a plain containment check would be ambiguous.
+        self.assertEqual(got, "index.html: anchor(s) with no target: alsogone")
+
+    def test_comment_stripped_helper(self):
+        self.assertEqual(mod.HTML_COMMENT.sub(" ", "a<!-- x -->b"), "a b")
+        self.assertEqual(mod.HTML_COMMENT.sub(" ", "a<!--\nmultiline\n-->b"), "a b")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
