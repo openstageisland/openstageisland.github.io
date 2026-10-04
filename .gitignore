@@ -31,6 +31,11 @@ _site/
 node_modules/
 bower_components/
 
+# Python bytecode — produced when the .github/scripts gate tests import the
+# modules under test. Must never be committed or published.
+__pycache__/
+*.py[cod]
+
 # Append-only audit log — written every 5 min by counter-scrape workflow
 data/counter-events.ndjson
 

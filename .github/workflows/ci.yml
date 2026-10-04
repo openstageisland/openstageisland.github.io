@@ -67,25 +67,19 @@ jobs:
         # `node --test` are not portable across Node 20-24.
         run: node --test tests/*.test.js
 
-      - name: Validate _config.yml
+      - name: Unit tests (CI gate scripts)
+        # The gates below can only be exercised against a real build, so their
+        # own logic is tested here against synthetic fixtures.
         run: |
-          set -euo pipefail
-          python3 -c "
-import sys, yaml
-try:
-    with open('_config.yml', encoding='utf-8') as f:
-        c = yaml.safe_load(f)
-    for k in ('url', 'github_username'):
-        if k not in c:
-            print(f'::error::Missing required key: {k}')
-            sys.exit(1)
-    print(f'url: {c[\"url\"]}')
-    print(f'github_username: {c[\"github_username\"]}')
-    print('valid _config.yml')
-except Exception as e:
-    print(f'::error::YAML parse error: {e}')
-    sys.exit(1)
-" 2>&1 || { echo "YAML validation failed"; exit 1; }
+          python3 .github/scripts/test_check_publish_artifacts.py
+          python3 .github/scripts/test_check_rendered_html.py
+          python3 .github/scripts/test_check_config.py
+
+      - name: Validate _config.yml
+        # Was an inline `python3 -c "..."` block whose Python sat at column 0
+        # inside this `run: |` scalar. That terminated the block and made the
+        # whole workflow file invalid YAML, so ci.yml never ran at all.
+        run: python3 .github/scripts/check_config.py --config _config.yml
 
       - name: Set up Ruby and Jekyll
         run: |
@@ -100,42 +94,17 @@ except Exception as e:
         run: bundle exec jekyll build --trace 2>&1
 
       - name: Validate generated HTML
-        run: |
-          set -euo pipefail
-          failures=0
-          for f in _site/**/*.html _site/*.html; do
-            [ -f "$f" ] || continue
-            ok=1
-            if ! grep -qi "<!doctype html>" "$f"; then
-              echo "::error file=$f::Missing <!DOCTYPE html>"
-              ok=0
-            fi
-            if ! grep -q '<html[^>]*\blang=' "$f"; then
-              echo "::error file=$f::Missing <html lang=...>"
-              ok=0
-            fi
-            if ! grep -q '<title>[^<]+</title>' "$f"; then
-              echo "::error file=$f::Missing or empty <title>"
-              ok=0
-            fi
-            if ! grep -q 'name="description"' "$f"; then
-              echo "::error file=$f::Missing meta description"
-              ok=0
-            fi
-            # Section balance check
-            open=$(grep -c '<section\b' "$f" 2>/dev/null || echo 0)
-            close=$(grep -c '</section>' "$f" 2>/dev/null || echo 0)
-            if [ "$open" -ne "$close" ]; then
-              echo "::error file=$f::Unbalanced <section> tags ($open open vs $close close)"
-              ok=0
-            fi
-            if [ "$ok" -eq 1 ]; then
-              echo "✓ $f passed structural checks"
-            else
-              failures=$((failures+1))
-            fi
-          done
-          [ "$failures" -eq 0 ] || { echo "$failures HTML file(s) failed"; exit 1; }
+        # Replaces an inline grep pipeline. The same basics are still checked
+        # (doctype, lang, title, description, balanced <section>) and are now
+        # joined by rules that need real rendered output: unrendered Liquid,
+        # duplicate ids, dangling #anchors, and heading structure.
+        run: python3 .github/scripts/check_rendered_html.py --site _site
+
+      - name: Validate published artifacts
+        # _config.yml's exclude: list is the only thing keeping working files
+        # out of the public site, and it fails silently. This asserts the
+        # exclusion actually took effect.
+        run: python3 .github/scripts/check_publish_artifacts.py --site _site --config _config.yml
 
       - name: Validate local asset references in generated HTML
         run: |
