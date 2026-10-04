@@ -6,10 +6,6 @@
   <meta name="theme-color" content="#2c3e50" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1a1d23" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
-  <title>{{ page.title | default: site.title }}</title>
-  <meta name="description" content="{{ page.description | default: site.description }}">
-  <meta name="author" content="{{ site.github_username }}">
-  <!-- NOTE: canonical URL is emitted by jekyll-seo-tag {% seo %} below. -->
   {%- if page.preload_hero %}
   <link rel="preload" as="image" href="{{ "/images/destination-image.png" | relative_url }}" fetchpriority="high">
   {%- endif %}
@@ -39,7 +35,7 @@
   {% seo %}
   <link rel="stylesheet" href="{{ '/assets/css/site-tokens.css' | relative_url }}">
   <link rel="stylesheet" href="{{ '/assets/css/site-forge.css' | relative_url }}">
-{# fonts: managed by template-shared/site_forge.py from sites.yaml #}
+  {%- comment -%} fonts: managed by template-shared/site_forge.py from sites.yaml {%- endcomment -%}
 {%- if site.font_google %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,7 +43,7 @@
 {%- endif %}
   <link rel="stylesheet" href="{{ "/assets/css/ai-seal.css" | relative_url }}">
 </head>
-{# decor: managed by template-shared/site_forge.py from sites.yaml #}
+{%- comment -%} decor: managed by template-shared/site_forge.py from sites.yaml {%- endcomment -%}
 <body class="{{ page.decor_class | default: site.decor_class | default: 'decor-aurora' }}">
   <a class="skip-link" href="#main">Skip to main content</a>
 
