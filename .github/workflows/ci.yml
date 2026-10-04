@@ -82,13 +82,15 @@ jobs:
         run: python3 .github/scripts/check_config.py --config _config.yml
 
       - name: Set up Ruby and Jekyll
-        run: |
-          set -euo pipefail
-          ruby_version=$(grep -oP 'ruby "\K[^"]+' Gemfile 2>/dev/null || echo "3.3.0")
-          echo "Installing Ruby ${ruby_version}..."
-          # Install bundler and gems
-          gem install bundler --no-document
-          bundle install --jobs=4 --retry=3
+        # Replaces a hand-rolled `gem install bundler`, which fails on
+        # ubuntu-24.04 with Gem::FilePermissionError: the runner's system gem
+        # directory (/var/lib/gems/3.2.0) is not writable, so setup never
+        # completed and the build step was skipped. setup-ruby provisions a
+        # user-writable Ruby and `bundler-cache` runs bundle install for us.
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
 
       - name: Build site
         run: bundle exec jekyll build --trace 2>&1
@@ -146,9 +148,10 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Ruby and Jekyll
-        run: |
-          gem install bundler --no-document
-          bundle install --jobs=4 --retry=3
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
 
       - name: Build site
         run: bundle exec jekyll build
