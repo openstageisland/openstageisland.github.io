@@ -111,42 +111,14 @@ jobs:
           if-no-files-found: error
 
       - name: Validate generated HTML
-        run: |
-          set -euo pipefail
-          failures=0
-          for f in _site/**/*.html _site/*.html; do
-            [ -f "$f" ] || continue
-            ok=1
-            if ! grep -qi "<!doctype html>" "$f"; then
-              echo "::error file=$f::Missing <!DOCTYPE html>"
-              ok=0
-            fi
-            if ! grep -q '<html[^>]*\blang=' "$f"; then
-              echo "::error file=$f::Missing <html lang=...>"
-              ok=0
-            fi
-            if ! grep -q '<title>[^<]+</title>' "$f"; then
-              echo "::error file=$f::Missing or empty <title>"
-              ok=0
-            fi
-            if ! grep -q 'name="description"' "$f"; then
-              echo "::error file=$f::Missing meta description"
-              ok=0
-            fi
-            # Section balance check
-            open=$(grep -c '<section\b' "$f" 2>/dev/null || echo 0)
-            close=$(grep -c '</section>' "$f" 2>/dev/null || echo 0)
-            if [ "$open" -ne "$close" ]; then
-              echo "::error file=$f::Unbalanced <section> tags ($open open vs $close close)"
-              ok=0
-            fi
-            if [ "$ok" -eq 1 ]; then
-              echo "✓ $f passed structural checks"
-            else
-              failures=$((failures+1))
-            fi
-          done
-          [ "$failures" -eq 0 ] || { echo "$failures HTML file(s) failed"; exit 1; }
+        # Replaces grep-based assertions such as
+        #   grep -q '<title>[^<]+</title>' "$f"
+        # which reported every page as "Missing or empty <title>" despite the
+        # rendered pages all carrying a title. Byte-oriented grep over HTML is
+        # fragile - multi-byte characters, entities and the `+` quantifier after
+        # a negated class all change the result without changing the document.
+        # Parsing does not have that failure mode.
+        run: python3 scripts/check-html.py _site
 
       - name: Validate local asset references in generated HTML
         run: |
