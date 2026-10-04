@@ -67,25 +67,20 @@ jobs:
         # `node --test` are not portable across Node 20-24.
         run: node --test tests/*.test.js
 
-      - name: Validate _config.yml
+      - name: Validate workflow definitions
+        # A workflow whose YAML does not parse cannot be loaded by GitHub at all:
+        # the run is reported as failed with zero jobs and no logs. ci.yml was
+        # itself unloadable for exactly that reason, so this gate could not live
+        # only in ci.yml. Runs first and fails fast.
         run: |
-          set -euo pipefail
-          python3 -c "
-import sys, yaml
-try:
-    with open('_config.yml', encoding='utf-8') as f:
-        c = yaml.safe_load(f)
-    for k in ('url', 'github_username'):
-        if k not in c:
-            print(f'::error::Missing required key: {k}')
-            sys.exit(1)
-    print(f'url: {c[\"url\"]}')
-    print(f'github_username: {c[\"github_username\"]}')
-    print('valid _config.yml')
-except Exception as e:
-    print(f'::error::YAML parse error: {e}')
-    sys.exit(1)
-" 2>&1 || { echo "YAML validation failed"; exit 1; }
+          # --no-network keeps this gate deterministic and credential-free: it
+          # validates only this repo's files. Cross-repo reusable-workflow
+          # resolution (archived deps, missing workflow_call) needs `gh` and is
+          # run manually via `python3 scripts/check-workflows.py`.
+          python3 scripts/check-workflows.py --no-network
+
+      - name: Validate _config.yml
+        run: python3 scripts/check-config.py _config.yml
 
       - name: Set up Ruby and Jekyll
         run: |

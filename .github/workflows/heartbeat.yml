@@ -19,28 +19,10 @@ jobs:
           git diff --staged --quiet || (git -c user.name="N3Vr0Tr4nsm1tt3r" -c user.email="cns@neohiro.io" commit -m "OSI FB feed sync [skip ci]" && git push)
 
       - name: Generate OSI heartbeats
-        run: |
-          node -e "
-            const fs = require('fs');
-            const dir = 'heartbeats';
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            const score = 88;
-            const svg = \`<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"600\" height=\"120\" viewBox=\"0 0 600 120\">
-  <rect width=\"600\" height=\"120\" fill=\"#0b0e12\"/>
-  <text x=\"20\" y=\"22\" font-size=\"14\" fill=\"#00d4ff\" font-family=\"monospace\" font-weight=\"bold\">Open Stage Island — Heartbeat</text>
-  <text x=\"20\" y=\"40\" font-size=\"10\" fill=\"#888\" font-family=\"monospace\">OSI score: \${score}/100 · 4 repos · 4 CI green</text>
-  <rect x=\"20\" y=\"46\" width=\"560\" height=\"6\" fill=\"#1a1a1a\"/>
-  <rect x=\"20\" y=\"46\" width=\${(score/100)*560} height=\"6\" fill=\"#00d4ff\"/>
-  <text x=\"20\" y=\"70\" font-size=\"9\" fill=\"#00d4ff\" font-family=\"monospace\">SecondLife: 92</text>
-  <text x=\"160\" y=\"70\" font-size=\"9\" fill=\"#00d4ff\" font-family=\"monospace\">SecondLifePrivate: 90</text>
-  <text x=\"340\" y=\"70\" font-size=\"9\" fill=\"#00d4ff\" font-family=\"monospace\">LSL: 85</text>
-  <text x=\"440\" y=\"70\" font-size=\"9\" fill=\"#00d4ff\" font-family=\"monospace\">OSI site: 86</text>
-  <text x=\"20\" y=\"92\" font-size=\"9\" fill=\"#888\" font-family=\"monospace\">FB feed: synced \${Math.floor(Math.random() * 15 + 1)} posts (last 7d) · next poll 30m</text>
-  <text x=\"20\" y=\"108\" font-size=\"7\" fill=\"#444\" font-family=\"monospace\">updated: \${new Date().toISOString()} — CNS</text>
-</svg>\`;
-            fs.writeFileSync(dir + '/public.svg', svg);
-          "
+        # The SVG is a multi-line JS template literal. Inlined in a `run: |`
+        # block, its column-0 lines terminated the YAML block scalar, so the
+        # workflow could never be parsed. See scripts/check-workflows.py.
+        run: node scripts/generate-heartbeat.js
 
       - name: Commit
         run: |
