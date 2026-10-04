@@ -28,11 +28,18 @@ sponsor link has to remain the final child of .site-nav.
       <span class="logo-text">Open Stage Island</span>
     </a>
     <nav class="site-nav" aria-label="Main navigation">
-      <a href="#welcome" class="nav-link">Guide</a>
-      <a href="#open-stage" class="nav-link">Play</a>
-      <a href="#reservations" class="nav-link">Book</a>
-      <a href="#location" class="nav-link">Visit</a>
-      <a href="#faq" class="nav-link">FAQ</a>
+      {%- comment -%}
+      Section links are absolute ("/#id"), not bare fragments. This bar is
+      global: on /privacy/ or /SECURITY/ a bare "#faq" has no target. With a
+      path, the browser navigates to the guide and then jumps.
+      assets/js/section-nav.js still animates these on the guide itself by
+      comparing the resolved pathname with the current one.
+      {%- endcomment -%}
+      <a href="{{ '/#welcome' | relative_url }}" class="nav-link">Guide</a>
+      <a href="{{ '/#open-stage' | relative_url }}" class="nav-link">Play</a>
+      <a href="{{ '/#reservations' | relative_url }}" class="nav-link">Book</a>
+      <a href="{{ '/#location' | relative_url }}" class="nav-link">Visit</a>
+      <a href="{{ '/#faq' | relative_url }}" class="nav-link">FAQ</a>
       <a href="https://github.com/sponsors/{{ site.github_username | default: 'openstageisland' }}"
          class="nav-link nav-sponsor" target="_blank" rel="noopener">&#9829; Sponsor</a>
     </nav>

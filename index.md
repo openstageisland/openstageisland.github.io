@@ -35,8 +35,6 @@ preload_hero: true
   </div>
 </header>
 
-<main id="main">
-
   <section class="intro-card" aria-labelledby="intro-heading">
     <h2 id="intro-heading" class="intro-heading">Take the stage. It's free.</h2>
     <p class="intro-text">
@@ -538,4 +536,3 @@ preload_hero: true
     </div>
   </section>
 
-</main>

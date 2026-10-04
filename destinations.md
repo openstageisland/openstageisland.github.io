@@ -33,7 +33,6 @@ preload_hero: true
   </ul>
 </nav>
 
-<main id="main">
   <section class="intro-card" aria-labelledby="live-heading">
     <h2 id="live-heading" class="intro-heading">Open Stage Island, in real time</h2>
     <p class="intro-text">
@@ -118,4 +117,3 @@ preload_hero: true
       </div>
     </dl>
   </section>
-</main>
