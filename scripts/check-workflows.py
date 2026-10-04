@@ -81,6 +81,58 @@ def list_workflows(directory: str) -> List[str]:
     return out
 
 
+# Methods called on an expression operand, e.g. inputs.repo.replace('/', '_').
+# GitHub Actions expressions support property access (github.sha), indexing
+# (inputs.list[0]) and built-in functions (format(), contains(), hashFiles()),
+# but NOT method calls on values. `inputs.x.replace(...)` is rejected when the
+# workflow is parsed, which makes the workflow unloadable - reported as a failed
+# run with zero jobs and no logs. The leading dot is what distinguishes a method
+# call from a built-in function call, which never has one.
+METHOD_CALL_RE = re.compile(r"\.\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+
+# Known methods, named so the error can say what to use instead. Anything else
+# matching METHOD_CALL_RE is still an error, it just gets a generic message.
+KNOWN_METHODS = {
+    "replace": "use format() and do the substitution in a shell or script step",
+    "split": "no split() in expressions; do the split in a run step",
+    "join": "use join(array, ',') - the built-in, without a dot",
+    "trim": "no trim() in expressions",
+    "toLower": "no toLower() in expressions; use a shell step",
+    "toUpper": "no toUpper() in expressions; use a shell step",
+    "contains": "contains() is a built-in - call it without a dot",
+    "startsWith": "startsWith() is a built-in - call it without a dot",
+    "endsWith": "endsWith() is a built-in - call it without a dot",
+    "length": "no .length; use a shell step",
+}
+
+
+def check_expressions(path: str, text: str) -> List[Problem]:
+    """Reject method calls inside ${{ }} expression spans."""
+    problems: List[Problem] = []
+    lines = text.split("\n")
+
+    for i, line in enumerate(lines):
+        # Only consider the inside of an expression span, so a dot-paren in
+        # ordinary YAML (a run: command, a URL) is not a false positive.
+        for span in re.finditer(r"\$\{\{(.*?)\}\}", line):
+            body = span.group(1)
+            for m in METHOD_CALL_RE.finditer(body):
+                name = m.group(1)
+                advice = KNOWN_METHODS.get(
+                    name,
+                    f"GitHub expressions have no methods; '{name}' is not callable on a value",
+                )
+                problems.append(
+                    Problem(
+                        path,
+                        f"line {i + 1}: method call '.{name}(' inside a ${{{{ }}}} expression "
+                        f"is rejected by GitHub and makes this workflow unloadable "
+                        f"({advice}): {line.strip()[:80]}",
+                    )
+                )
+    return problems
+
+
 def check_column_zero_in_block_scalars(path: str, text: str) -> List[Problem]:
     """Flag lines at column 0 that sit inside a `run: |` block.
 
@@ -200,6 +252,7 @@ def check_workflows(directory: str, network: bool = True) -> List[Problem]:
         with open(path, "r", encoding="utf-8") as fh:
             text = fh.read()
 
+        problems.extend(check_expressions(path, text))
         problems.extend(check_column_zero_in_block_scalars(path, text))
 
         try:
