@@ -666,13 +666,11 @@ body.ai-dock-present .ai-bar {
 /* ── Utility ───────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
 
-/* ── Conversation modal ──────────────────────────────────────────── */
-/* The sheet is no longer horizontally centred (it is screenwide and anchored to
-   the left/right edges), so these two must NOT carry a translateX(-50%). */
-@keyframes convSlideDown {
-  from { opacity: 0; transform: translateY(-24px) scaleY(0.96); }
-  to   { opacity: 1; transform: translateY(0) scaleY(1); }
-}
+/* ── Conversation modal ────────────────────────────────────────────
+   The sheet is full-bleed and anchored to the bottom edge, so neither
+   keyframe carries a horizontal centring translate.
+     convSlideUp  — opening: rises from the bottom edge
+     convFadeUp   — closing: shrinks and fades away                  */
 @keyframes convFadeUp {
   from { opacity: 1; transform: translateY(0) scaleY(1); }
   to   { opacity: 0; transform: translateY(-12px) scaleY(0.96); }
@@ -710,7 +708,9 @@ body.ai-dock-present .ai-bar {
   pointer-events: auto;
 }
 .ai-conv--closing {
-  animation: convSlideDown 0.24s ease-in both;
+  /* Closing shrinks away and fades out — NOT convSlideDown, which would replay
+     the opening direction on the way out. */
+  animation: convFadeUp 0.24s ease-in both;
   pointer-events: none;
 }
 @keyframes convSlideUp {
@@ -1131,73 +1131,4 @@ body.ai-conv-active .ai-conv { bottom: 0; }
 }
 @media (max-width: 560px) {
   .hero-avatar { width: 72px; height: 72px; margin-bottom: 14px; }
-}
-
-/* neohiro-network: assistant dock + conversation sheet contract */
-/* AI and Contact are one surface. The dock's Assistant tab does not open a dock
-   panel: body.ai-conv-active slides the dock down and the screenwide sheet takes
-   the bottom edge. The page behind stays scrollable and interactive. */
-.ai-dock { transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1); }
-body.ai-conv-active .ai-dock {
-  transform: translateY(115%);
-  pointer-events: none;
-}
-
-/* The ask bar is the lower menu bar while the assistant is idle. */
-.ai-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 88;
-  width: 100%;
-  margin: 0;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
-  pointer-events: none;
-  box-sizing: border-box;
-  background: linear-gradient(180deg, transparent 0%, var(--bg, #0b0e12) 42%);
-  transform: translateY(0);
-  transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
-}
-body.ai-conv-active .ai-bar {
-  transform: translateY(130%);
-  opacity: 0;
-  pointer-events: none;
-}
-body.ai-dock-present .ai-bar { bottom: var(--ai-dock-h, 52px); }
-
-/* Screenwide conversation sheet: full bleed from the bottom, no backdrop. */
-.ai-conv {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 89;
-  width: 100%;
-  max-width: none;
-  pointer-events: none;
-}
-.ai-conv--open {
-  animation: convSlideUp 0.36s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  pointer-events: auto;
-}
-.ai-conv--closing {
-  animation: convSlideDown 0.24s ease-in both;
-  pointer-events: none;
-}
-@keyframes convSlideUp {
-  from { opacity: 0; transform: translateY(6%) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-.ai-conv__chrome {
-  border-bottom: none;
-  border-radius: 18px 18px 0 0;
-  max-height: min(76vh, 720px);
-}
-body.ai-dock-present .ai-conv { bottom: var(--ai-dock-h, 52px); }
-body.ai-conv-active .ai-conv { bottom: 0; }
-
-@media (max-width: 680px) {
-  .ai-bar { padding-left: 10px; padding-right: 10px; }
-  .ai-conv__chrome { max-height: 82vh; border-radius: 14px 14px 0 0; }
 }

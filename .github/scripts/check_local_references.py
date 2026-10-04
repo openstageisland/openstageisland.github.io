@@ -30,18 +30,52 @@ import sys
 
 # href/src prefixes that are not local file references.
 SKIP_PREFIXES = (
-    "http://", "https://", "//", "mailto:", "data:", "javascript:",
-    "secondlife:", "tel:", "sms:", "ftp://", "irc:", "news:", "feed:",
+    "http://",
+    "https://",
+    "//",
+    "mailto:",
+    "data:",
+    "javascript:",
+    "secondlife:",
+    "tel:",
+    "sms:",
+    "ftp://",
+    "irc:",
+    "news:",
+    "feed:",
 )
 
 # A reference with one of these extensions is an asset: missing means the page
 # is broken, so it fails the build.
 ASSET_EXTENSIONS = {
-    ".css", ".js", ".mjs", ".map",
-    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".avif", ".ico", ".bmp",
-    ".woff", ".woff2", ".ttf", ".otf", ".eot",
-    ".mp3", ".mp4", ".webm", ".ogg", ".wav",
-    ".json", ".xml", ".txt", ".pdf", ".zip",
+    ".css",
+    ".js",
+    ".mjs",
+    ".map",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".webp",
+    ".avif",
+    ".ico",
+    ".bmp",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".otf",
+    ".eot",
+    ".mp3",
+    ".mp4",
+    ".webm",
+    ".ogg",
+    ".wav",
+    ".json",
+    ".xml",
+    ".txt",
+    ".pdf",
+    ".zip",
 }
 
 # <script>/<style> bodies are not markup. Inline JS frequently builds HTML as
@@ -82,7 +116,7 @@ def load_baseurl(config_path: str) -> str:
     try:
         with open(config_path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
-    except Exception as exc:  # noqa: BLE001 - yaml raises several types
+    except Exception as exc:
         print(f"::warning::could not parse {config_path} ({exc}); assuming baseurl is empty")
         return ""
     base = str(data.get("baseurl") or "").strip()
@@ -134,7 +168,9 @@ def find_pages(site_dir: str) -> list[str]:
     return sorted(pages)
 
 
-def check_page(path: str, site_dir: str, baseurl: str) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+def check_page(
+    path: str, site_dir: str, baseurl: str
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
     """Return (asset_errors, page_warnings) for one built page."""
     rel = os.path.relpath(path, site_dir).replace(os.sep, "/")
     me = page_url(rel)
@@ -172,7 +208,7 @@ def check_page(path: str, site_dir: str, baseurl: str) -> tuple[list[tuple[str, 
                 if target == baseurl:
                     target = "/"
                 elif target.startswith(baseurl + "/"):
-                    target = target[len(baseurl):]
+                    target = target[len(baseurl) :]
                 else:
                     # Outside the configured baseurl: another mount, not ours.
                     continue

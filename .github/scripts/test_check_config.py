@@ -66,7 +66,7 @@ class ConfigCheckTest(unittest.TestCase):
         self.assertEqual(self.run_check(), 1)
 
     def test_broken_yaml_fails(self):
-        self.write("url: \"unterminated\n  bad: [\n")
+        self.write('url: "unterminated\n  bad: [\n')
         self.assertEqual(self.run_check(), 1)
 
     def test_missing_file_is_an_error(self):

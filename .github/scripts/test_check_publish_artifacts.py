@@ -11,7 +11,6 @@ Run with:  python -m unittest discover -s .github/scripts -v
 import importlib.util
 import os
 import shutil
-import sys
 import tempfile
 import unittest
 
@@ -146,11 +145,14 @@ class GateTest(unittest.TestCase):
         # depending on the runner, so it matches case-insensitively everywhere.
         patterns = mod.build_forbidden(["tests"])
         self.assertTrue(mod.is_forbidden("tests", patterns))
-        self.assertTrue(mod.is_forbidden("Tests", patterns),
-                        "a differently-cased path must still be caught")
+        self.assertTrue(
+            mod.is_forbidden("Tests", patterns), "a differently-cased path must still be caught"
+        )
         self.assertTrue(mod.is_forbidden("TESTS/section-nav.test.js", patterns))
-        self.assertFalse(mod.is_forbidden("testimony/index.html", patterns),
-                         "unrelated names must not be swept up")
+        self.assertFalse(
+            mod.is_forbidden("testimony/index.html", patterns),
+            "unrelated names must not be swept up",
+        )
 
 
 if __name__ == "__main__":

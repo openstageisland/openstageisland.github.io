@@ -1,0 +1,242 @@
+/* ai-seal.css -- the AI provenance seal and the persistent "back up" control.
+ *
+ * One sheet, two fixed elements, both on the right-hand edge of the viewport:
+ *
+ *   .ai-seal-dock / .ai-seal   bottom-right watermark, raised clear of the
+ *                              fixed AI/contact dock and of the guide's
+ *                              persistent section bar.
+ *   .ai-totop                  mid-right "back up" arrow, same edge, so the two
+ *                              share a horizontal plane and never collide.
+ *
+ * Loaded from _layouts/default.html. Authored once in template-shared/assets/css/
+ * and copied into every site by site_forge.py; tests/test-ai-seal.py fails when a
+ * copy drifts. Edit here and re-sync.
+ *
+ * No colours are declared here. The seal is white-on-transparent by definition,
+ * which is what lets one file serve four sites that do not share a palette
+ * vocabulary. Legibility on a light background comes from a dark drop-shadow
+ * halo rather than from a second colour, so nothing here needs a per-theme
+ * override.
+ */
+
+/* --- tokens ------------------------------------------------------------- */
+
+:root {
+  --ai-seal-size: 84px;
+  --ai-totop-size: 72px;
+  --ai-seal-edge: clamp(12px, 2.4vw, 30px);
+  /* Clear the fixed AI/contact dock (auth-bar.css, ~52px) plus air. */
+  --ai-seal-lift: calc(var(--ai-dock-h, 52px) + 16px + env(safe-area-inset-bottom, 0px));
+  --ai-seal-alpha: 0.5;
+  --ai-totop-alpha: 0.62;
+  /* Sits above page content (the sites top out around z-index 100) and below
+   * the AI dock (--ai-dock-z: 1000), so neither can cover the other. */
+  --ai-seal-z: 940;
+}
+
+/* --- shared ------------------------------------------------------------- */
+
+.ai-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- the watermark ------------------------------------------------------ */
+
+.ai-seal-dock {
+  position: fixed;
+  right: var(--ai-seal-edge);
+  bottom: var(--ai-seal-lift);
+  z-index: var(--ai-seal-z);
+  display: flex;
+  justify-content: flex-end;
+  /* The element itself must never eat clicks meant for the content under it;
+   * only the seal is a link. */
+  pointer-events: none;
+}
+
+/* When the guide's persistent section bar is present, both fixed bottom bars
+ * have to be cleared. Same hook, same fallback as ecosystem-network.css. */
+body:has(.bottom-bar) .ai-seal-dock {
+  --ai-seal-lift: calc(var(--ai-dock-h, 52px) + var(--bottom-bar-h, 46px) + 16px + env(safe-area-inset-bottom, 0px));
+}
+
+.ai-seal {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  color: #fff;
+  opacity: var(--ai-seal-alpha);
+  /* Transitions only paint and opacity -- never layout -- so the watermark
+   * cannot shift the page it is floating over. */
+  transition: opacity 180ms ease, translate 180ms ease;
+  translate: 0 0;
+}
+
+.ai-seal__img {
+  display: block;
+  width: var(--ai-seal-size);
+  height: var(--ai-seal-size);
+  /* White on transparent disappears over a light background. The halo is what
+   * keeps the seal readable in both themes without declaring a colour. */
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+}
+
+.ai-seal__label {
+  font-family: var(--font-ui, system-ui, -apple-system, sans-serif);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-align: center;
+  /* The drop-shadow that keeps the ring visible is not available to text
+   * through a filter on the <img>, so the label carries its own. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+  white-space: nowrap;
+}
+
+.ai-seal:hover,
+.ai-seal:focus-visible {
+  opacity: 1;
+  translate: 0 -2px;
+}
+
+.ai-seal:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* --- the back-up control ------------------------------------------------ */
+
+.ai-totop {
+  position: fixed;
+  top: 50%;
+  right: var(--ai-seal-edge);
+  z-index: var(--ai-seal-z);
+  translate: 0 -50%;
+  display: block;
+  width: var(--ai-totop-size);
+  height: var(--ai-totop-size);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  opacity: 0;
+  /* Hidden, not merely transparent: `visibility: hidden` also removes the
+   * control from the tab order, so a keyboard user never lands on a button that
+   * does nothing yet. Without JS the button simply never appears. */
+  visibility: hidden;
+  pointer-events: none;
+  cursor: pointer;
+  transition: opacity 200ms ease, translate 200ms ease, visibility 0s linear 200ms;
+}
+
+.ai-totop.is-visible {
+  opacity: var(--ai-totop-alpha);
+  visibility: visible;
+  pointer-events: auto;
+  /* Release the visibility delay once shown, so the fade is not cut short. */
+  transition: opacity 200ms ease, translate 200ms ease, visibility 0s;
+}
+
+.ai-totop:hover,
+.ai-totop:focus-visible {
+  opacity: 1;
+  translate: 0 calc(-50% - 3px);
+}
+
+.ai-totop:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+.ai-totop__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+}
+
+/* --- small screens ------------------------------------------------------ */
+
+@media (max-width: 720px) {
+  :root {
+    --ai-seal-size: 62px;
+    --ai-totop-size: 58px;
+    --ai-seal-alpha: 0.44;
+  }
+
+  .ai-seal__label {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+}
+
+/* Landscape phones and split-screen windows: there is not enough height for a
+ * centred arrow and a bottom-right seal not to overlap, so the arrow moves up
+ * and out of the seal's band. */
+@media (max-height: 620px) {
+  :root {
+    --ai-seal-size: 56px;
+    --ai-totop-size: 50px;
+  }
+
+  .ai-totop {
+    top: 34%;
+  }
+
+  .ai-seal__label {
+    display: none;
+  }
+}
+
+@media (max-height: 420px) {
+  .ai-totop {
+    top: 24%;
+  }
+}
+
+/* --- preferences -------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-seal,
+  .ai-totop {
+    transition: none;
+  }
+
+  /* The hover nudge is the only movement in this sheet. */
+  .ai-seal:hover,
+  .ai-seal:focus-visible,
+  .ai-totop:hover,
+  .ai-totop:focus-visible {
+    translate: none;
+  }
+
+  .ai-totop:hover,
+  .ai-totop:focus-visible {
+    translate: 0 -50%;
+  }
+}
+
+/* Ink is expensive and the seal is chrome, not content. The disclosure page
+ * still says the same thing in words. */
+@media print {
+  .ai-seal-dock,
+  .ai-totop {
+    display: none !important;
+  }
+}

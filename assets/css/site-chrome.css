@@ -471,3 +471,84 @@ a.estate-card .estate-name {
     font-size: 1.35rem;
   }
 }
+
+/* neohiro-network: top-bar contract */
+/* The header is not sticky: it scrolls away and .header-mini takes over. */
+.site-header {
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.32s ease;
+}
+.site-header--hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.header-mini {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 99;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-card, #111820) 88%, transparent);
+  border: 1px solid var(--border, #1f2a36);
+  backdrop-filter: saturate(180%) blur(12px);
+  box-shadow: var(--shadow, 0 4px 24px rgba(0,0,0,0.4));
+  font-family: var(--font-ui, system-ui, sans-serif);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--fg, #eceff1);
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(-14px);
+  pointer-events: none;
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.header-mini--visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.header-mini:hover { color: var(--accent, #7c4dff); border-color: var(--accent, #7c4dff); }
+.header-mini .logo-mark { font-size: 1.15rem; }
+
+.nav-dropdown-btn { display: inline-flex; align-items: center; gap: 5px; }
+.nav-dropdown-btn[aria-expanded="true"] { color: var(--fg, #eceff1); background: var(--bg-elevated, #161e26); }
+.nav-caret { transition: transform 0.2s ease; opacity: 0.7; }
+.nav-dropdown-btn[aria-expanded="true"] .nav-caret { transform: rotate(180deg); }
+
+/* GitHub org glyph: always the last nav item, hard against the right edge. */
+.nav-github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-left: 2px;
+  border-radius: 50%;
+  color: var(--fg, #eceff1);
+  background: var(--bg-card, #111820);
+  border: 1px solid var(--border, #1f2a36);
+  transition: color 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+.nav-github:hover {
+  color: #fff;
+  border-color: var(--fg, #eceff1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.site-nav .nav-auth--user { max-width: 190px; }
+.site-nav .nav-auth--user span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Progressive disclosure so the bar never wraps. Drop order: 4, then 3, then 2. */
+@media (max-width: 1180px) { .nav-opt-4 { display: none; } }
+@media (max-width: 1000px) { .nav-opt-3 { display: none; } }
+@media (max-width: 820px)  { .nav-opt-2 { display: none; } }
+@media (max-width: 1080px) { .site-nav .nav-auth--login span { display: none; } }
+@media (max-width: 860px)  { .nav-github { width: 30px; height: 30px; } }
+@media (max-width: 680px) {
+  .site-header .container { height: 56px; }
+  .site-nav { gap: 4px; }
+  .site-nav .nav-link { padding: 7px 10px; font-size: 0.8125rem; }
+}

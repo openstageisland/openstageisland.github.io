@@ -44,7 +44,6 @@ import os
 import re
 import subprocess
 import sys
-from typing import List, Tuple
 
 try:
     import yaml
@@ -71,7 +70,7 @@ class Problem:
         return f"{self.path}: {self.message}"
 
 
-def list_workflows(directory: str) -> List[str]:
+def list_workflows(directory: str) -> list[str]:
     if not os.path.isdir(directory):
         return []
     out = []
@@ -106,9 +105,9 @@ KNOWN_METHODS = {
 }
 
 
-def check_expressions(path: str, text: str) -> List[Problem]:
+def check_expressions(path: str, text: str) -> list[Problem]:
     """Reject method calls inside ${{ }} expression spans."""
-    problems: List[Problem] = []
+    problems: list[Problem] = []
     lines = text.split("\n")
 
     for i, line in enumerate(lines):
@@ -133,7 +132,7 @@ def check_expressions(path: str, text: str) -> List[Problem]:
     return problems
 
 
-def check_column_zero_in_block_scalars(path: str, text: str) -> List[Problem]:
+def check_column_zero_in_block_scalars(path: str, text: str) -> list[Problem]:
     """Flag lines at column 0 that sit inside a `run: |` block.
 
     A block scalar's content must be indented further than its parent key. A
@@ -141,7 +140,7 @@ def check_column_zero_in_block_scalars(path: str, text: str) -> List[Problem]:
     ci.yml and heartbeat.yml. Reported separately from the parse error because
     PyYAML's failure position points at the *next* line, not the culprit.
     """
-    problems: List[Problem] = []
+    problems: list[Problem] = []
     lines = text.split("\n")
     in_block = False
     block_indent = 0
@@ -173,7 +172,7 @@ def check_column_zero_in_block_scalars(path: str, text: str) -> List[Problem]:
     return problems
 
 
-def gh_api(path: str) -> Tuple[int, str]:
+def gh_api(path: str) -> tuple[int, str]:
     """Return (returncode, stdout) for a `gh api` call."""
     try:
         proc = subprocess.run(
@@ -187,7 +186,9 @@ def gh_api(path: str) -> Tuple[int, str]:
     return proc.returncode, proc.stdout
 
 
-def reusable_workflow_declares_workflow_call(owner: str, repo: str, path: str, ref: str) -> Tuple[bool, str]:
+def reusable_workflow_declares_workflow_call(
+    owner: str, repo: str, path: str, ref: str
+) -> tuple[bool, str]:
     """Check that owner/repo/path@ref exists, is usable, and has `workflow_call`.
 
     Three failure modes, all of which make the *calling* workflow fail to load
@@ -204,7 +205,7 @@ def reusable_workflow_declares_workflow_call(owner: str, repo: str, path: str, r
         return False, f"cannot read repo {owner}/{repo}"
     try:
         meta = json.loads(out)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return False, f"{owner}/{repo} metadata unreadable: {exc}"
     if meta.get("archived"):
         return False, (
@@ -219,7 +220,7 @@ def reusable_workflow_declares_workflow_call(owner: str, repo: str, path: str, r
     try:
         content = base64.b64decode(json.loads(out)["content"]).decode("utf-8")
         doc = yaml.safe_load(content)
-    except Exception as exc:  # noqa: BLE001 - report, do not crash the gate
+    except Exception as exc:
         return False, f"{owner}/{repo}/{path}@{ref} unreadable: {exc}"
 
     if not isinstance(doc, dict):
@@ -229,9 +230,7 @@ def reusable_workflow_declares_workflow_call(owner: str, repo: str, path: str, r
     triggers = doc.get("on", doc.get(True))
     if isinstance(triggers, str):
         names = {triggers}
-    elif isinstance(triggers, dict):
-        names = set(triggers)
-    elif isinstance(triggers, list):
+    elif isinstance(triggers, dict) or isinstance(triggers, list):
         names = set(triggers)
     else:
         names = set()
@@ -241,15 +240,15 @@ def reusable_workflow_declares_workflow_call(owner: str, repo: str, path: str, r
     return True, ""
 
 
-def check_workflows(directory: str, network: bool = True) -> List[Problem]:
-    problems: List[Problem] = []
+def check_workflows(directory: str, network: bool = True) -> list[Problem]:
+    problems: list[Problem] = []
     paths = list_workflows(directory)
 
     if not paths:
         return [Problem(directory, "no workflow files found")]
 
     for path in paths:
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             text = fh.read()
 
         problems.extend(check_expressions(path, text))
@@ -300,8 +299,10 @@ def check_workflows(directory: str, network: bool = True) -> List[Problem]:
     return problems
 
 
-def main(argv: List[str]) -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--dir", default=".github/workflows", help="workflow directory")
     ap.add_argument("--no-network", action="store_true", help="skip reusable-workflow resolution")
     args = ap.parse_args(argv)

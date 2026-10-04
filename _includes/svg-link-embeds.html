@@ -2,13 +2,14 @@
   Reusable cross-repo SVG card embed.
 
   Usage:
-    {% include svg-link-embeds.html id="worldmap" %}
-    {% include svg-link-embeds.html id="llm" %}
-    {% include svg-link-embeds.html id="transhumanists-map" %}
-    {% include svg-link-embeds.html id="network" %}
+    include svg-link-embeds.html id="worldmap" %}
+    include svg-link-embeds.html id="llm" %}
+    include svg-link-embeds.html id="transhumanists-map" %}
+    include svg-link-embeds.html id="network" %}
 
   `id` selects a known card. The included markup produces a labelled
   <figure> wrapping the SVG/PNG; captions are filled automatically.
+
 {%- endcomment -%}
 
 {%- case include.id -%}

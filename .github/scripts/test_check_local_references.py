@@ -25,7 +25,7 @@ CONFIG = 'title: t\nurl: "https://example.github.io"\nbaseurl: ""\n'
 
 def page(body: str) -> str:
     return (
-        "<!DOCTYPE html><html lang=\"en\"><head>"
+        '<!DOCTYPE html><html lang="en"><head>'
         '<meta name="description" content="d"><title>T</title>'
         "</head><body>" + body + "</body></html>"
     )
@@ -103,15 +103,18 @@ class ReferenceCheckTest(unittest.TestCase):
 
     # ---- noise that must be ignored
     def test_external_and_special_schemes_are_skipped(self):
-        self.write("index.html", page(
-            '<a href="https://example.com/">e</a>'
-            '<a href="//cdn.example.com/x">c</a>'
-            '<a href="mailto:a@b.c">m</a>'
-            '<img src="data:image/png;base64,AAA">'
-            '<a href="secondlife://Derwent/248/128/22">sl</a>'
-            '<a href="#top">t</a>'
-            '<a href="">blank</a>'
-        ))
+        self.write(
+            "index.html",
+            page(
+                '<a href="https://example.com/">e</a>'
+                '<a href="//cdn.example.com/x">c</a>'
+                '<a href="mailto:a@b.c">m</a>'
+                '<img src="data:image/png;base64,AAA">'
+                '<a href="secondlife://Derwent/248/128/22">sl</a>'
+                '<a href="#top">t</a>'
+                '<a href="">blank</a>'
+            ),
+        )
         self.assertEqual(self.run_check(), 0)
 
     def test_query_and_fragment_are_stripped_before_resolving(self):
@@ -123,17 +126,23 @@ class ReferenceCheckTest(unittest.TestCase):
     def test_baseurl_prefix_is_stripped(self):
         self.write("assets/js/app.js")
         self.write("index.html", page('<script src="/blog/assets/js/app.js"></script>'))
-        self.assertEqual(mod.check_page(os.path.join(self.site, "index.html"), self.site, "/blog")[0], [])
+        self.assertEqual(
+            mod.check_page(os.path.join(self.site, "index.html"), self.site, "/blog")[0], []
+        )
 
     def test_path_outside_baseurl_is_skipped_not_flagged(self):
         # Another mount entirely; not this build's problem.
         self.write("index.html", page('<a href="/elsewhere/thing/">x</a>'))
-        self.assertEqual(mod.check_page(os.path.join(self.site, "index.html"), self.site, "/blog")[0], [])
+        self.assertEqual(
+            mod.check_page(os.path.join(self.site, "index.html"), self.site, "/blog")[0], []
+        )
 
     def test_baseurl_equal_to_root_resolves(self):
         self.write("assets/js/app.js")
         self.write("index.html", page('<script src="/assets/js/app.js"></script>'))
-        self.assertEqual(mod.check_page(os.path.join(self.site, "index.html"), self.site, "/")[0], [])
+        self.assertEqual(
+            mod.check_page(os.path.join(self.site, "index.html"), self.site, "/")[0], []
+        )
 
     def test_missing_config_warns_but_does_not_crash(self):
         os.remove(self.config)
@@ -165,32 +174,34 @@ class ReferenceCheckTest(unittest.TestCase):
         # live.html builds a link as '<a href="' + DEST_URL + '" ...>'. A naive
         # href scan reads that as a reference to the literal text
         # "' + DEST_URL + '", which is how a phantom target got reported.
-        self.write("index.html", page(
-            "<h1>x</h1><script>"
-            "var DEST_URL='https://example.com/';"
-            "document.write('<a href=\"' + DEST_URL + '\">go</a>');"
-            "</script>"
-        ))
+        self.write(
+            "index.html",
+            page(
+                "<h1>x</h1><script>"
+                "var DEST_URL='https://example.com/';"
+                "document.write('<a href=\"' + DEST_URL + '\">go</a>');"
+                "</script>"
+            ),
+        )
         self.assertEqual(self.run_check(), 0)
 
     def test_style_block_content_is_not_a_reference(self):
-        self.write("index.html", page(
-            "<h1>x</h1><style>/* content: '/assets/nope.png' */</style>"
-        ))
+        self.write("index.html", page("<h1>x</h1><style>/* content: '/assets/nope.png' */</style>"))
         self.assertEqual(self.run_check(), 0)
 
     def test_comment_content_is_not_a_reference(self):
-        self.write("index.html", page(
-            "<h1>x</h1><!-- href=\"/assets/gone.css\" -->"
-        ))
+        self.write("index.html", page('<h1>x</h1><!-- href="/assets/gone.css" -->'))
         self.assertEqual(self.run_check(), 0)
 
     def test_real_markup_after_a_script_is_still_checked(self):
         # Stripping script bodies must not swallow the rest of the document.
-        self.write("index.html", page(
-            "<h1>x</h1><script>var a=1;</script>"
-            '<link rel="stylesheet" href="/assets/missing.css">'
-        ))
+        self.write(
+            "index.html",
+            page(
+                "<h1>x</h1><script>var a=1;</script>"
+                '<link rel="stylesheet" href="/assets/missing.css">'
+            ),
+        )
         self.assertEqual(self.run_check(), 1)
 
     def test_strip_non_markup_keeps_tags(self):
@@ -205,8 +216,11 @@ class ReferenceCheckTest(unittest.TestCase):
         # at the root and the joined path can never point outside _site. Pinned
         # because resolving against a relative base later would reintroduce a
         # traversal, and a ".." target that silently escaped would be invisible.
-        for me_dir, ref in (("/", "../../releases"), ("/privacy/", "../../releases"),
-                            ("/", "../../../etc/passwd")):
+        for me_dir, ref in (
+            ("/", "../../releases"),
+            ("/privacy/", "../../releases"),
+            ("/", "../../../etc/passwd"),
+        ):
             with self.subTest(me_dir=me_dir, ref=ref):
                 normed = posixpath.normpath(posixpath.join(me_dir, ref))
                 self.assertFalse(normed.startswith(".."))
@@ -237,23 +251,26 @@ class ReferenceCheckTest(unittest.TestCase):
             "images/destination-image.png",
         ):
             self.write(asset)
-        self.write("index.html", page(
-            '<link rel="stylesheet" href="/assets/style.css">'
-            '<link rel="stylesheet" href="/assets/css/network-ux.css">'
-            '<link rel="stylesheet" href="/assets/css/auth-bar.css">'
-            '<link rel="stylesheet" href="/assets/css/site-chrome.css">'
-            '<script src="/assets/js/auth-bar.js" defer></script>'
-            '<script src="/assets/js/live-data.js" defer></script>'
-            '<script src="/assets/js/network-ux.js" defer></script>'
-            '<script src="/assets/js/section-nav.js" defer></script>'
-            '<img src="/images/destination-image.png">'
-            '<a href="/">Home</a>'
-            '<a href="/dashboard/">Dashboard</a>'
-            '<a href="/privacy/">Privacy</a>'
-            '<a href="/tos/">Terms of Service</a>'
-            '<a href="https://secondlife.com/destination/open-stage-island">SL</a>'
-            '<a href="#welcome">Guide</a>'
-        ))
+        self.write(
+            "index.html",
+            page(
+                '<link rel="stylesheet" href="/assets/style.css">'
+                '<link rel="stylesheet" href="/assets/css/network-ux.css">'
+                '<link rel="stylesheet" href="/assets/css/auth-bar.css">'
+                '<link rel="stylesheet" href="/assets/css/site-chrome.css">'
+                '<script src="/assets/js/auth-bar.js" defer></script>'
+                '<script src="/assets/js/live-data.js" defer></script>'
+                '<script src="/assets/js/network-ux.js" defer></script>'
+                '<script src="/assets/js/section-nav.js" defer></script>'
+                '<img src="/images/destination-image.png">'
+                '<a href="/">Home</a>'
+                '<a href="/dashboard/">Dashboard</a>'
+                '<a href="/privacy/">Privacy</a>'
+                '<a href="/tos/">Terms of Service</a>'
+                '<a href="https://secondlife.com/destination/open-stage-island">SL</a>'
+                '<a href="#welcome">Guide</a>'
+            ),
+        )
         self.assertEqual(self.run_check(), 0)
 
 

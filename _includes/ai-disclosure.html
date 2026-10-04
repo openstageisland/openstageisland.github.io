@@ -1,0 +1,47 @@
+{%- comment -%}
+  ai-disclosure.html -- the AI provenance seal and the persistent "back up"
+  control. Included once per page by _layouts/default.html, immediately before
+  </body>.
+
+  Two elements, one style:
+
+    .ai-seal   a fixed white/cloudy watermark in the bottom-right corner, raised
+               clear of the fixed AI/contact dock so it never sits on top of the
+               footer. It is a link to the disclosure page, because a seal a
+               visitor cannot read is decoration rather than disclosure.
+
+    .ai-totop  a fixed "back up" arrow on the same right-hand edge, vertically
+               centred so it shares the horizontal plane with the seal without
+               ever colliding with it. Hidden until assets/js/ai-seal.js has
+               scrolled past the trigger, then persistent.
+
+  Both assets are white-on-transparent SVGs from template-shared/assets/img/.
+  Everything positional lives in assets/css/ai-seal.css; nothing here is styled
+  inline.
+
+  Parameters:
+    href    where the seal links. Defaults to site.ai_disclosure_path, then to
+            /ai-disclosure/. A site that publishes the statement somewhere else
+            sets `ai_disclosure_path` in _config.yml rather than editing this
+            file, so the four copies stay byte-identical.
+{%- endcomment -%}
+{%- assign ai_seal_href = include.href | default: site.ai_disclosure_path | default: '/ai-disclosure/' -%}
+<div class="ai-seal-dock">
+  <a class="ai-seal" href="{{ ai_seal_href | relative_url }}" title="AI-assisted content: how these sites are built">
+    <img class="ai-seal__img"
+         src="{{ '/assets/img/ai-seal.svg' | relative_url }}"
+         alt="AI-assisted content seal"
+         width="120" height="120"
+         decoding="async">
+    <span class="ai-seal__label">AI&#8209;assisted</span>
+  </a>
+</div>
+
+<button class="ai-totop" type="button" data-ai-totop data-ai-totop-label="Back up">
+  <img class="ai-totop__img"
+       src="{{ '/assets/img/ai-topo.svg' | relative_url }}"
+       alt=""
+       width="120" height="120"
+       decoding="async">
+  <span class="ai-visually-hidden">Back up</span>
+</button>
