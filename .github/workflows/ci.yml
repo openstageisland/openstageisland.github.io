@@ -98,6 +98,18 @@ jobs:
       - name: Build site
         run: bundle exec jekyll build --trace 2>&1
 
+      # Publish the rendered site even when a later validation step fails.
+      # Without this, a failure in the HTML checks is undiagnosable: the
+      # annotations only say which assertion failed, never what was rendered.
+      - name: Upload rendered site
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ github.run_number }}-${{ github.sha }}
+          path: _site
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Validate generated HTML
         run: |
           set -euo pipefail
