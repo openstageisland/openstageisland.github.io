@@ -1,19 +1,23 @@
-# This repository is PUBLIC. openstageisland/doctor is PRIVATE, and GitHub does
-# not allow a public repository to call a private reusable workflow. The call
-# fails as:
+# There is deliberately no doctor job in this file.
 #
-#     HTTP 422 ... error parsing called workflow
+# This repository is PUBLIC and openstageisland/doctor is PRIVATE. A public
+# repository cannot reach a private reusable workflow by either available route:
 #
-# which is reported as a failed run with ZERO jobs and no logs. That is why this
-# workflow had no visible cause for so long.
+#   1. calling it - GitHub refuses with "error parsing called workflow",
+#      reported as a failed run with ZERO jobs and no logs. That is what made
+#      this file look broken for 116 consecutive runs.
+#   2. checking it out with GITHUB_TOKEN - the token is scoped to this
+#      repository, so actions/checkout fails with a 403.
 #
-# There is nothing to fix here and nothing to gain from calling out: the doctor
-# scans every repository in this account from its own scheduled run, which is
-# private-to-private and works. That scheduled scan is the mechanism that fixes
-# CI errors unattended; this file only ever added a duplicate trigger.
+# Both were tried and both are reproduced in PR #21's history.
 #
-# If per-PR feedback is wanted later, the doctor must be made public. That is a
-# deliberate visibility decision, not a config change.
+# Nothing is lost. openstageisland/doctor scans every repository in this account
+# from its own scheduled run, which is private-to-private and works. That is the
+# mechanism that fixes CI errors unattended.
+#
+# To get per-PR feedback here, openstageisland/doctor must be PUBLIC. That is a
+# deliberate visibility decision about a repo containing CI tooling and
+# fixtures, not a configuration change, so it is left to the account owner.
 on:
   schedule:
     - cron: '42 5,14,22 * * *'
@@ -23,27 +27,13 @@ permissions:
   contents: read
 
 jobs:
-  doctor-report:
-    # Private -> private: resolves, self-tests, then scans the whole account.
+  account-doctor-is-scheduled-elsewhere:
+    # Placeholder so this file is not empty. The account doctor runs on its own
+    # schedule and covers this repository; see openstageisland/doctor.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: openstageisland/doctor
-          ref: main
-          path: doctor
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Prove the doctor works before trusting it
-        working-directory: doctor
+      - name: Explain
         run: |
-          python -m pip install --quiet --disable-pip-version-check pyyaml pytest
-          python -m pytest tests/ -q
-
-      - name: Diagnose this repository
-        working-directory: doctor
-        run: python tools/ci_doctor.py --repo "$GITHUB_WORKSPACE" --json
+          echo "This repository is public; its doctor is private and cannot be called from here."
+          echo "Coverage comes from openstageisland/doctor's own scheduled account scan."
+          echo "Reports: https://github.com/openstageisland/doctor/actions"
