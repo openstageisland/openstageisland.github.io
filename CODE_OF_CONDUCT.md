@@ -4,7 +4,7 @@ title: "Code of Conduct"
 description: "The Contributor Covenant code of conduct for Open Stage Island, and how to report unacceptable behaviour."
 canonical: "https://openstageisland.github.io/CODE_OF_CONDUCT/"
 ---
-﻿# Contributor Covenant Code of Conduct
+# Contributor Covenant Code of Conduct
 
 ## Our Pledge
 

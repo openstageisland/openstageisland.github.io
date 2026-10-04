@@ -21,11 +21,20 @@
   <!-- Content-Security-Policy. Restricts the live-data iframe to the SL
        destination origin. The visitor counter is a visitor-badge image served
        over https (covered by img-src https:); no third-party scripts run.
-       'unsafe-inline' is required because jekyll-seo-tag and a few inline
-       event handlers exist; the iframe sandbox attribute provides
-       defense-in-depth for the embed. -->
+       'unsafe-inline' is absent from script-src deliberately: no page using
+       this layout contains an executable inline <script> or an on*= handler,
+       and none of the shipped scripts use eval, new Function,
+       insertAdjacentHTML or document.write. (jekyll-seo-tag does emit
+       <script type="application/ld+json"> JSON-LD blocks, but those are data
+       blocks the browser never runs and CSP does not govern.)
+       check_rendered_html.py enforces both directions of that invariant, so
+       adding inline script will fail the build rather than be silently
+       blocked at runtime, and the permission cannot silently come back.
+       style-src keeps 'unsafe-inline' because auth-bar.html and
+       sponsor-cta.html set style="" attributes and network-ux.js assigns
+       element.style.cssText, both of which style-src governs. -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://neohiro.github.io; base-uri 'self'; form-action 'self'">
+        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://neohiro.github.io; base-uri 'self'; form-action 'self'">
   {% seo %}
 </head>
 <body>
@@ -50,8 +59,16 @@
   {%- comment -%}
   Persistent section menu for the single-page guide. Docked above the auth dock
   by site-chrome.css so the two do not overlap.
+
+  Scoped to the guide: every anchor in the bar points at a section that only
+  exists on the home page, so rendering it on /destinations/, /CONTRIBUTING/,
+  /SECURITY/ or /CODE_OF_CONDUCT/ produced 15 dead links per page. The
+  `body:has(.bottom-bar)` rule in site-chrome.css keys the reserved padding off
+  the bar's presence, so non-guide pages need no extra space.
   {%- endcomment -%}
+  {%- if page.url == '/' -%}
   {% include bottom-bar.html %}
+  {%- endif -%}
 
   {% include auth-bar.html %}
 

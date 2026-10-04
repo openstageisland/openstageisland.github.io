@@ -227,36 +227,63 @@
     });
   }
 
-  /* Intercept same-page fragment links and animate instead. Modified clicks and
+  /* Resolve an anchor's href to a same-document section, or null when the
+   * browser should handle it (different page, external, or download).
+   *
+   * The top bar is global and links to the guide with a path ("/#faq"), while
+   * the bottom bar uses bare fragments ("#faq"). Both must animate in place
+   * when they resolve to the document already being viewed, and navigate
+   * normally when they do not -- so the path is compared against the current
+   * location using the DOM's own resolution of the href. */
+  function resolveSameDocumentTarget(anchor) {
+    var raw = anchor.getAttribute("href");
+    if (!raw || raw === "#") return null;
+
+    var hashAt = raw.indexOf("#");
+    if (hashAt === -1) return null;
+
+    var id = raw.slice(hashAt + 1);
+    if (!id) return null;
+
+    /* anchor.pathname is the href resolved against the document base, so a
+     * bare fragment and an absolute link to this same page both compare equal
+     * to the current location. */
+    var targetPath = anchor.pathname;
+    if (targetPath === undefined || targetPath === null || targetPath === "") {
+      targetPath = window.location.pathname;
+    }
+    if (targetPath !== window.location.pathname) return null;
+
+    var el;
+    try {
+      el = document.getElementById(id);
+    } catch (err) {
+      return null;
+    }
+    if (!el) return null;
+
+    return { el: el, id: id };
+  }
+
+  /* Intercept same-document links and animate instead. Modified clicks and
    * non-primary buttons fall through to the browser (open in new tab, etc.). */
   function onClick(e) {
     if (e.defaultPrevented) return;
     if (e.button !== 0) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 
-    var anchor = e.target && e.target.closest
-      ? e.target.closest("a[href^='#']")
-      : null;
+    var anchor = e.target && e.target.closest ? e.target.closest("a[href]") : null;
     if (!anchor) return;
 
     /* A skip link exists to get keyboard users past the chrome *immediately*.
      * Animating it would delay the very content it promises. */
     if (anchor.classList && anchor.classList.contains("skip-link")) return;
 
-    var href = anchor.getAttribute("href");
-    if (!href || href === "#" || href.length < 2) return;
-
-    var id = href.slice(1);
-    var el = null;
-    try {
-      el = document.getElementById(id);
-    } catch (err) {
-      return;
-    }
-    if (!el) return;
+    var resolved = resolveSameDocumentTarget(anchor);
+    if (!resolved) return;
 
     e.preventDefault();
-    goToSection(el, id);
+    goToSection(resolved.el, resolved.id);
   }
 
   /* ── current-section marker ─────────────────────────────────────── */

@@ -8,8 +8,9 @@ canonical: "https://openstageisland.github.io/SECURITY/"
 
 ## Supported versions
 
-Only the latest release available on the [Releases](../../releases) page
-is supported with security updates.
+Only the latest release available on the
+[Releases](https://github.com/openstageisland/openstageisland.github.io/releases)
+page is supported with security updates.
 
 ## Reporting a vulnerability
 
