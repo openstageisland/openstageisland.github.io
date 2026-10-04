@@ -149,7 +149,7 @@ def collect_referenced_assets(site_dir: str) -> set[str]:
                     html = fh.read()
             except OSError:
                 continue
-            for marker in ('src="', "href=\""):
+            for marker in ('src="', 'href="'):
                 idx = 0
                 while True:
                     idx = html.find(marker, idx)
@@ -205,7 +205,9 @@ def main(argv: list[str]) -> int:
     print(f"OK   no excluded pattern reached {args.site}/ ({len(published)} entries checked)")
 
     if leaked_defaults:
-        print(f"::warning::{args.site}/ contains normally-hidden dirs: {', '.join(leaked_defaults)}")
+        print(
+            f"::warning::{args.site}/ contains normally-hidden dirs: {', '.join(leaked_defaults)}"
+        )
 
     # Orphan assets: warn only. Some bundles are loaded conditionally, and a
     # hard failure here would be a false positive that blocks deploys.

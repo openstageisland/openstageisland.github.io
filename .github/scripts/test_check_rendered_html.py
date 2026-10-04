@@ -11,7 +11,6 @@ Run with:  python .github/scripts/test_check_rendered_html.py
 import importlib.util
 import os
 import shutil
-import sys
 import tempfile
 import unittest
 
@@ -26,10 +25,7 @@ _spec.loader.exec_module(mod)
 def page(body: str = "", head: str = "", csp: str | None = None) -> str:
     meta = ""
     if csp is not None:
-        meta = (
-            '<meta http-equiv="Content-Security-Policy" '
-            f'content="{csp}">'
-        )
+        meta = f'<meta http-equiv="Content-Security-Policy" content="{csp}">'
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n<head>\n'
@@ -39,7 +35,7 @@ def page(body: str = "", head: str = "", csp: str | None = None) -> str:
         "<title>T</title>\n"
         f"{head}\n"
         "</head>\n<body>\n"
-        "<main id=\"main\">\n"
+        '<main id="main">\n'
         f"{body}\n"
         "</main>\n"
         "</body>\n</html>\n"
@@ -100,15 +96,11 @@ class CheckerTest(unittest.TestCase):
 
     def test_catches_stray_escape_artifact(self):
         # The exact bug class this replaces: a literal `n left in a noscript.
-        got = self.problems_for(
-            page("<h1>x</h1><noscript>stats`n  View`n</noscript>")
-        )
+        got = self.problems_for(page("<h1>x</h1><noscript>stats`n  View`n</noscript>"))
         self.assertIn("stray escape artifact", got)
 
     def test_catches_duplicate_ids(self):
-        got = self.problems_for(
-            page('<h1>x</h1><div id="dup"></div><span id="dup"></span>')
-        )
+        got = self.problems_for(page('<h1>x</h1><div id="dup"></div><span id="dup"></span>'))
         self.assertIn("duplicate element id", got)
 
     def test_catches_dangling_anchor(self):
@@ -175,7 +167,7 @@ class CheckerTest(unittest.TestCase):
         self.assertIn("unbalanced <section>", got)
 
     def test_catches_missing_title(self):
-        broken = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"description\" content=\"d\"></head><body><main id=\"main\"><h1>x</h1></main></body></html>"
+        broken = '<!DOCTYPE html><html lang="en"><head><meta name="description" content="d"></head><body><main id="main"><h1>x</h1></main></body></html>'
         got = self.problems_for(broken)
         self.assertIn("<title>", got)
 
@@ -205,7 +197,9 @@ class CheckerTest(unittest.TestCase):
 
     # ---- CSP cross-check
     TIGHT = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
-    LOOSE = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    LOOSE = (
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    )
 
     def test_unused_unsafe_inline_in_script_src_is_flagged(self):
         # The permission has gone stale and is widening the XSS surface for
@@ -220,21 +214,16 @@ class CheckerTest(unittest.TestCase):
     def test_inline_script_without_permission_is_flagged(self):
         # The page would be silently broken: the browser blocks the code and
         # nothing in CI notices.
-        got = self.problems_for(
-            page('<h1>x</h1><script>console.log(1)</script>', csp=self.TIGHT)
-        )
+        got = self.problems_for(page("<h1>x</h1><script>console.log(1)</script>", csp=self.TIGHT))
         self.assertIn("lacks 'unsafe-inline'", got)
 
     def test_event_handler_without_permission_is_flagged(self):
-        got = self.problems_for(
-            page('<h1>x</h1><button onclick="go()">b</button>', csp=self.TIGHT)
-        )
+        got = self.problems_for(page('<h1>x</h1><button onclick="go()">b</button>', csp=self.TIGHT))
         self.assertIn("on*= handler", got)
 
     def test_inline_script_with_permission_passes(self):
         got = self.problems_for(
-            page('<h1>x</h1><script src="/a.js"></script><script>go()</script>',
-                 csp=self.LOOSE)
+            page('<h1>x</h1><script src="/a.js"></script><script>go()</script>', csp=self.LOOSE)
         )
         self.assertEqual(got, "")
 
@@ -265,16 +254,19 @@ class CheckerTest(unittest.TestCase):
     def test_json_ld_does_not_satisfy_a_stale_unsafe_inline(self):
         ld = '<script type="application/ld+json">{"@type":"WebSite"}</script>'
         got = self.problems_for(page(f"<h1>x</h1>{ld}", csp=self.LOOSE))
-        self.assertIn("drop it", got,
-                      "a data block must not excuse a stale unsafe-inline")
+        self.assertIn("drop it", got, "a data block must not excuse a stale unsafe-inline")
 
     def test_executable_types_still_counted(self):
-        for stype in ('type="module"', 'type="text/javascript"',
-                      'type="application/javascript"', ""):
+        for stype in (
+            'type="module"',
+            'type="text/javascript"',
+            'type="application/javascript"',
+            "",
+        ):
             with self.subTest(type=stype):
                 attr = f" {stype}" if stype else ""
                 got = self.problems_for(
-                    page(f'<h1>x</h1><script{attr}>go()</script>', csp=self.TIGHT)
+                    page(f"<h1>x</h1><script{attr}>go()</script>", csp=self.TIGHT)
                 )
                 self.assertIn("lacks 'unsafe-inline'", got)
 
@@ -282,8 +274,7 @@ class CheckerTest(unittest.TestCase):
         for stype in ("application/ld+json", "application/json", "text/template"):
             with self.subTest(type=stype):
                 got = self.problems_for(
-                    page(f'<h1>x</h1><script type="{stype}">data</script>',
-                         csp=self.TIGHT)
+                    page(f'<h1>x</h1><script type="{stype}">data</script>', csp=self.TIGHT)
                 )
                 self.assertEqual(got, "")
 
@@ -291,34 +282,34 @@ class CheckerTest(unittest.TestCase):
     def test_comment_mentioning_script_is_not_inline_script(self):
         # The CSP note in _layouts/default.html discusses <script> and on*=
         # handlers in prose. Reading that as markup flagged all six pages.
-        got = self.problems_for(page(
-            "<h1>x</h1><!-- this layout has no inline <script> or on*= handler -->",
-            csp=self.TIGHT,
-        ))
+        got = self.problems_for(
+            page(
+                "<h1>x</h1><!-- this layout has no inline <script> or on*= handler -->",
+                csp=self.TIGHT,
+            )
+        )
         self.assertEqual(got, "")
 
     def test_comment_mentioning_on_handler_is_not_a_handler(self):
-        got = self.problems_for(page(
-            '<h1>x</h1><!-- see onclick= for details -->', csp=self.TIGHT
-        ))
+        got = self.problems_for(page("<h1>x</h1><!-- see onclick= for details -->", csp=self.TIGHT))
         self.assertEqual(got, "")
 
     def test_commented_out_section_does_not_break_balance(self):
-        got = self.problems_for(page(
-            "<h1>x</h1><section><h2>a</h2></section><!-- <section>old</section> -->"
-        ))
+        got = self.problems_for(
+            page("<h1>x</h1><section><h2>a</h2></section><!-- <section>old</section> -->")
+        )
         self.assertEqual(got, "")
 
     def test_commented_id_is_not_a_duplicate(self):
-        got = self.problems_for(page(
-            '<h1>x</h1><div id="dup"></div><!-- <span id="dup"></span> -->'
-        ))
+        got = self.problems_for(
+            page('<h1>x</h1><div id="dup"></div><!-- <span id="dup"></span> -->')
+        )
         self.assertEqual(got, "")
 
     def test_commented_anchor_is_ignored_but_a_live_one_is_still_reported(self):
-        got = self.problems_for(page(
-            '<h1>x</h1><!-- <a href="#gone">x</a> --><a href="#alsogone">y</a>'
-        ))
+        got = self.problems_for(
+            page('<h1>x</h1><!-- <a href="#gone">x</a> --><a href="#alsogone">y</a>')
+        )
         # Assert the exact reported fragment: "gone" is a substring of
         # "alsogone", so a plain containment check would be ambiguous.
         self.assertEqual(got, "index.html: anchor(s) with no target: alsogone")
@@ -328,24 +319,22 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual(mod.HTML_COMMENT.sub(" ", "a<!--\nmultiline\n-->b"), "a b")
 
     def test_inline_js_building_an_anchor_is_not_a_dangling_anchor(self):
-        got = self.problems_for(page(
-            "<h1>x</h1><script>"
-            "var D='https://example.com/';"
-            "document.write('<a href=\"' + D + '\">go</a>');"
-            "</script>"
-        ))
+        got = self.problems_for(
+            page(
+                "<h1>x</h1><script>"
+                "var D='https://example.com/';"
+                "document.write('<a href=\"' + D + '\">go</a>');"
+                "</script>"
+            )
+        )
         self.assertEqual(got, "")
 
     def test_style_block_anchor_is_not_scanned(self):
-        got = self.problems_for(page(
-            "<h1>x</h1><style>/* href='#nope' */</style>"
-        ))
+        got = self.problems_for(page("<h1>x</h1><style>/* href='#nope' */</style>"))
         self.assertEqual(got, "")
 
     def test_script_body_removed_but_markup_after_it_still_checked(self):
-        got = self.problems_for(page(
-            "<h1>x</h1><script>var a=1;</script><a href=\"#nope\">go</a>"
-        ))
+        got = self.problems_for(page('<h1>x</h1><script>var a=1;</script><a href="#nope">go</a>'))
         self.assertIn("nope", got)
 
     def test_strip_non_markup_keeps_script_tags(self):

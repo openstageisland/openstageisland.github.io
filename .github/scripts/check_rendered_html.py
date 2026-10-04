@@ -69,6 +69,7 @@ def strip_non_markup(html: str) -> str:
     """Drop comments and <script>/<style> bodies, keeping the tags themselves."""
     return SCRIPT_STYLE_BODY.sub(r"\1\2", HTML_COMMENT.sub(" ", html))
 
+
 SCRIPT_TAG = re.compile(r"<script(?P<attrs>[^>]*)>", re.I)
 SCRIPT_TYPE = re.compile(r"\stype\s*=\s*[\"']?([^\"'\s>]+)", re.I)
 # on*="..." as an attribute, e.g. onclick=, onerror=, onload=
@@ -80,10 +81,16 @@ EVENT_ATTR = re.compile(r"\son[a-z]+\s*=\s*[\"']", re.I)
 # not apply. jekyll-seo-tag emits JSON-LD data blocks, so counting those as
 # inline script would report every page as broken.
 EXECUTABLE_SCRIPT_TYPES = {
-    "", "module", "importmap", "speculationrules",
-    "text/javascript", "application/javascript",
-    "text/ecmascript", "application/ecmascript",
-    "text/x-javascript", "application/x-javascript",
+    "",
+    "module",
+    "importmap",
+    "speculationrules",
+    "text/javascript",
+    "application/javascript",
+    "text/ecmascript",
+    "application/ecmascript",
+    "text/x-javascript",
+    "application/x-javascript",
 }
 
 
@@ -174,6 +181,7 @@ def check_csp(html: str, rel: str) -> list[str]:
         )
     return problems
 
+
 def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
     rel = os.path.relpath(path, site_dir).replace(os.sep, "/")
     with open(path, encoding="utf-8", errors="replace") as fh:
@@ -235,7 +243,7 @@ def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
         hash_at = href.find("#")
         if hash_at == -1:
             continue
-        frag = href[hash_at + 1:]
+        frag = href[hash_at + 1 :]
         if not frag:
             continue
         path = href[:hash_at].split("?")[0]
@@ -243,7 +251,7 @@ def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
             if path == baseurl:
                 path = "/"
             elif path.startswith(baseurl + "/"):
-                path = path[len(baseurl):]
+                path = path[len(baseurl) :]
         if path and path != me:
             continue
         checked += 1
@@ -263,9 +271,12 @@ def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
     if h1s != 1:
         bad(
             f"expected exactly one <h1>, found {h1s}"
-            + (" — a UTF-8 BOM before a Markdown '#' heading stops kramdown"
-               " recognising it, so the line renders as literal text"
-               if h1s == 0 else "")
+            + (
+                " — a UTF-8 BOM before a Markdown '#' heading stops kramdown"
+                " recognising it, so the line renders as literal text"
+                if h1s == 0
+                else ""
+            )
         )
     for a, b in zip(levels, levels[1:]):
         if b - a > 1:
@@ -281,9 +292,11 @@ def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site", default="_site")
-    parser.add_argument("--baseurl", default="",
-                        help="site.baseurl, so root-absolute anchors are still "
-                             "recognised as same-document")
+    parser.add_argument(
+        "--baseurl",
+        default="",
+        help="site.baseurl, so root-absolute anchors are still recognised as same-document",
+    )
     args = parser.parse_args(argv)
 
     if not os.path.isdir(args.site):

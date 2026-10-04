@@ -2,12 +2,16 @@
 badges.html — shields.io + custom badges for any repo/org.
 
    Usage:
-     {% include badges.html org="neohiro" %}
-     {% include badges.html repo="neohiro/LLM" extra="ci|tests|coverage" %}
+     include badges.html org="neohiro" %}
+     include badges.html repo="neohiro/LLM" extra="ci|tests|coverage" %}
 
    Heartbeat also generates a per-repo badge bundle and writes it to
    /shared/badges/{owner}_{repo}.html. Sites with a _data/badges/{repo}.yml
    get richer badges (latest release, build status).
+      NOTE: usage lines above are written WITHOUT Liquid tag braces on purpose.
+      Liquid parses tags inside a brace-comment and inside an HTML comment, so a
+      self-referential include in this header is a live infinite recursion. It only
+      looks dormant because no built page currently reaches this partial.
 {% endcomment %}
 
 {%- if include.repo -%}

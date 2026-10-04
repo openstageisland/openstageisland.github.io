@@ -1,9 +1,11 @@
 /* ─────────────────────────────────────────────────────────────────────
  * neohiro-network :: Universal cross-site UX module
- *   - AI assistant input bar (full width, dynamic cursor, typing indicator)
- *   - Conversation modal (sway-down, user/assistant bubbles, typing indicator)
+ *   - AI assistant input bar (fixed to the bottom edge, occupies the dock slot)
+ *   - Conversation sheet (screenwide, slides up behind the dock)
+ *   - Voicemail triage (durable queue via brain-bridge — see
+ *     network/brain_bridge/README.md)
  *   - Previous-button (cross-domain navigation back to last visited site)
- *   - Universal top-nav auth tabs (Login / Dashboard) — render-only hook
+ *   - Top-nav auth slot (static markup in nav.html; this only syncs state)
  *   - Starfield parallax background
  *   - Heart/Mouth heartbeat detection (API fetch with local classify fallback)
  *   - Stranger tracking (localStorage + neohiro:stranger event)
@@ -219,11 +221,15 @@
   }
   function hostOf(url) { try { return new URL(url).hostname; } catch (_) { return ''; } }
   function labelFor(host) {
-    if (host.startsWith('transhumanists')) return 'transhumanists';
-    if (host.startsWith('frenzypenguin'))   return 'FrenzyPenguin Media';
-    if (host.startsWith('openstageisland')) return 'Open Stage Island';
-    return 'neohiro';
-  }
+  if (!host) return "Unknown";
+  return host
+    .replace(/^www\./i, "")
+    .replace(/\.github\.io$/i, "")
+    .replace(/^neohiro$/, "neohiro")
+    .replace(/^frenzypenguin-media$/, "fpm")
+    .replace(/^transhumanists$/, "transhumanists")
+    .replace(/^openstageisland$/, "openstageisland");
+}
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
@@ -464,18 +470,20 @@
       e.preventDefault();
       var status = form.querySelector('#ai-conv__triage-status');
       var send = form.querySelector('#ai-conv__triage-send');
-      var message = (form.querySelector('[name="message"]').value || '').trim();
+      var field = function (n) {
+        var el = form.querySelector('[name="' + n + '"]');
+        return el ? String(el.value || '').trim() : '';
+      };
+      var message = field('message');
       if (!message) {
         status.textContent = 'Add a message first.';
-        form.querySelector('[name="message"]').focus();
+        var box = form.querySelector('[name="message"]');
+        if (box) box.focus();
         return;
       }
 
-      var who = {
-        name: (form.querySelector('[name="name"]').value || '').trim(),
-        contact: (form.querySelector('[name="contact"]').value || '').trim()
-      };
-      var about = (form.querySelector('[name="about"]').value || '').trim();
+      var who = { name: field('name'), contact: field('contact') };
+      var about = field('about');
 
       send.disabled = true;
       status.textContent = 'Sending…';
@@ -924,11 +932,18 @@ function renderSafeHtml(html) {
   }
 
   function fetchMouthReply(q) {
+    // POST JSON, not GET with a query string: it keeps the body out of proxy and
+    // access logs, and it is the shape brain-bridge actually accepts.
     return fetchWithTimeout(
-      MOUTH_ENDPOINT + '?q=' + encodeURIComponent(q) +
-        '&site=' + encodeURIComponent(SITE_KEY),
-      { cache: 'no-store', mode: 'cors' },
-      10000
+      MOUTH_ENDPOINT,
+      {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-store',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ q: q, site: SITE_KEY, page: location.pathname })
+      },
+      12000
     )
       .then(function (r) { if (!r.ok) throw new Error('Mouth HTTP ' + r.status); return r.json(); })
       .then(function (j) { return j && (j.reply || j.answer || j.text) || null; })

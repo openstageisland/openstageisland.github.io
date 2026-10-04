@@ -38,11 +38,98 @@
 <nav class="site-nav" aria-label="Main navigation">
   {%- for item in links %}
     {%- assign parts = item | split: '|' %}
-    {%- assign label = parts[0] %}
-    {%- assign href = parts[1] %}
-    <a href="{% if href contains '://' %}{{ href }}{% else %}{{ href | relative_url }}{% endif %}"
-       class="nav-link{% if parts[2] %} nav-optional nav-opt-{{ parts[2] }}{% endif %}">{{ label }}</a>
+    {%- comment -%}
+      A malformed entry (no "|") must not silently render href="", which would
+      link to the current page and look like a working link. Fall back to "/".
+    {%- endcomment -%}
+    {%- assign nav_label = parts[0] | strip -%}
+    {%- assign nav_href = parts[1] | strip | default: '/' -%}
+    <a href="{% if nav_href contains '://' %}{{ nav_href | escape }}{% else %}{{ nav_href | relative_url | escape }}{% endif %}"
+       class="nav-link{% if parts[2] %} nav-optional nav-opt-{{ parts[2] | strip }}{% endif %}">{{ nav_label | escape }}</a>
   {% endfor %}
+
+  {%- comment -%}
+     OPT-IN HOST MENU. Renders only when the site sets show_host_menu AND ships
+     the data file named by its hosts_data key. Every other site in the
+     network skips this block entirely and never sees the markup, so adding it
+     here costs them nothing.
+
+     It reads hosts.yml rather than _config.yml on purpose: the point of this
+     menu is that it cannot disagree with the directory. A hand-kept copy of 34
+     host links in the config would drift within a week and nobody would notice,
+     because a dead navbar link looks exactly like a working one.
+
+     HASH-ITERATION CONTRACT: `for` over a Hash yields [key, value] PAIRS, not
+     keys. cat_slug must be cat_entry[0]. Binding the pair to `where` compares a
+     String with an Array, matches nothing, and stringifies the whole pair into
+     the anchors below.
+
+     The dot is the probe result. ok and guarded share a colour on purpose: a bot
+     wall is not a broken link, and colouring it red would be a lie.
+  {%- endcomment -%}
+  {%- comment -%}
+     Resolve the data file the site declared. Jekyll exposes
+     _data/<name>.yml as site.data.<name>, so the key is the basename without
+     its extension. Reading site.data.hosts outright made hosts_data decorative:
+     site_forge would validate any path and this include would still only ever
+     look at one filename.
+
+     The `default:` keeps a site that sets show_host_menu but omits hosts_data
+     working, because site_forge requires the pair without forbidding the
+     shorthand.
+  {%- endcomment -%}
+  {%- assign hosts_key = site.hosts_data | split: "/" | last | split: "." | first | default: "hosts" -%}
+  {%- assign hosts_data = site.data[hosts_key] -%}
+  {%- if site.show_host_menu and hosts_data and hosts_data.hosts -%}
+    <div class="nav-dropdown nav-dropdown--wide">
+      <button class="nav-link nav-dropdown-btn" id="nav-hosts-btn"
+              aria-haspopup="true" aria-expanded="false" aria-controls="nav-hosts-menu">
+        Hosts
+        <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" aria-hidden="true">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      <div class="nav-dropdown-menu" id="nav-hosts-menu">
+        {%- comment -%} The directory first, so the menu is never a dead end. {%- endcomment -%}
+        <a href="{{ '/hosts/' | relative_url }}" class="nav-dropdown-item nav-hosts-all">
+          <span class="nav-host-dot nav-host-dot--dir" aria-hidden="true"></span>
+          All {{ hosts_data.hosts | size }} hosts
+        </a>
+        {%- for cat_entry in hosts_data.categories -%}
+          {%- assign cat_slug = cat_entry[0] -%}
+          {%- assign cat = cat_entry[1] -%}
+          {%- assign members = hosts_data.hosts | where: "category", cat_slug | sort: "title" -%}
+          <p class="nav-hosts-group">{{ cat.symbol | escape }} {{ cat.title | escape }}</p>
+          {%- for h in members -%}
+            {%- comment -%}
+              Artists live under /artists/, everything else at the top level.
+              Branching on category is what stops half this menu pointing at the
+              alias pages instead of at the real content.
+            {%- endcomment -%}
+            {%- if h.category == "artists" -%}
+              {%- assign href = "/artists/" | append: h.slug | append: "/" -%}
+            {%- else -%}
+              {%- assign href = "/" | append: h.slug | append: "/" -%}
+            {%- endif -%}
+            {%- comment -%}
+              Map the status through one variable before it becomes a class name.
+              Emitting the raw status produced nav-host-dot--broken-dns, which no
+              rule matched, so the eight most broken records in the zone were the
+              least alarming rows in the menu: the dot fell back to the muted
+              foreground. The data file may spell a status however it likes; the
+              class name is a rendering concern and lives here.
+            {%- endcomment -%}
+            {%- assign state = h.status | default: "ok" -%}
+            {%- if state == "broken-dns" -%}{%- assign state = "broken" -%}{%- endif -%}
+            <a href="{{ href | relative_url }}" class="nav-dropdown-item nav-hosts-item">
+              <span class="nav-host-dot nav-host-dot--{{ state }}"></span>
+              <span class="nav-host-label">{{ h.title | escape }}</span>
+            </a>
+          {%- endfor -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  {%- endif -%}
 
   <div class="nav-dropdown">
     <button class="nav-link nav-dropdown-btn" id="nav-community-btn"
@@ -60,10 +147,10 @@
       {%- endif -%}
       {%- for item in menu %}
         {%- assign parts = item | split: '|' %}
-        {%- assign label = parts[0] %}
-        {%- assign href = parts[1] %}
-        <a href="{% if href contains '://' %}{{ href }}{% else %}{{ href | relative_url }}{% endif %}"
-           class="nav-dropdown-item">{{ label }}</a>
+        {%- assign menu_label = parts[0] | strip -%}
+        {%- assign menu_href = parts[1] | strip | default: '/' -%}
+        <a href="{% if menu_href contains '://' %}{{ menu_href | escape }}{% else %}{{ menu_href | relative_url | escape }}{% endif %}"
+           class="nav-dropdown-item">{{ menu_label | escape }}</a>
       {%- endfor %}
     </div>
   </div>
@@ -95,8 +182,8 @@
   <a href="https://github.com/sponsors/{{ site.sponsor_username | default: gh }}" class="nav-link nav-sponsor" target="_blank" rel="noopener">♥ Sponsor</a>
 
   {# Always last: the org glyph, hard against the right viewport edge. #}
-  <a href="https://github.com/{{ gh }}" class="nav-github" target="_blank" rel="noopener"
-     aria-label="{{ gh }} on GitHub" title="{{ gh }} on GitHub">
+  <a href="https://github.com/{{ gh | uri_escape }}" class="nav-github" target="_blank" rel="noopener"
+     aria-label="{{ gh | escape }} on GitHub" title="{{ gh | escape }} on GitHub">
     <svg viewBox="0 0 24 24" fill="currentColor" width="19" height="19" aria-hidden="true">
       <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
     </svg>
@@ -107,19 +194,34 @@
   /* Top-bar behaviour, part of the shared contract:
        - hide-on-scroll with a compact brand pill taking its place
        - a Community dropdown whose aria-expanded actually tracks the CSS reveal
-     Both are intentionally inline so nav.html stays self-contained. */
+     Both are intentionally inline so nav.html stays self-contained.
+
+     NOTE ON ESCAPING: Liquid does not auto-escape. jsonify escapes quotes but
+     NOT the closing script tag, so a site.title containing that sequence would
+     end this block early and inject markup. The replace filter below rewrites
+     "</" as "<" + a backslash + "/" in the emitted string; inside a JS string
+     literal that escape is just "/". Keep it. (Do not spell the closing tag
+     literally in a comment in here: script content is raw text, so a comment
+     does not protect it and the block would end at that point.) */
   (function () {
     'use strict';
     var header = document.querySelector('.site-header');
+    var TITLE = {{ site.title | default: 'Home' | jsonify | replace: '</', '<\/' }};
 
     if (header) {
-      var home = {{ '/' | relative_url | jsonify }};
+      var home = {{ '/' | relative_url | jsonify | replace: '</', '<\/' }};
       var mini = document.createElement('a');
       mini.className = 'header-mini';
       mini.href = home;
-      mini.setAttribute('aria-label', {{ site.title | default: 'Home' | jsonify }} + ' — home');
-      mini.innerHTML = '<span class="logo-mark" aria-hidden="true">\u{1F47D}</span><span>' +
-                       {{ site.title | default: 'Home' | jsonify }} + '</span>';
+      mini.setAttribute('aria-label', TITLE + ' — home');
+      // textContent, not innerHTML: site.title is interpolated into JS here and
+      // must never be parsed as markup.
+      var mark = document.createElement('span');
+      mark.className = 'logo-mark';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = '\u{1F47D}';
+      mini.appendChild(mark);
+      mini.appendChild(document.createTextNode(TITLE));
       document.body.appendChild(mini);
 
       var ticking = false;
@@ -133,16 +235,32 @@
         }
         ticking = false;
       }
+      // requestAnimationFrame is the throttle; fall back to a timeout so the
+      // header still behaves on engines without it rather than throwing.
+      var schedule = window.requestAnimationFrame
+        ? function (fn) { window.requestAnimationFrame(fn); }
+        : function (fn) { window.setTimeout(fn, 16); };
       window.addEventListener('scroll', function () {
         if (ticking) return;
         ticking = true;
-        window.requestAnimationFrame(onScroll);
+        schedule(onScroll);
       }, { passive: true });
     }
 
-    var wrap = document.querySelector('.nav-dropdown');
-    var btn = document.getElementById('nav-community-btn');
-    if (wrap && btn) {
+    /* Every dropdown, not just Community. Binds by element identity so a site
+       that opts into extra menus gets working behaviour on all of them, and a
+       site that does not is unaffected. Binding by a hardcoded id and pairing it
+       with querySelector('.nav-dropdown') would take the FIRST menu and hand it
+       the COMMUNITY button, so the second menu would open on hover while its
+       focus logic tested membership of the first. */
+    var dropdowns = document.querySelectorAll('.nav-dropdown');
+    for (var d = 0; d < dropdowns.length; d++) {
+      bindDropdown(dropdowns[d]);
+    }
+
+    function bindDropdown(wrap) {
+      var btn = wrap.querySelector('.nav-dropdown-btn');
+      if (!btn) return;
       function setOpen(open) { btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
       wrap.addEventListener('mouseenter', function () { setOpen(true); });
       wrap.addEventListener('mouseleave', function () { setOpen(false); });
