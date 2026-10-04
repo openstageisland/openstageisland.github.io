@@ -21,11 +21,17 @@
   <!-- Content-Security-Policy. Restricts the live-data iframe to the SL
        destination origin. The visitor counter is a visitor-badge image served
        over https (covered by img-src https:); no third-party scripts run.
-       'unsafe-inline' is required because jekyll-seo-tag and a few inline
-       event handlers exist; the iframe sandbox attribute provides
-       defense-in-depth for the embed. -->
+       'unsafe-inline' is absent from script-src deliberately: no page using
+       this layout contains an inline <script> or an on*= handler, and none of
+       the shipped scripts use eval, new Function, insertAdjacentHTML or
+       document.write. check_rendered_html.py enforces both directions of that
+       invariant, so adding inline script will fail the build rather than be
+       silently blocked at runtime.
+       style-src keeps 'unsafe-inline' because auth-bar.html and
+       sponsor-cta.html set style="" attributes and network-ux.js assigns
+       element.style.cssText, both of which style-src governs. -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://neohiro.github.io; base-uri 'self'; form-action 'self'">
+        content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://neohiro.github.io; base-uri 'self'; form-action 'self'">
   {% seo %}
 </head>
 <body>

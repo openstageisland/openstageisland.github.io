@@ -23,12 +23,19 @@ mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(mod)
 
 
-def page(body: str = "", head: str = "") -> str:
+def page(body: str = "", head: str = "", csp: str | None = None) -> str:
+    meta = ""
+    if csp is not None:
+        meta = (
+            '<meta http-equiv="Content-Security-Policy" '
+            f'content="{csp}">'
+        )
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n<head>\n'
         '<meta charset="utf-8">\n'
         '<meta name="description" content="d">\n'
+        f"{meta}\n"
         "<title>T</title>\n"
         f"{head}\n"
         "</head>\n<body>\n"
@@ -195,6 +202,57 @@ class CheckerTest(unittest.TestCase):
         self.write("index.html", CLEAN)
         self.write("tos/index.html", page("<h1>x</h1>{% seo %}"))
         self.assertEqual(self.run_check(), 1)
+
+    # ---- CSP cross-check
+    TIGHT = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    LOOSE = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+
+    def test_unused_unsafe_inline_in_script_src_is_flagged(self):
+        # The permission has gone stale and is widening the XSS surface for
+        # nothing. This is the direction that rots silently.
+        got = self.problems_for(page("<h1>x</h1>", csp=self.LOOSE))
+        self.assertIn("drop it to narrow", got)
+
+    def test_tight_script_src_without_inline_script_passes(self):
+        got = self.problems_for(page("<h1>x</h1>", csp=self.TIGHT))
+        self.assertEqual(got, "")
+
+    def test_inline_script_without_permission_is_flagged(self):
+        # The page would be silently broken: the browser blocks the code and
+        # nothing in CI notices.
+        got = self.problems_for(
+            page('<h1>x</h1><script>console.log(1)</script>', csp=self.TIGHT)
+        )
+        self.assertIn("lacks 'unsafe-inline'", got)
+
+    def test_event_handler_without_permission_is_flagged(self):
+        got = self.problems_for(
+            page('<h1>x</h1><button onclick="go()">b</button>', csp=self.TIGHT)
+        )
+        self.assertIn("on*= handler", got)
+
+    def test_inline_script_with_permission_passes(self):
+        got = self.problems_for(
+            page('<h1>x</h1><script src="/a.js"></script><script>go()</script>',
+                 csp=self.LOOSE)
+        )
+        self.assertEqual(got, "")
+
+    def test_external_script_src_does_not_count_as_inline(self):
+        got = self.problems_for(
+            page('<h1>x</h1><script src="/a.js" defer></script>', csp=self.LOOSE)
+        )
+        self.assertIn("drop it", got, "a src= script must not count as inline")
+
+    def test_no_csp_meta_is_not_flagged(self):
+        # live.html sits outside the layout and has no CSP; that is a separate
+        # concern and must not be reported as a CSP mismatch.
+        got = self.problems_for(page("<h1>x</h1>"))
+        self.assertEqual(got, "")
+
+    def test_script_src_absent_is_not_flagged(self):
+        csp = "default-src 'self'"
+        self.assertEqual(self.problems_for(page("<h1>x</h1>", csp=csp)), "")
 
 
 if __name__ == "__main__":

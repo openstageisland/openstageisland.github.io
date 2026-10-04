@@ -41,6 +41,19 @@ HEADING = re.compile(r"<(h[1-6])[\s>]", re.I)
 ID_ATTR = re.compile(r"\sid=\"([^\"]+)\"", re.I)
 ANY_LINK = re.compile(r"href=\"([^\"]+)\"", re.I)
 
+# Security-relevant patterns for cross-checking the Content-Security-Policy.
+# The policy value is delimited by the same quote character it opens with, and
+# it contains single quotes of its own ('self', 'unsafe-inline'), so a
+# backreference is required -- a [^"'] class would stop at the first 'self'.
+CSP_META = re.compile(
+    r"<meta[^>]*http-equiv=[\"']Content-Security-Policy[\"'][^>]*"
+    r"content=(?P<q>[\"'])(?P<policy>.*?)(?P=q)",
+    re.I | re.S,
+)
+INLINE_SCRIPT = re.compile(r"<script(?![^>]*\ssrc=)[^>]*>", re.I)
+# on*="..." as an attribute, e.g. onclick=, onerror=, onload=
+EVENT_ATTR = re.compile(r"\son[a-z]+\s*=\s*[\"']", re.I)
+
 
 def page_url(rel: str) -> str:
     """Map an output file to the URL a browser would request for it."""
@@ -57,6 +70,58 @@ def find_pages(site_dir: str) -> list[str]:
             if name.lower().endswith(".html") or name.lower().endswith(".htm"):
                 pages.append(os.path.join(root, name))
     return sorted(pages)
+
+
+def check_csp(html: str, rel: str) -> list[str]:
+    """Cross-check the page's CSP against the inline script it actually contains.
+
+    Two directions, both worth enforcing:
+
+      - inline script or an on*= handler while script-src lacks
+        'unsafe-inline' means the page is silently broken: the browser blocks
+        the code and nothing in CI notices.
+      - 'unsafe-inline' in script-src when the page contains no inline script
+        at all means the permission has gone stale and is quietly widening the
+        XSS surface. That is the failure this whole gate exists to prevent, so
+        it is reported rather than left to rot.
+    """
+    problems: list[str] = []
+    match = CSP_META.search(html)
+    if not match:
+        return problems
+
+    policy = match.group("policy")
+    directives: dict[str, str] = {}
+    for part in policy.split(";"):
+        tokens = part.split()
+        if tokens:
+            directives[tokens[0].lower()] = " ".join(t for t in tokens[1:])
+
+    script_src = directives.get("script-src", "")
+    if not script_src:
+        return problems  # absent script-src falls back to default-src; not checked
+
+    inline_scripts = len(INLINE_SCRIPT.findall(html))
+    event_handlers = len(EVENT_ATTR.findall(html))
+    inline_total = inline_scripts + event_handlers
+    permits_inline = "'unsafe-inline'" in script_src
+
+    if inline_total and not permits_inline:
+        kinds = []
+        if inline_scripts:
+            kinds.append(f"{inline_scripts} inline <script>")
+        if event_handlers:
+            kinds.append(f"{event_handlers} on*= handler(s)")
+        problems.append(
+            f"CSP script-src lacks 'unsafe-inline' but the page has "
+            f"{' and '.join(kinds)}; the browser will block them"
+        )
+    elif permits_inline and inline_total == 0:
+        problems.append(
+            "CSP script-src grants 'unsafe-inline' but the page has no inline "
+            "script or event handler; drop it to narrow the XSS surface"
+        )
+    return problems
 
 
 def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
@@ -156,6 +221,9 @@ def check_page(path: str, site_dir: str, baseurl: str = "") -> list[str]:
         if b - a > 1:
             bad(f"heading level skipped: h{a} -> h{b}")
             break
+
+    for problem in check_csp(html, rel):
+        bad(problem)
 
     return problems
 
