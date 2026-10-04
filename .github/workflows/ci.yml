@@ -83,13 +83,17 @@ jobs:
         run: python3 scripts/check-config.py _config.yml
 
       - name: Set up Ruby and Jekyll
-        run: |
-          set -euo pipefail
-          ruby_version=$(grep -oP 'ruby "\K[^"]+' Gemfile 2>/dev/null || echo "3.3.0")
-          echo "Installing Ruby ${ruby_version}..."
-          # Install bundler and gems
-          gem install bundler --no-document
-          bundle install --jobs=4 --retry=3
+        # Replaces a hand-rolled `gem install bundler`, which fails on
+        # ubuntu-24.04 with Gem::FilePermissionError: the runner's system gem
+        # directory (/var/lib/gems/3.2.0) is not writable, so setup never
+        # completed and the build step was skipped. setup-ruby provisions a
+        # user-writable Ruby and `bundler-cache` runs bundle install for us.
+        # Same change as the other openstageisland ci fix; needed here so this
+        # branch's build can actually run and be verified.
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
 
       - name: Build site
         run: bundle exec jekyll build --trace 2>&1
