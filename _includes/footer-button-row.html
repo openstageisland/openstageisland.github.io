@@ -1,21 +1,61 @@
-<div class="footer-integrated">
-  <p class="footer-tagline">
-    {% if include.tagline %}
-      {{ include.tagline }}
-    {% else %}
-      Made with <span class="heart" aria-hidden="true">♥</span> by neohiro · <a href="https://github.com/{{ site.github_username | default: 'neohiro' }}" target="_blank" rel="noopener">github.com/{{ site.github_username | default: 'neohiro' }}</a>
-    {% endif %}
-  </p>
-  <div class="footer-button-row">
-    <a href="https://frenzypenguin-media.github.io/" target="_blank" rel="noopener">🎬 FrenzyPenguin Media</a>
-    <a href="https://transhumanists.github.io/" target="_blank" rel="noopener">🧬 transhumanists</a>
-    <a href="https://neohiro.github.io/" {% unless include.org == 'neohiro' %}target="_blank" rel="noopener"{% endunless %}>🌐 neohiro.github.io</a>
-    <a href="https://github.com/sponsors/{{ site.github_username | default: 'neohiro' }}" class="sponsor-red" target="_blank" rel="noopener">♥ Sponsor</a>
-    <a href="{{ '/privacy/' | relative_url }}">Privacy</a>
-    <a href="{{ '/tos/' | relative_url }}">Terms of Service</a>
-    <a href="https://frenzypenguin.media" target="_blank" rel="noopener">🌐 frenzypenguin.media</a>
+<div class="footer-unified">
+  <!-- Philosophy Quote -->
+  <div class="footer-quote-wrap">
+    <blockquote class="footer-quote">
+      “Every body has organs. Every system has dependencies. We built this stack so nothing breaks quietly.”
+    </blockquote>
   </div>
-  {% if include.brand %}
-    <p class="footer-brand">{{ include.brand }}</p>
-  {% endif %}
+
+  {# The Ecosystem Network grid lives in ecosystem-network.html and is included once
+     by _layouts/default.html directly after this file. It used to be duplicated in
+     both places, which rendered six ecosystem cards per page. #}
+
+  <!-- Quick Links & Legal Directory -->
+  <div class="footer-columns">
+    <div class="footer-column">
+      <h4>Tooling &amp; Systems</h4>
+      <ul>
+        <li><a href="{{ '/#featured-tools' | relative_url }}">Hardening Tools</a></li>
+        <li><a href="{{ '/#hardening-guides' | relative_url }}">Implementation Guides</a></li>
+        <li><a href="{{ '/repositories/' | relative_url }}">All Public Repositories</a></li>
+        <li><a href="{{ '/media/' | relative_url }}">Media &amp; Deep Dives</a></li>
+        <li><a href="{{ '/heartbeats/' | relative_url }}">System Heartbeats (Live SVGs)</a></li>
+        <li><a href="{{ '/onboard/' | relative_url }}">Onboarding &amp; Setup</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-column">
+      <h4>Trust &amp; Governance</h4>
+      <ul>
+        <li><a href="{{ '/privacy/' | relative_url }}">Privacy Policy (Zero Telemetry)</a></li>
+        <li><a href="{{ '/tos/' | relative_url }}">Terms of Service</a></li>
+        <li><a href="{{ '/LICENSE/' | relative_url }}">Open Source Licensing</a></li>
+        <li><a href="https://github.com/neohiro/windows/security" target="_blank" rel="noopener">Security Advisories</a></li>
+        <li><a href="https://github.com/neohiro/neohiro.github.io/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener">Code of Conduct</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-column footer-column-community">
+      <h4>Support &amp; Community</h4>
+      <p class="footer-support-text">Open-source defense engineering funded independently without telemetry, analytics, or trackers.</p>
+      <a href="https://github.com/sponsors/{{ site.github_username | default: 'neohiro' }}" class="footer-sponsor-button" target="_blank" rel="noopener">
+        <span class="heart-pulse" aria-hidden="true">♥</span> Sponsor neohiro on GitHub
+      </a>
+      <div class="footer-community-links">
+        <a href="https://github.com/neohiro/windows/issues" target="_blank" rel="noopener">Bug Reports</a> ·
+        <a href="https://github.com/neohiro/windows/discussions" target="_blank" rel="noopener">Discussions</a> ·
+        <a href="https://github.com/neohiro" target="_blank" rel="noopener">Org Overview</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Tagline & Micro-Legal -->
+  <div class="footer-bottom-bar">
+    <p class="footer-tagline">
+      Made with <span class="heart" aria-hidden="true">♥</span> by neohiro · Defense is the best defense.
+    </p>
+    <p class="footer-micro">
+      © {{ site.time | date: "%Y" }} FrenzyPenguin Media &amp; neohiro · All tools released under FOSS licenses (GPL-3.0 / MIT).
+    </p>
+  </div>
 </div>

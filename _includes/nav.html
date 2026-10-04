@@ -1,49 +1,165 @@
+{# nav.html — the top bar. ONE template for every neohiro-network Jekyll site.
+
+   CONTRACT — keep in sync across neohiro / frenzypenguin-media / openstageisland /
+   transhumanists (SSOT: template-shared/_includes/nav.html):
+
+   1. LABELS ARE ONE WORD. The bar is not sticky, so a wrapping row would shift
+      layout and a long label is the only thing that can force a wrap on a 360px
+      phone. If you need two words, the item belongs in the Community menu.
+   2. ORDER IS FIXED:
+        [section links] [Community ▾] [Login] [♥ Sponsor] [GitHub glyph]
+      The GitHub glyph is always LAST so it sits hard against the right edge.
+   3. `[data-nav-auth]` IS RENDERED HERE, NOT INJECTED BY JS. network-ux.js
+      `injectNavAuth()` bails out when it sees that attribute and then only
+      toggles .hidden / fills avatar+name+role. Static markup means no
+      post-load reflow and no duplicate buttons.
+   4. THERE IS NO CONTACT ITEM. AI and Contact are one surface — the assistant
+      dock at the bottom of every page. Login lives here, in the top bar.
+   5. Links come from `_config.yml` so each site gets its own set from the same
+      template. Format is a YAML list of pipe-separated strings, because URLs
+      contain colons and `:` is therefore not a safe delimiter here:
+        nav_links:
+          - "Tools|/#featured-tools"
+          - "Beats|/heartbeats/|4"          # trailing field = drop priority
+        community_links:
+          - "Discussions|https://github.com/neohiro/windows/discussions"
+      `opt` (2|3|4) marks drop-order for narrow screens, dropped highest-first:
+        4 → ≤1180px, 3 → ≤1000px, 2 → ≤820px
+      Everything dropped is still reachable from the footer + Community menu.
+   6. THE HEADER SCROLLS AWAY. Below the fold it translates out of view and a
+      compact brand pill takes its place, so the hero and the live signal get
+      the full viewport. #}
+{%- assign gh = site.github_username | default: 'neohiro' -%}
+{%- assign links = site.nav_links -%}
+{%- if links == nil or links == empty -%}
+  {%- comment -%} Safe default for a site that has not configured nav_links yet. {%- endcomment -%}
+  {%- assign links = "Home|/|, Repos|/repositories/|, Media|/media/" | split: ", " -%}
+{%- endif -%}
 <nav class="site-nav" aria-label="Main navigation">
-  <a href="{{ include.home | default: '/' | relative_url }}" class="nav-link {% if page.url == '/' %}active{% endif %}">Home</a>
-  <a href="{{ '/repositories/' | relative_url }}" class="nav-link">Repositories</a>
-  <a href="{{ '/media/' | relative_url }}" class="nav-link">Media</a>
-  <a href="{{ '/dashboard/' | relative_url }}" class="nav-link">Dashboard</a>
+  {%- for item in links %}
+    {%- assign parts = item | split: '|' %}
+    {%- assign label = parts[0] %}
+    {%- assign href = parts[1] %}
+    <a href="{% if href contains '://' %}{{ href }}{% else %}{{ href | relative_url }}{% endif %}"
+       class="nav-link{% if parts[2] %} nav-optional nav-opt-{{ parts[2] }}{% endif %}">{{ label }}</a>
+  {% endfor %}
 
-  <!-- Dynamic LOGIN slot — populated by auth-bar.js on auth state change -->
-  <span class="nav-login-slot" aria-live="polite">
-    <!-- Signed-out state: shown by default; hidden once auth-bar.js sets session -->
-    <a href="#" class="nav-link nav-login-out" data-mode="out" id="nav-login-link">
-      Login
-    </a>
-    <!-- Signed-in state: hidden until auth-bar.js reveals it + fills in user info -->
-    <span class="nav-login-in hidden" data-mode="in">
-      <button class="nav-link nav-login-in-btn" id="nav-login-in-btn" aria-haspopup="true" aria-expanded="false">
-        <img class="nav-login-avatar" data-bind="avatar" src="" alt="" width="20" height="20" style="border-radius:50%" loading="lazy">
-        <span data-bind="login"></span>
-        <span class="nav-login-role" data-bind="role"></span>
-      </button>
-    </span>
-  </span>
+  <div class="nav-dropdown">
+    <button class="nav-link nav-dropdown-btn" id="nav-community-btn"
+            aria-haspopup="true" aria-expanded="false" aria-controls="nav-community-menu">
+      Community
+      <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" aria-hidden="true">
+        <path d="M6 9l6 6 6-6"/>
+      </svg>
+    </button>
+    <div class="nav-dropdown-menu" id="nav-community-menu">
+      {%- assign menu = site.community_links -%}
+      {%- if menu == nil or menu == empty -%}
+        {%- assign menu = "Org Overview|https://github.com/ORGPLACEHOLDER, Sponsor|https://github.com/sponsors/ORGPLACEHOLDER" | split: ", " -%}
+        {%- assign menu = menu | replace: 'ORGPLACEHOLDER', gh -%}
+      {%- endif -%}
+      {%- for item in menu %}
+        {%- assign parts = item | split: '|' %}
+        {%- assign label = parts[0] %}
+        {%- assign href = parts[1] %}
+        <a href="{% if href contains '://' %}{{ href }}{% else %}{{ href | relative_url }}{% endif %}"
+           class="nav-dropdown-item">{{ label }}</a>
+      {%- endfor %}
+    </div>
+  </div>
 
-  <a href="https://github.com/sponsors/{{ site.github_username | default: 'neohiro' }}" class="nav-link nav-sponsor" target="_blank" rel="noopener">♥ Sponsor</a>
+  {# ── Auth slot. Static on purpose (see contract note 3).
+       /dashboard/ has no GitHub Pages deployment, so dashboard targets point at
+       the repository. Override with `dashboard_url` in _config.yml. #}
+  {%- assign dash = site.dashboard_url | default: 'https://github.com/neohiro/dashboard' -%}
+  <button class="nav-auth nav-auth--login" id="nav-auth__login" type="button" data-nav-auth="login">
+    <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15" aria-hidden="true">
+      <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+    </svg>
+    <span>Login</span>
+  </button>
+
+  <a class="nav-auth nav-auth--dashboard hidden" id="nav-auth__dashboard" data-nav-auth="dashboard" href="{{ dash }}" target="_blank" rel="noopener">
+    <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
+      <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+    </svg>
+    <span>Dashboard</span>
+  </a>
+
+  <a class="nav-auth nav-auth--user hidden" id="nav-auth__user" data-nav-auth="user" href="{{ dash }}" target="_blank" rel="noopener">
+    <img id="nav-auth__avatar" src="" alt="" width="18" height="18" loading="lazy">
+    <span id="nav-auth__name"></span>
+    <span id="nav-auth__role" class="role-badge"></span>
+  </a>
+
+  <a href="https://github.com/sponsors/{{ site.sponsor_username | default: gh }}" class="nav-link nav-sponsor" target="_blank" rel="noopener">♥ Sponsor</a>
+
+  {# Always last: the org glyph, hard against the right viewport edge. #}
+  <a href="https://github.com/{{ gh }}" class="nav-github" target="_blank" rel="noopener"
+     aria-label="{{ gh }} on GitHub" title="{{ gh }} on GitHub">
+    <svg viewBox="0 0 24 24" fill="currentColor" width="19" height="19" aria-hidden="true">
+      <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+    </svg>
+  </a>
 </nav>
 
 <script>
-  /* Nav login slot wiring — wires the static nav Login link to the
-   * bottom dock's Login panel. When auth-bar.js sets session, it also
-   * updates the nav slot text via syncNavLoginSlot(). */
+  /* Top-bar behaviour, part of the shared contract:
+       - hide-on-scroll with a compact brand pill taking its place
+       - a Community dropdown whose aria-expanded actually tracks the CSS reveal
+     Both are intentionally inline so nav.html stays self-contained. */
   (function () {
-    var navLoginLink = document.getElementById('nav-login-link');
-    var navLoginInBtn = document.getElementById('nav-login-in-btn');
+    'use strict';
+    var header = document.querySelector('.site-header');
 
-    if (navLoginLink) {
-      navLoginLink.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (window.AuthBar) window.AuthBar.selectTab('login');
-      });
+    if (header) {
+      var home = {{ '/' | relative_url | jsonify }};
+      var mini = document.createElement('a');
+      mini.className = 'header-mini';
+      mini.href = home;
+      mini.setAttribute('aria-label', {{ site.title | default: 'Home' | jsonify }} + ' — home');
+      mini.innerHTML = '<span class="logo-mark" aria-hidden="true">\u{1F47D}</span><span>' +
+                       {{ site.title | default: 'Home' | jsonify }} + '</span>';
+      document.body.appendChild(mini);
+
+      var ticking = false;
+      function onScroll() {
+        var past = window.scrollY > 220;
+        // Only touch the classes when the threshold is crossed, otherwise the
+        // header re-animates on every pixel of scroll.
+        if (past !== header.classList.contains('site-header--hidden')) {
+          header.classList.toggle('site-header--hidden', past);
+          mini.classList.toggle('header-mini--visible', past);
+        }
+        ticking = false;
+      }
+      window.addEventListener('scroll', function () {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(onScroll);
+      }, { passive: true });
     }
 
-    /* Inlined here so nav.html is self-contained. auth-bar.js handles the
-     * actual sync — we just wire the button to open the dock panel. */
-    if (navLoginInBtn) {
-      navLoginInBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (window.AuthBar) window.AuthBar.selectTab('user');
+    var wrap = document.querySelector('.nav-dropdown');
+    var btn = document.getElementById('nav-community-btn');
+    if (wrap && btn) {
+      function setOpen(open) { btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+      wrap.addEventListener('mouseenter', function () { setOpen(true); });
+      wrap.addEventListener('mouseleave', function () { setOpen(false); });
+      wrap.addEventListener('focusin', function () { setOpen(true); });
+      wrap.addEventListener('focusout', function () {
+        window.setTimeout(function () {
+          if (!wrap.contains(document.activeElement)) setOpen(false);
+        }, 0);
+      });
+      btn.addEventListener('click', function () {
+        setOpen(btn.getAttribute('aria-expanded') !== 'true');
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && btn.getAttribute('aria-expanded') === 'true') {
+          setOpen(false);
+          btn.focus();
+        }
       });
     }
   })();

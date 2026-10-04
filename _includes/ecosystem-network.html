@@ -15,24 +15,36 @@
      gains .is-current, so "you are here" is conveyed by the card's shape
      rather than by colour alone.
 
+     The frame's own heading is an <h2>, not an <h3>. The frame is a sibling of
+     the page's content sections, not a subsection of the last one, and <h3>
+     only passed the heading-order gate on pages whose content happened to end
+     in an <h2> — on a page ending in the <h1> it read as a skipped level.
+     Every page has exactly one <h1> and uses <h2> for sections, so <h2> is
+     correct everywhere.
+
      Cross-site links are absolute on purpose: the frame is a directory of
      other origins, so a relative_url would resolve against whichever site
      happens to be rendering it. -->
 
-{%- assign current = include.current -%}
+{%- comment -%}
+   Copied out of `include` under a distinct name on purpose. Assigning straight
+   to `current` would shadow any variable a caller happens to have set by that
+   name, and this file is rendered by a layout that may well have one.
+{%- endcomment -%}
+{%- assign eco_site = include.current -%}
 
 <!-- Ecosystem Network -->
 <section class="footer-ecosystem" aria-labelledby="ecosystem-network-title">
   <div class="footer-ecosystem-header">
     <span class="footer-badge">ECOSYSTEM NETWORK</span>
-    <h3 class="footer-ecosystem-title" id="ecosystem-network-title">Interconnected Media, Research &amp; Tooling</h3>
+    <h2 class="footer-ecosystem-title" id="ecosystem-network-title">Interconnected Media, Research &amp; Tooling</h2>
   </div>
 
   <div class="footer-ecosystem-grid">
 
     <!-- neohiro -->
     {%- assign is_current = false -%}
-    {%- if current == 'neohiro' -%}{%- assign is_current = true -%}{%- endif %}
+    {%- if eco_site == 'neohiro' -%}{%- assign is_current = true -%}{%- endif %}
     <div class="ecosystem-card{% if is_current %} is-current{% endif %}">
       <div class="ecosystem-card-top">
         <div class="ecosystem-icon" aria-hidden="true">👽</div>
@@ -65,7 +77,7 @@
 
     <!-- FrenzyPenguin Media -->
     {%- assign is_current = false -%}
-    {%- if current == 'fpm' -%}{%- assign is_current = true -%}{%- endif %}
+    {%- if eco_site == 'fpm' -%}{%- assign is_current = true -%}{%- endif %}
     <div class="ecosystem-card{% if is_current %} is-current{% endif %}">
       <div class="ecosystem-card-top">
         <div class="ecosystem-icon" aria-hidden="true">🎬</div>
@@ -98,7 +110,7 @@
 
     <!-- Transhumanists (H+) -->
     {%- assign is_current = false -%}
-    {%- if current == 'transhumanists' -%}{%- assign is_current = true -%}{%- endif %}
+    {%- if eco_site == 'transhumanists' -%}{%- assign is_current = true -%}{%- endif %}
     <div class="ecosystem-card{% if is_current %} is-current{% endif %}">
       <div class="ecosystem-card-top">
         <div class="ecosystem-icon" aria-hidden="true">🧬</div>
@@ -131,7 +143,7 @@
 
     <!-- Open Stage Island -->
     {%- assign is_current = false -%}
-    {%- if current == 'openstageisland' -%}{%- assign is_current = true -%}{%- endif %}
+    {%- if eco_site == 'openstageisland' -%}{%- assign is_current = true -%}{%- endif %}
     <div class="ecosystem-card{% if is_current %} is-current{% endif %}">
       <div class="ecosystem-card-top">
         <div class="ecosystem-icon" aria-hidden="true">🏝️</div>

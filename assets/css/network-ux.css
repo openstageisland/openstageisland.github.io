@@ -343,35 +343,67 @@ body > .ambient-orb {
   .prev-btn .prev-host { display: none; }
 }
 
-/* ── AI Assistant input bar (hero-centered) ────────────────────────── */
+/* ── AI Assistant input bar ────────────────────────────────────────────────────
+   Fixed to the bottom edge so it occupies the same slot as the dock rail: when
+   the assistant is idle the bar IS the lower menu bar. Opening a conversation
+   slides this bar down out of view (body.ai-conv-active) and the screenwide
+   sheet takes its place. The page behind stays scrollable and interactive — the
+   bar is pointer-events:none on its wrapper so only the bar itself captures. */
 .ai-bar {
-  margin: 32px auto 0;
-  max-width: 1120px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 88;
+  width: 100%;
+  margin: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
-  display: flex;
-  justify-content: center;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, transparent 0%, var(--bg, #0b0e12) 42%);
+  transform: translateY(0);
+  transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+}
+body.ai-conv-active .ai-bar {
+  transform: translateY(130%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* Once the dock rail is present the bar sits directly above it. */
+body.ai-dock-present .ai-bar {
+  bottom: var(--ai-dock-h, 52px);
+}
+@media (max-width: 680px) {
+  .ai-bar { padding-left: 10px; padding-right: 10px; }
 }
 .ai-bar__inner {
   pointer-events: auto;
-  width: min(100%, 1120px);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
   position: relative;
 }
 .ai-bar__form {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px 10px 18px;
+  padding: 10px 16px;
   background: var(--bg-elevated, #161e26);
   border: 1px solid var(--border, #1f2a36);
   border-radius: 999px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-dim, rgba(124,77,255,0.2));
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px var(--accent-dim, rgba(124,77,255,0.15));
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, background 0.2s, padding 0.2s;
   backdrop-filter: blur(12px);
+  min-height: 56px;
 }
-.ai-bar__form:focus-within {
+.ai-bar__form:focus-within,
+.ai-bar__form.has-content {
   border-color: var(--accent, #7c4dff);
-  box-shadow: 0 14px 50px rgba(0,0,0,0.55), 0 0 0 2px var(--accent, #7c4dff), 0 0 24px var(--accent-dim, rgba(124,77,255,0.2));
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 2px var(--accent, #7c4dff), 0 0 20px var(--accent-dim, rgba(124,77,255,0.2));
   transform: translateY(-1px);
+  background: var(--bg-card, #111820);
+  padding-left: 20px;
+  padding-right: 20px;
 }
 .ai-bar__icon {
   flex-shrink: 0;
@@ -391,12 +423,9 @@ body > .ambient-orb {
   line-height: 1.4;
   padding: 4px 0;
   caret-color: var(--accent, #7c4dff);
+  min-width: 0;
 }
 .ai-bar__input:focus-visible {
-  /* Show a 2px ring on the surrounding .ai-bar__form on keyboard focus
-     (the input itself has outline:none so it doesn't double up). The
-     focus-within on .ai-bar__form already highlights the border, but
-     some screen readers need a visible ring for keyboard nav. */
   outline: 2px solid var(--accent, #7c4dff);
   outline-offset: 4px;
   border-radius: 4px;
@@ -416,6 +445,7 @@ body > .ambient-orb {
   border-radius: 999px;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+  flex-shrink: 0;
 }
 .ai-bar__send:hover {
   transform: translateY(-1px);
@@ -566,47 +596,49 @@ body > .ambient-orb {
 
 /* ── Typewriter / live signal ──────────────────────────────────────── */
 .typewriter-wrap {
-  max-width: 920px;
+  max-width: 860px;
   margin: 0 auto;
   text-align: center;
   padding: 0 24px;
-  min-height: 200px;
+  min-height: 132px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 .typewriter-prefix {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   padding: 4px 12px;
   border-radius: 999px;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--accent, #7c4dff);
   background: var(--accent-dim, rgba(124,77,255,0.2));
   border: 1px solid var(--accent, #7c4dff);
-  margin-bottom: 28px;
+  margin-bottom: 22px;
   animation: twLabelPulse 3.6s ease-in-out infinite;
 }
 @keyframes twLabelPulse {
   50% { box-shadow: 0 0 24px var(--accent-dim, rgba(124,77,255,0.2)); }
 }
+/* Bright solid fill on purpose. A previous revision used
+   -webkit-background-clip:text + -webkit-text-fill-color:transparent, which made
+   the typed text render invisible (the gradient also faded out to --fg-muted, so
+   even when the clip worked the tail of every line read as dim grey). */
 .typewriter {
   font-family: var(--font-ui, 'Space Grotesk', system-ui, sans-serif);
   font-weight: 600;
-  font-size: clamp(1.6rem, 4.2vw, 2.7rem);
-  line-height: 1.25;
-  color: var(--fg, #eceff1);
+  font-size: clamp(1.35rem, 3.6vw, 2.25rem);
+  line-height: 1.3;
+  color: #ffffff;
   letter-spacing: -0.015em;
   min-height: 1.4em;
   display: inline-block;
-  background: linear-gradient(135deg, var(--fg, #eceff1) 0%, var(--fg-muted, #96a8b8) 50%, var(--accent-strong, #9d7aff) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 30px rgba(124,77,255,0.18);
+  text-shadow: 0 0 30px rgba(124,77,255,0.35), 0 2px 10px rgba(0,0,0,0.6);
   padding-right: 2px;
 }
 .typewriter-cursor {
@@ -622,9 +654,9 @@ body > .ambient-orb {
 }
 @keyframes twBlink { 50% { opacity: 0; } }
 .typewriter-attribution {
-  margin-top: 22px;
+  margin-top: 16px;
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--fg-subtle, #6d7f8f);
   letter-spacing: 0.04em;
   min-height: 1.4em;
@@ -635,13 +667,15 @@ body > .ambient-orb {
 .hidden { display: none !important; }
 
 /* ── Conversation modal ──────────────────────────────────────────── */
+/* The sheet is no longer horizontally centred (it is screenwide and anchored to
+   the left/right edges), so these two must NOT carry a translateX(-50%). */
 @keyframes convSlideDown {
-  from { opacity: 0; transform: translateX(-50%) translateY(-24px) scaleY(0.96); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0) scaleY(1); }
+  from { opacity: 0; transform: translateY(-24px) scaleY(0.96); }
+  to   { opacity: 1; transform: translateY(0) scaleY(1); }
 }
 @keyframes convFadeUp {
-  from { opacity: 1; transform: translateX(-50%) translateY(0) scaleY(1); }
-  to   { opacity: 0; transform: translateX(-50%) translateY(-12px) scaleY(0.96); }
+  from { opacity: 1; transform: translateY(0) scaleY(1); }
+  to   { opacity: 0; transform: translateY(-12px) scaleY(0.96); }
 }
 @keyframes msgSlideIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -656,36 +690,54 @@ body > .ambient-orb {
   30%            { transform: translateY(-4px); opacity: 1; }
 }
 
+/* ── Conversation sheet ─────────────────────────────────────────────────────
+   Screenwide: full bleed from the bottom edge up, rounded only at the top. It
+   deliberately does NOT use a backdrop — the user must still be able to scroll
+   and read the page underneath while a conversation is open. */
 .ai-conv {
   position: fixed;
-  left: 50%;
-  bottom: calc(var(--ai-bar-pad, 110px) + 18px);
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 89;
-  width: min(100%, 780px);
+  width: 100%;
+  max-width: none;
   pointer-events: none;
 }
 .ai-conv.hidden { display: none; }
 .ai-conv--open {
-  animation: convSlideDown 0.35s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: convSlideUp 0.36s cubic-bezier(0.22, 0.61, 0.36, 1) both;
   pointer-events: auto;
 }
 .ai-conv--closing {
-  animation: convFadeUp 0.22s ease-in both;
+  animation: convSlideDown 0.24s ease-in both;
   pointer-events: none;
+}
+@keyframes convSlideUp {
+  from { opacity: 0; transform: translateY(6%) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .ai-conv__chrome {
   background: var(--bg-elevated, #161e26);
   border: 1px solid var(--border, #1f2a36);
-  border-radius: 18px;
+  border-bottom: none;
+  border-radius: 18px 18px 0 0;
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.55),
+    0 -20px 60px rgba(0, 0, 0, 0.55),
     0 0 0 1px var(--accent-dim, rgba(124, 77, 255, 0.15)),
     0 0 40px var(--accent-dim, rgba(124, 77, 255, 0.1));
   overflow: hidden;
-  max-height: 65vh;
+  max-height: min(76vh, 720px);
   display: flex;
   flex-direction: column;
+}
+/* Leave room for the dock rail so the close button is never under it. */
+body.ai-dock-present .ai-conv { bottom: var(--ai-dock-h, 52px); }
+/* …unless the dock has slid away for this conversation. Must come after the
+   rule above (equal specificity, later wins). */
+body.ai-conv-active .ai-conv { bottom: 0; }
+@media (max-width: 680px) {
+  .ai-conv__chrome { max-height: 82vh; border-radius: 14px 14px 0 0; }
 }
 .ai-conv__header {
   display: flex;
@@ -971,4 +1023,73 @@ body > .ambient-orb {
 }
 @media (max-width: 560px) {
   .hero-avatar { width: 72px; height: 72px; margin-bottom: 14px; }
+}
+
+/* neohiro-network: assistant dock + conversation sheet contract */
+/* AI and Contact are one surface. The dock's Assistant tab does not open a dock
+   panel: body.ai-conv-active slides the dock down and the screenwide sheet takes
+   the bottom edge. The page behind stays scrollable and interactive. */
+.ai-dock { transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1); }
+body.ai-conv-active .ai-dock {
+  transform: translateY(115%);
+  pointer-events: none;
+}
+
+/* The ask bar is the lower menu bar while the assistant is idle. */
+.ai-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 88;
+  width: 100%;
+  margin: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, transparent 0%, var(--bg, #0b0e12) 42%);
+  transform: translateY(0);
+  transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+}
+body.ai-conv-active .ai-bar {
+  transform: translateY(130%);
+  opacity: 0;
+  pointer-events: none;
+}
+body.ai-dock-present .ai-bar { bottom: var(--ai-dock-h, 52px); }
+
+/* Screenwide conversation sheet: full bleed from the bottom, no backdrop. */
+.ai-conv {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 89;
+  width: 100%;
+  max-width: none;
+  pointer-events: none;
+}
+.ai-conv--open {
+  animation: convSlideUp 0.36s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  pointer-events: auto;
+}
+.ai-conv--closing {
+  animation: convSlideDown 0.24s ease-in both;
+  pointer-events: none;
+}
+@keyframes convSlideUp {
+  from { opacity: 0; transform: translateY(6%) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ai-conv__chrome {
+  border-bottom: none;
+  border-radius: 18px 18px 0 0;
+  max-height: min(76vh, 720px);
+}
+body.ai-dock-present .ai-conv { bottom: var(--ai-dock-h, 52px); }
+body.ai-conv-active .ai-conv { bottom: 0; }
+
+@media (max-width: 680px) {
+  .ai-bar { padding-left: 10px; padding-right: 10px; }
+  .ai-conv__chrome { max-height: 82vh; border-radius: 14px 14px 0 0; }
 }

@@ -31,9 +31,34 @@
     mountAssistantBar();
     fillAvatarSlots(document.body); // ai-dock chat avatar (site identity)
     injectNavAuth();
+    wireDockToConversation();
     detectStranger();
     wireInteractions();
     runDiagnostics();
+  }
+
+  /* ── Dock → conversation hand-off ──────────────────────────────────────
+     AI and Contact are one surface. The dock's Assistant tab does not open a
+     dock panel: it slides the dock down and lets the screenwide sheet come up in
+     its place. Selecting Assistant twice, or pressing Esc, puts the dock back. */
+  function wireDockToConversation() {
+    var tab = document.getElementById('ai-dock__tab--ai');
+    if (tab && !tab.dataset.convWired) {
+      tab.dataset.convWired = '1';
+      tab.addEventListener('click', function () {
+        // Collapse any dock panel first so the rail is its resting state.
+        if (window.AuthBar && typeof window.AuthBar.selectTab === 'function') {
+          window.AuthBar.selectTab(null);
+        }
+        if (isConvOpen()) hideConversationModal();
+        else showConversationModal();
+      });
+    }
+    // The rail and the ask bar occupy the same bottom slot; let CSS know so it
+    // can stack them instead of overlapping.
+    if (document.getElementById('ai-dock')) {
+      document.body.classList.add('ai-dock-present');
+    }
   }
 
   /* ── Universal interaction wiring (ripples, tilt, reveal) ─── */
@@ -211,10 +236,16 @@
    * (transhumanists/openstageisland allow https:). */
   var SITE_AVATAR = (function () {
     var host = (location.hostname || '').toLowerCase();
-    if (host.indexOf('frenzypenguin') === 0)    return '/assets/profile.png';
-    if (host.indexOf('transhumanists') === 0)   return 'https://github.com/transhumanists.png';
-    if (host.indexOf('openstageisland') === 0)  return 'https://github.com/openstageisland.png';
-    if (host.indexOf('neohiro') === 0)          return '/assets/profile.png';
+    // Exact hostname match to prevent subdomain spoofing (e.g. frenzypenguin-attacker.com)
+    var exact = {
+      'neohiro.github.io':           '/assets/profile.png',
+      'frenzypenguin-media.github.io': '/assets/profile.png',
+      'transhumanists.github.io':    'https://github.com/transhumanists.png',
+      'openstageisland.github.io':   'https://github.com/openstageisland.png',
+    };
+    if (exact[host]) return exact[host];
+    // Fallback: known subdomains of neohiro org
+    if (host.endsWith('.neohiro.github.io') || host === 'neohiro.github.io') return '/assets/profile.png';
     return '/assets/profile.png';
   })();
 
@@ -231,7 +262,7 @@
   }
 
   // Injects the org avatar into every assistant avatar slot + the
-  // conversation header brand. The slot's existing glyph (✦ / 🤖) stays
+  // conversation header brand. The slot's existing glyph (✦ / ðŸ¤–) stays
   // underneath as a graceful offline fallback: if the image errors out it
   // is removed and the glyph + tinted circle remain.
   function fillAvatarSlots(root) {
@@ -385,10 +416,17 @@
     void m.offsetWidth;
     m.classList.add('ai-conv--open');
     m.setAttribute('aria-modal', 'true');
-    // Focus first focusable element inside the modal chrome.
-    var first = m.querySelector('input, textarea, button, [tabindex]:not([tabindex="-1"])');
-    if (first) first.focus();
-    else m.focus();
+    // Body-level flag: slides the ask bar down and keeps the dock out of the way.
+    document.body.classList.add('ai-conv-active');
+    // Move the reader's focus to the close button rather than the first focusable
+    // (which is the heart status pill) so Esc-and-dismiss is discoverable.
+    var close = m.querySelector('.ai-conv__close');
+    if (close) close.focus();
+    else {
+      var first = m.querySelector('input, textarea, button, [tabindex]:not([tabindex="-1"])');
+      if (first) first.focus();
+      else m.focus();
+    }
   }
 
   function hideConversationModal() {
@@ -403,6 +441,7 @@
       m.classList.remove('ai-conv--closing');
     }, 240);
     m.setAttribute('aria-modal', 'false');
+    document.body.classList.remove('ai-conv-active');
     // Restore focus to the element that was active before the modal opened.
     // Guard: the original element may have been removed from the DOM
     // (e.g. a card that got re-rendered). Only restore if still focusable.
@@ -784,7 +823,7 @@ function renderSafeHtml(html) {
   }
 
   /* ── AI assistant input bar (full width) ──────────────────────── */
-  function mountAssistantBar() {
+function mountAssistantBar() {
     if (document.getElementById('ai-bar')) return;
 
     recordCurrent(); // register this page for the cross-domain back button
@@ -827,19 +866,26 @@ function renderSafeHtml(html) {
       </div>
     `;
 
-    // Insert into hero-content if present (hero middle), otherwise fall back to body
-    const heroContent = document.querySelector('.hero-content');
-    if (heroContent) {
-      heroContent.appendChild(wrap);
+    // Mount point. Preference order:
+    //   1. an explicit [data-ai-bar-slot] the site provides (full control)
+    //   2. the hero CTA row (this is where the ask bar belongs)
+    //   3. the live-signal section (legacy fallback)
+    // It must NOT land in the live-signal section by default any more: that
+    // section is now below the fold behind a full-height hero, and the ask bar
+    // is meant to read as the hero's primary action.
+    const slot = document.querySelector('[data-ai-bar-slot]');
+    const heroCta = document.querySelector('.hero-cta');
+    const typewriterWrap = document.querySelector('.typewriter-wrap');
+    if (slot) {
+      slot.appendChild(wrap);
+    } else if (heroCta && heroCta.parentNode) {
+      heroCta.parentNode.insertBefore(wrap, heroCta.nextSibling);
+    } else if (typewriterWrap) {
+      typewriterWrap.parentNode.insertBefore(wrap, typewriterWrap);
     } else {
       document.body.appendChild(wrap);
     }
-
-    // Add bottom padding so the bar doesn't cover content (idempotent)
-    if (!document.documentElement.style.getPropertyValue('--ai-bar-pad')) {
-      document.documentElement.style.setProperty('--ai-bar-pad', '110px');
-      document.documentElement.style.paddingBottom = 'var(--ai-bar-pad)';
-    }
+    document.body.classList.add('ai-bar-mounted');
 
     const form = document.getElementById('ai-bar__form');
     const input = document.getElementById('ai-bar__input');
@@ -847,12 +893,13 @@ function renderSafeHtml(html) {
     form.addEventListener('submit', onAsk);
     // Live char counter: shows how much is left so users self-correct
     // before hitting the 600-char cap and getting a silent truncation.
-    function updateCounter() {
-      var n = input.value.length;
-      counter.textContent = n + ' / 600';
-      counter.classList.toggle('ai-bar__counter--near', n >= 540);
-      counter.classList.toggle('ai-bar__counter--over', n > 600);
-    }
+function updateCounter() {
+        var n = input.value.length;
+        counter.textContent = n + ' / 600';
+        counter.classList.toggle('ai-bar__counter--near', n >= 540);
+        counter.classList.toggle('ai-bar__counter--over', n > 600);
+        form.classList.toggle('has-content', n > 0);
+      }
     input.addEventListener('input', updateCounter);
     updateCounter();
     // Cute dynamic cursor: shift placeholder text on focus/blur
@@ -1016,7 +1063,7 @@ If you want to see heartbeats for the org, open [/heartbeats/](https://neohiro.g
     }
     if (isMedia) {
       return `
-**Media hub:** [FrenzyPenguin Media](https://neohiro.github.io/media/) — video deep-dives on hardening, exploit mitigation, and privacy engineering.
+**Media hub:** [FrenzyPenguin Media](https://neohiro.github.io/media/) — music artist recordings and creative content.
 
 **YouTube:** [@FrenzyPenguinMedia](https://www.youtube.com/FrenzyPenguinMedia?sub_confirmation=1)
       `.trim();
@@ -1120,8 +1167,15 @@ Got it — I can help you with that. To give you the most useful answer, tell me
     const nav = document.querySelector('.site-nav') || document.querySelector('header nav') || document.querySelector('nav');
     if (!nav) return;
 
-    // Skip if already present
-    if (nav.querySelector('[data-nav-auth]')) return;
+    // nav.html now renders the auth slot statically (with data-nav-auth), so the
+    // common case is "markup already present". Only build the legacy inline
+    // version when it is missing — but ALWAYS run the state sync, otherwise the
+    // static buttons would sit on "Login" forever.
+    if (nav.querySelector('[data-nav-auth]')) {
+      wireNavAuthControls();
+      syncAuthFromBar();
+      return;
+    }
 
     const frag = document.createDocumentFragment();
 
@@ -1142,10 +1196,10 @@ Got it — I can help you with that. To give you the most useful answer, tell me
       if (window.AuthBar && typeof window.AuthBar.selectTab === 'function') {
         window.AuthBar.selectTab('login');
       } else {
-        // Fallback: try to open the GitHub auth-bar drawer
-        const authTab = document.getElementById('auth-bar__tab--login');
+        // Fallback: try to open the bottom AI dock login tab
+        const authTab = document.getElementById('ai-dock__tab--login');
         if (authTab) authTab.click();
-        else showToast('Sign in: open the Login tab in the floating panel (top right).');
+        else showToast('Sign in: open the Login tab in the AI dock (bottom of the page).');
       }
     });
     frag.appendChild(login);
@@ -1182,8 +1236,29 @@ Got it — I can help you with that. To give you the most useful answer, tell me
     if (sponsor) nav.insertBefore(frag, sponsor);
     else nav.appendChild(frag);
 
+    wireNavAuthControls();
+
     // Sync with auth-bar's existing session if any
     syncAuthFromBar();
+  }
+
+  // One delegated handler for the Login control, whether it was just injected or
+  // came from nav.html. Guarded by a data flag so repeated boots cannot stack
+  // duplicate listeners on the same element.
+  function wireNavAuthControls() {
+    var login = document.getElementById('nav-auth__login');
+    if (login && !login.dataset.navAuthWired) {
+      login.dataset.navAuthWired = '1';
+      login.addEventListener('click', function () {
+        if (window.AuthBar && typeof window.AuthBar.selectTab === 'function') {
+          window.AuthBar.selectTab('login');
+        } else {
+          var authTab = document.getElementById('ai-dock__tab--login');
+          if (authTab) authTab.click();
+          else showToast('Sign in with the Login button in the top bar.');
+        }
+      });
+    }
   }
 
   function syncAuthFromBar() {
@@ -1348,3 +1423,4 @@ Got it — I can help you with that. To give you the most useful answer, tell me
   // Expose
   window.NEohiro = NEohiro;
 })();
+
