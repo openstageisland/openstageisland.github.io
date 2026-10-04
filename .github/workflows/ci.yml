@@ -57,6 +57,16 @@ jobs:
             python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8')); print('valid: ' + sys.argv[1])" "$f"
           done
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Unit tests (section-nav scroll animation)
+        # Glob rather than a bare `tests/` directory: directory arguments to
+        # `node --test` are not portable across Node 20-24.
+        run: node --test tests/*.test.js
+
       - name: Validate _config.yml
         run: |
           set -euo pipefail

@@ -1,0 +1,406 @@
+/* Site chrome — non-persistent top bar + persistent bottom section bar.
+ *
+ * Reuses the custom properties declared in assets/style.css :root, so both
+ * light and dark themes come along automatically.
+ *
+ * Layout contract with the rest of the site:
+ *   - .site-header is deliberately `position: static` (NOT sticky): it scrolls
+ *     away with the document. The bottom bar is the only always-on chrome.
+ *   - .bottom-bar is docked directly above the auth dock (--ai-dock-h), so the
+ *     two never overlap.
+ *   - body reserves padding-bottom for dock + bottom bar so the footer's last
+ *     row (sponsor / privacy / ToS) is never hidden underneath them.
+ */
+
+:root {
+  --bottom-bar-h: 46px;
+  --chrome-gap: 12px;
+  /* Total always-on chrome at the bottom of the viewport. */
+  --chrome-bottom: calc(var(--ai-dock-h, 52px) + var(--bottom-bar-h));
+}
+
+/* Reserve room so content can scroll clear of the fixed chrome at the bottom
+ * of the viewport. Every page carries the auth dock, so every page needs its
+ * height; only pages that actually render the guide's bottom bar (matched with
+ * :has(), already within this stylesheet's feature baseline alongside the
+ * color-mix() used in style.css) need the extra --bottom-bar-h. Without the
+ * :has() branch, /privacy/ and /tos/ would carry 46px of dead space. */
+body {
+  padding-bottom: var(--ai-dock-h, 52px);
+}
+
+body:has(.bottom-bar) {
+  padding-bottom: var(--chrome-bottom);
+}
+
+/* The custom scroll animation drives scroll position per-frame; CSS smooth
+ * scrolling would fight it. assets/js/section-nav.js sets this attribute. */
+html[data-scroll-anim] {
+  scroll-behavior: auto;
+}
+
+/* style.css sets scroll-padding-top for a sticky header. The top bar here is
+ * static, so that offset is no longer wanted; replace it with the gap we
+ * actually want above a heading, plus room for the bottom chrome. Applies to
+ * native fragment jumps too (browser back/forward, JS disabled). */
+html {
+  scroll-padding-top: var(--chrome-gap);
+  scroll-padding-bottom: calc(var(--chrome-bottom) + var(--chrome-gap));
+}
+
+/* ---------------------------------------------------------------------------
+ * Top bar (non-persistent)
+ * Class structure mirrors neohiro.github.io / transhumanists.github.io:
+ * .site-header > .container > .site-brand + .site-nav > .nav-link
+ * assets/js/network-ux.js injectNavAuth() appends the Login / Dashboard / user
+ * chips before `.nav-sponsor`, so the sponsor link must stay last.
+ * ------------------------------------------------------------------------- */
+
+.site-header {
+  position: static;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+  min-height: var(--nav-height);
+  max-width: var(--max-content);
+  margin-inline: auto;
+  padding: 0.35rem 1rem;
+}
+
+.site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  text-decoration: none;
+}
+.site-brand:hover,
+.site-brand:focus-visible {
+  color: var(--color-heading);
+  text-decoration: none;
+}
+
+.logo-mark {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.logo-text {
+  letter-spacing: -0.01em;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+.nav-link:hover,
+.nav-link:focus-visible {
+  background: var(--color-surface-alt);
+  color: var(--color-heading);
+  text-decoration: none;
+}
+.nav-link.active {
+  background: var(--color-surface-alt);
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+.nav-sponsor {
+  color: var(--color-accent);
+}
+
+/* ---------------------------------------------------------------------------
+ * Bottom bar (persistent)
+ * ------------------------------------------------------------------------- */
+
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--ai-dock-h, 52px);
+  z-index: 900;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-bar {
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.45);
+  }
+}
+
+.bottom-bar__list {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  max-width: var(--max-content);
+  margin-inline: auto;
+  /* 15 sections do not fit narrow viewports — scroll them instead of wrapping,
+     so the bar keeps a constant height. */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.bottom-bar__list::-webkit-scrollbar {
+  display: none;
+}
+
+.bottom-bar__item {
+  flex: 0 0 auto;
+}
+
+.bottom-bar__link {
+  display: block;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+.bottom-bar__link:hover,
+.bottom-bar__link:focus-visible {
+  background: var(--color-surface-alt);
+  color: var(--color-heading);
+  text-decoration: none;
+}
+
+/* Current-section marker, driven by assets/js/section-nav.js. */
+.bottom-bar__link[aria-current="true"] {
+  background: var(--color-stage);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Keep the current chip in view when the observer moves the marker. */
+@media (prefers-reduced-motion: no-preference) {
+  .bottom-bar__link {
+    transition: background var(--transition), color var(--transition);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Guide sections
+ * ------------------------------------------------------------------------- */
+
+.guide-section {
+  max-width: var(--max-content);
+  margin-inline: auto;
+}
+
+.guide-section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.guide-lede {
+  font-size: 1.05rem;
+}
+
+/* Secondary hero line, carried over from the Netlify SPA's hero tagline. */
+.tagline-secondary {
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+/* Callout used for the genre list, mirroring the Netlify SPA's highlighted
+ * genre block so the wording survives the port unchanged. */
+.guide-callout {
+  padding: 0.9rem 1.1rem;
+  margin: 0 0 1.25rem;
+  background: var(--color-surface-alt);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius);
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.guide-note {
+  padding: 0.9rem 1.1rem;
+  margin: 1rem 0 0;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+}
+
+.guide-qa {
+  margin: 0 0 1.5rem;
+}
+.guide-qa h3 {
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+}
+.guide-qa p {
+  margin-bottom: 0.5rem;
+}
+
+.guide-qa ul {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+}
+
+/* Membership tiers, formerly the score ladder in the Netlify SPA's
+ * catch-the-emoji game. Rendered as static reference cards. */
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--tier-accent, var(--color-accent));
+  border-radius: var(--radius);
+}
+.tier-name {
+  font-weight: 700;
+  color: var(--color-heading);
+}
+.tier-price {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--tier-accent, var(--color-accent));
+}
+.tier-desc {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  opacity: 0.85;
+}
+
+.tier-free    { --tier-accent: #6b7280; }
+.tier-unlock  { --tier-accent: #0284c7; }
+.tier-elite   { --tier-accent: #9333ea; }
+.tier-tribe   { --tier-accent: #16a34a; }
+.tier-legend  { --tier-accent: #ca8a04; }
+
+/* Estate link cards (the openstageis.land subdomains). */
+.estate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.estate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.8rem 0.95rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: border-color var(--transition), transform var(--transition);
+}
+.estate-name {
+  font-weight: 600;
+  color: var(--color-accent);
+}
+.estate-url {
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+/* Only anchors get the hover treatment: a dead host is rendered as a <span>,
+ * and a lift-on-hover would imply it is clickable when it is not. */
+a.estate-card:hover,
+a.estate-card:focus-visible {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+a.estate-card .estate-name {
+  color: var(--color-accent);
+}
+
+.estate-card.is-unavailable {
+  cursor: default;
+  border-style: dashed;
+}
+.estate-card.is-unavailable .estate-name {
+  color: var(--color-text);
+  opacity: 0.7;
+}
+.estate-card.is-unavailable .estate-url {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.estate-note {
+  font-size: 0.75rem;
+  color: var(--color-text);
+  opacity: 0.7;
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+ * Responsive
+ * ------------------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  :root {
+    --bottom-bar-h: 42px;
+  }
+  .site-header .container {
+    padding: 0.3rem 0.75rem;
+  }
+  .logo-text {
+    font-size: 0.95rem;
+  }
+  .nav-link {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.85rem;
+  }
+  .bottom-bar__list {
+    padding: 0.3rem 0.5rem;
+  }
+  .bottom-bar__link {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.8rem;
+  }
+  .guide-section > h2 {
+    font-size: 1.35rem;
+  }
+}

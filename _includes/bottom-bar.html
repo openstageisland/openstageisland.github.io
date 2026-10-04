@@ -1,0 +1,29 @@
+{%- comment -%}
+bottom-bar.html — persistent section menu for the single-page visitor guide.
+
+Docked above the auth dock by assets/css/site-chrome.css (bottom:
+var(--ai-dock-h)). Horizontally scrollable, because the guide has more
+sections than fit a phone viewport.
+
+The id/label pairs below are the single source of truth for section order:
+every entry must have a matching element id in index.md. Keeping the list in
+one place means adding a section is a two-step change (here + index.md) rather
+than a hunt through duplicated markup.
+
+assets/js/section-nav.js drives the scroll animation and keeps
+aria-current="true" on the chip for the section currently in view.
+{%- endcomment -%}
+{%- assign guide_ids = "welcome,music,open-stage,reservations,streaming,hosting,membership,about,features,location,live,faq,estate,links,network" | split: "," -%}
+{%- assign guide_labels = "Welcome,Music,Open Stage,Reservations,Streaming,Hosting,Membership,About,Features,Visit,Live,FAQ,Estate,Links,Network" | split: "," -%}
+<nav class="bottom-bar" aria-label="Guide sections">
+  <ul class="bottom-bar__list">
+{%- for guide_id in guide_ids -%}
+{%- comment -%} Fall back to the id so a forgotten label degrades to a usable
+   chip rather than an empty one. {%- endcomment -%}
+{%- assign guide_label = guide_labels[forloop.index0] | default: guide_id -%}
+<li class="bottom-bar__item">
+  <a class="bottom-bar__link" href="#{{ guide_id }}" data-section-link="{{ guide_id }}">{{ guide_label }}</a>
+</li>
+{%- endfor -%}
+  </ul>
+</nav>
