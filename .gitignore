@@ -42,3 +42,10 @@ data/counter-events.ndjson
 # Temporary
 *.tmp
 *.bak
+
+
+# Generated locally by `jekyll build` / `bundle`. Not committed:
+# GitHub Pages resolves its own pinned gem set and only reads the Gemfile to
+# decide whether to run Bundler, so a committed lock file buys nothing and can
+# fail the Pages build with "Your Gemfile.lock is not compatible".
+Gemfile.lock

@@ -42,6 +42,10 @@
   <link href="https://fonts.googleapis.com/css2?family={{ site.font_google }}&display=swap" rel="stylesheet">
 {%- endif %}
   <link rel="stylesheet" href="{{ "/assets/css/ai-seal.css" | relative_url }}">
+  <!-- Persistent curved dock + central AI button. Owned by bottom-bar.css across
+       all four sites; site-chrome.css used to hold it but only OSI linked that
+       file, so the other three rendered the dock unstyled. -->
+  <link rel="stylesheet" href="{{ '/assets/css/bottom-bar.css' | relative_url }}">
 </head>
 {%- comment -%} decor: managed by template-shared/site_forge.py from sites.yaml {%- endcomment -%}
 <body class="{{ page.decor_class | default: site.decor_class | default: 'decor-aurora' }}">
@@ -97,5 +101,6 @@
   <script src="{{ "/assets/js/heartbeat-status.js" | relative_url }}" defer></script>
   {% include ai-disclosure.html %}
   <script src="{{ "/assets/js/ai-seal.js" | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/bottom-bar.js' | relative_url }}" defer></script>
 </body>
 </html>

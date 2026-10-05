@@ -2,7 +2,7 @@
 layout: default
 title: "Open Stage Island — Visitor Guide"
 description: "The complete visitor guide for Open Stage Island: a free, 24/7 open-air electronic music stage in Second Life. Genres, how to play, reservations, streaming, hosting, tips, FAQ and how to visit."
-canonical: "https://openstageisland.github.io/"
+canonical: "https://openstageis.land/"
 preload_hero: true
 ---
 
@@ -12,13 +12,8 @@ preload_hero: true
        class="hero-image"
        width="657" height="394"
        fetchpriority="high"
-       decoding="async">
+       decoding="sync">
   <div class="hero-overlay">
-    <img class="hero-avatar"
-         src="https://github.com/openstageisland.png"
-         alt="Open Stage Island avatar"
-         width="92" height="92"
-         fetchpriority="high">
     <p class="eyebrow">Second Life Destination</p>
     <h1>Open Stage Island</h1>
     <p class="tagline">A free, 24/7 open-air music stage in Second Life</p>
@@ -510,57 +505,5 @@ preload_hero: true
         Source &amp; documentation on GitHub
       </a></li>
     </ul>
-  </section>
-
-  <section id="network" class="guide-section" data-guide-section aria-labelledby="network-heading">
-    <h2 id="network-heading">Part of the neohiro Network</h2>
-    <p class="network-intro">
-      More from <a href="https://github.com/neohiro" rel="noopener">neohiro</a>
-      &mdash; the network that keeps the lights on at Open Stage Island.
-    </p>
-    <div class="glide-track" aria-label="Sister sites (animated)">
-      <div class="glide-rail">
-        <a class="glide-card glide-card-neohiro" href="https://neohiro.github.io/" rel="noopener">
-          <span class="glide-mark" aria-hidden="true">&#128125;</span>
-          <span class="glide-name">neohiro</span>
-          <span class="glide-desc">Security hardening &amp; privacy tools</span>
-        </a>
-        <a class="glide-card glide-card-fpm" href="https://frenzypenguin-media.github.io/" rel="noopener">
-          <span class="glide-mark" aria-hidden="true">&#128039;</span>
-          <span class="glide-name">FrenzyPenguin Media</span>
-          <span class="glide-desc">Indie media &amp; creative studio</span>
-        </a>
-        <a class="glide-card glide-card-trans" href="https://transhumanists.github.io/" rel="noopener">
-          <span class="glide-mark" aria-hidden="true">&#129504;</span>
-          <span class="glide-name">transhumanists</span>
-          <span class="glide-desc">Transhumanism &amp; human enhancement</span>
-        </a>
-        <a class="glide-card glide-card-links" href="https://neohiro.github.io/links-secret/?to=github" rel="noopener">
-          <span class="glide-mark" aria-hidden="true">&#128279;</span>
-          <span class="glide-name">links-secret</span>
-          <span class="glide-desc">Whitelisted redirect service</span>
-        </a>
-        <a class="glide-card glide-card-neohiro" href="https://neohiro.github.io/" rel="noopener" aria-hidden="true" tabindex="-1">
-          <span class="glide-mark" aria-hidden="true">&#128125;</span>
-          <span class="glide-name">neohiro</span>
-          <span class="glide-desc">Security hardening &amp; privacy tools</span>
-        </a>
-        <a class="glide-card glide-card-fpm" href="https://frenzypenguin-media.github.io/" rel="noopener" aria-hidden="true" tabindex="-1">
-          <span class="glide-mark" aria-hidden="true">&#128039;</span>
-          <span class="glide-name">FrenzyPenguin Media</span>
-          <span class="glide-desc">Indie media &amp; creative studio</span>
-        </a>
-        <a class="glide-card glide-card-trans" href="https://transhumanists.github.io/" rel="noopener" aria-hidden="true" tabindex="-1">
-          <span class="glide-mark" aria-hidden="true">&#129504;</span>
-          <span class="glide-name">transhumanists</span>
-          <span class="glide-desc">Transhumanism &amp; human enhancement</span>
-        </a>
-        <a class="glide-card glide-card-links" href="https://neohiro.github.io/links-secret/?to=github" rel="noopener" aria-hidden="true" tabindex="-1">
-          <span class="glide-mark" aria-hidden="true">&#128279;</span>
-          <span class="glide-name">links-secret</span>
-          <span class="glide-desc">Whitelisted redirect service</span>
-        </a>
-      </div>
-    </div>
   </section>
 

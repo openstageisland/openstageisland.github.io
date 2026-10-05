@@ -1,4 +1,4 @@
-/* Site chrome — non-persistent top bar + persistent bottom section bar.
+/* Site chrome — non-persistent top bar + persistent curved bottom bar.
  *
  * Reuses the custom properties declared in assets/style.css :root, so both
  * light and dark themes come along automatically.
@@ -6,90 +6,11 @@
  * Layout contract with the rest of the site:
  *   - .site-header is deliberately `position: static` (NOT sticky): it scrolls
  *     away with the document. The bottom bar is the only always-on chrome.
- *   - .bottom-bar is docked directly above the auth dock (--ai-dock-h), so the
- *     two never overlap.
- *   - body reserves padding-bottom for dock + bottom bar so the footer's last
- *     row (sponsor / privacy / ToS) is never hidden underneath them.
+ *   - .bottom-bar is fixed to the viewport bottom with curved corners.
+ *   - body reserves padding-bottom for the bottom bar so the footer's last
+ *     row (sponsor / privacy / ToS) is never hidden underneath it.
  */
 
-:root {
-  --bottom-bar-h: 46px;
-  --chrome-gap: 12px;
-  /* Total always-on chrome at the bottom of the viewport. */
-  --chrome-bottom: calc(var(--ai-dock-h, 52px) + var(--bottom-bar-h));
-
-  /* ---------------------------------------------------------------------
-   * Shared-widget token bridge.
-   *
-   * assets/css/network-ux.css and assets/css/auth-bar.css are synced to all
-   * four *.github.io sites from template-shared/ and read a neutral vocabulary
-   * (--bg, --fg, --border, --accent, ...). This site defines its own tokens
-   * (--color-*). Every one of those shared reads carried a hard-coded dark
-   * fallback, so the assistant dock, the screenwide conversation sheet and the
-   * network widgets all rendered dark-on-light: 24 tokens unresolved, and all
-   * 16 of this site's own tokens unread by the shared CSS.
-   *
-   * Aliased rather than forked. The shared CSS is left untouched, so a
-   * template-shared sync cannot reintroduce the mismatch, and both themes stay
-   * correct because every alias resolves through a --color-* token that
-   * style.css redefines under prefers-color-scheme: dark.
-   *
-   * Enforced by .github/scripts/check_css_tokens.py.
-   * ------------------------------------------------------------------- */
-  --bg: var(--color-bg);
-  --bg-card: var(--color-surface);
-  --bg-elevated: var(--color-surface);
-  --fg: var(--color-text);
-  --muted: var(--color-text);
-  /* Muted and subtle foregrounds are the text colour composited toward the
-   * surface. Alphas are chosen so both clear WCAG AA (4.5:1) in BOTH themes
-   * while staying visibly stepped apart:
-   *   --fg-muted   light 6.71:1   dark 8.33:1
-   *   --fg-subtle  light 4.94:1   dark 6.74:1
-   * --fg-subtle at 0.56 was 3.33:1 on the light surface and failed AA.
-   * For reference the shared CSS's own fallbacks (#96a8b8, #6d7f8f) were written
-   * for a dark surface and manage only 2.44:1 and 4.13:1 on white, so aliasing
-   * to the site palette is what makes this legible in light mode at all. */
-  --fg-muted: color-mix(in srgb, var(--color-text) 80%, transparent);
-  --fg-subtle: color-mix(in srgb, var(--color-text) 70%, transparent);
-  --border: var(--color-border);
-  --accent: var(--color-accent);
-  --accent-strong: var(--color-accent-hover);
-  --accent-dim: color-mix(in srgb, var(--color-accent) 16%, transparent);
-  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --radius-sm: 6px;
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.18);
-}
-
-/* Reserve room so content can scroll clear of the fixed chrome at the bottom
- * of the viewport. Every page carries the auth dock, so every page needs its
- * height; only pages that actually render the guide's bottom bar (matched with
- * :has(), already within this stylesheet's feature baseline alongside the
- * color-mix() used in style.css) need the extra --bottom-bar-h. Without the
- * :has() branch, /privacy/ and /tos/ would carry 46px of dead space. */
-body {
-  padding-bottom: var(--ai-dock-h, 52px);
-}
-
-body:has(.bottom-bar) {
-  padding-bottom: var(--chrome-bottom);
-}
-
-/* The custom scroll animation drives scroll position per-frame; CSS smooth
- * scrolling would fight it. assets/js/section-nav.js sets this attribute. */
-html[data-scroll-anim] {
-  scroll-behavior: auto;
-}
-
-/* style.css sets scroll-padding-top for a sticky header. The top bar here is
- * static, so that offset is no longer wanted; replace it with the gap we
- * actually want above a heading, plus room for the bottom chrome. Applies to
- * native fragment jumps too (browser back/forward, JS disabled). */
-html {
-  scroll-padding-top: var(--chrome-gap);
-  scroll-padding-bottom: calc(var(--chrome-bottom) + var(--chrome-gap));
-}
 
 /* ---------------------------------------------------------------------------
  * Top bar (non-persistent)
@@ -172,139 +93,6 @@ html {
   color: var(--color-accent);
 }
 
-/* ---------------------------------------------------------------------------
- * Bottom bar (persistent)
- * ------------------------------------------------------------------------- */
-
-.bottom-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: var(--ai-dock-h, 52px);
-  z-index: 900;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
-  /* The chip strip and the signup CTA share the bar as a centred group. The
-     strip carries the overflow; the CTA does not shrink. */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding-inline: 0.5rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  .bottom-bar {
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.45);
-  }
-}
-
-.bottom-bar__list {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-  list-style: none;
-  /* Shrink-to-fit so the strip scrolls inside whatever the CTA leaves, rather
-     than pushing the CTA off the bar. min-width:0 is what lets a flex item
-     shrink past its content width, which is what makes the scroll possible. */
-  flex: 0 1 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 0.35rem 0.25rem;
-  max-width: var(--max-content);
-  /* 15 sections do not fit narrow viewports — scroll them instead of wrapping,
-     so the bar keeps a constant height. */
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.bottom-bar__list::-webkit-scrollbar {
-  display: none;
-}
-
-.bottom-bar__item {
-  flex: 0 0 auto;
-}
-
-.bottom-bar__link {
-  display: block;
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  white-space: nowrap;
-  color: var(--color-text);
-}
-.bottom-bar__link:hover,
-.bottom-bar__link:focus-visible {
-  background: var(--color-surface-alt);
-  color: var(--color-heading);
-  text-decoration: none;
-}
-
-/* Current-section marker, driven by assets/js/section-nav.js. */
-.bottom-bar__link[aria-current="true"] {
-  background: var(--color-stage);
-  color: #fff;
-  font-weight: 600;
-}
-
-/* ---------------------------------------------------------------------------
- * Signup CTA
- *
- * The chip strip scrolls horizontally, so the "Register free" chip lives
- * outside it as a non-shrinking sibling: the offer to make a free Second Life
- * account — the one action that unlocks the venue — stays on screen however far
- * the visitor has scrolled the sections.
- *
- * It is a sibling rather than a sticky item inside .bottom-bar__list on
- * purpose. Sticky would pin it over the leading section chips, which
- * assets/js/section-nav.js cannot scroll out from under it: revealChip() can
- * only move the strip right, so those chips would stay hidden behind it.
- * Keeping it out of the list also leaves revealChip()'s measurements — and the
- * tests in tests/section-nav.test.js — measuring the same box they always did.
- * ------------------------------------------------------------------------- */
-
-.bottom-bar__cta {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.35rem 0.7rem;
-  border-radius: 999px;
-  background: var(--color-stage);
-  color: #fff;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.bottom-bar__cta:hover,
-.bottom-bar__cta:focus-visible {
-  background: var(--color-stage-hover);
-  color: #fff;
-  text-decoration: none;
-}
-/* Darker yellow than --color-focus: the stage pink behind it needs more than
-   the usual 3:1 to stay visible. */
-.bottom-bar__cta:focus-visible {
-  outline: 3px solid #b8860b;
-  outline-offset: 2px;
-}
-
-.bottom-bar__cta-icon {
-  font-size: 0.9rem;
-  line-height: 1;
-}
-
-/* Keep the current chip in view when the observer moves the marker. */
-@media (prefers-reduced-motion: no-preference) {
-  .bottom-bar__link {
-    transition: background var(--transition), color var(--transition);
-  }
-}
 
 /* ---------------------------------------------------------------------------
  * Guide sections
@@ -481,10 +269,7 @@ a.estate-card .estate-name {
  * Responsive
  * ------------------------------------------------------------------------- */
 
-@media (max-width: 600px) {
-  :root {
-    --bottom-bar-h: 42px;
-  }
+  @media (max-width: 600px) {
   .site-header .container {
     padding: 0.3rem 0.75rem;
   }
@@ -494,21 +279,6 @@ a.estate-card .estate-name {
   .nav-link {
     padding: 0.35rem 0.55rem;
     font-size: 0.85rem;
-  }
-  .bottom-bar__list {
-    padding: 0.3rem 0.5rem;
-  }
-  .bottom-bar__link {
-    padding: 0.3rem 0.55rem;
-    font-size: 0.8rem;
-  }
-  /* Matched to the chips above so the two read as one control row. */
-  .bottom-bar__cta {
-    padding: 0.3rem 0.55rem;
-    font-size: 0.8rem;
-  }
-  .bottom-bar__cta-icon {
-    display: none;
   }
   .guide-section > h2 {
     font-size: 1.35rem;

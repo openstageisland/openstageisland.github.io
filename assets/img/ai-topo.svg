@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none" role="img" aria-labelledby="ai-topo-title">
   <title id="ai-topo-title">Back to top</title>
   <!--
-    ai-topo.svg -- the persistent "back up" control.
+    ai-topo.svg: the persistent "back up" control.
+
+    As in ai-seal.svg, no double hyphen may appear in this comment or the file
+    is rejected as malformed XML and the control never paints.
 
     Deliberately the same drawing as ai-seal.svg: same haze, same wisps, same
     ring, same two arc highlights. That is the point of shipping them as two
-    files rather than one sprite with two symbols -- a reviewer can diff the two
+    files rather than one sprite with two symbols: a reviewer can diff the two
     and see that the style did not drift. The only structural difference is that
     the arrow is one filled path where the seal needs strokes, because an arrow
     has to be solid to read as a control at 56px.

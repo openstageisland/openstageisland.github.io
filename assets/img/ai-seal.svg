@@ -1,7 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none" role="img" aria-labelledby="ai-seal-title">
   <title id="ai-seal-title">AI-assisted content</title>
   <!--
-    ai-seal.svg -- the AI provenance seal.
+    ai-seal.svg: the AI provenance seal.
+
+    NB an XML comment may not contain a double hyphen, so the dashes in this
+    header are single hyphens each. Browsers reject the whole file as
+    malformed otherwise, which is silent: the image simply never paints.
 
     Authored once in template-shared/assets/img/ and copied into every
     *.github.io site by site_forge.py. tests/test-ai-seal.py fails when a copy

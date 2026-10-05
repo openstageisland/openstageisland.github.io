@@ -1,68 +1,38 @@
-{# auth-bar.html — the persistent lower bar ("dock").
+<!-- auth-bar.html — the persistent panel system (no visual rail).
+    The visual AI button is now in bottom-bar.html. This file provides
+    the slide-up panels for Login, Dashboard, and User menu.
 
-   CONTRACT (keep in sync across neohiro / frenzypenguin-media / openstageisland /
-   transhumanists):
+    CONTRACT (keep in sync across neohiro / frenzypenguin-media / openstageisland /
+    transhumanists):
 
-   1. AI and Contact are ONE thing here. There is no separate Contact tab and no
-      separate chat form. The only composer is the assistant ask bar that
-      network-ux.js mounts (#ai-bar), which talks to the real Mouth endpoint via
-      /.well-known/ask. The previous dock-local form POSTed to '/api/contact',
-      which does not exist on GitHub Pages, so every message silently failed.
-   2. Login lives in the TOP bar (see nav.html). The dock only surfaces the
-      signed-in state (Dashboard / avatar) and the sign-out control.
-   3. Selecting "Assistant" hands off to network-ux.js, which slides this dock
-      down and slides the screenwide conversation sheet up behind it. The page
-      behind stays scrollable and interactive.
+    1. AI and Contact are ONE thing here. The only composer is the assistant ask
+       bar that network-ux.js mounts (#ai-bar), which talks to the real Mouth
+       endpoint via /.well-known/ask. The previous dock-local form POSTed to
+       '/api/contact', which does not exist on GitHub Pages, so every message
+       silently failed.
 
-   The remaining panels are kept because auth-bar.js wires them by id and the
-   top-bar Login button calls AuthBar.selectTab('login'). #}
-<div class="ai-dock" id="ai-dock" role="navigation" aria-label="Assistant and account">
-  <div class="ai-dock__rail">
+    2. Login lives in the TOP bar (see nav.html / site-header.html). The dock
+       only surfaces the signed-in state (Dashboard / avatar) and the sign-out
+       control. The bottom bar AI button opens the conversation sheet.
 
-    <button class="ai-dock__tab ai-dock__tab--ai"
-            role="tab"
-            aria-selected="false"
-            aria-controls="ai-dock__panel--ai"
-            id="ai-dock__tab--ai"
-            title="Talk to the assistant — questions, bug reports, access requests">
-      <span class="ai-dock__tab-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-          <path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 2a8 8 0 110 16 8 8 0 010-16zm-1 3v4.586l-2.707 2.707-1.414-1.414L11.293 9.88 8.586 7.172A1 1 0 009.586 6.172l3 3A1 1 0 0112 10.586V7a1 1 0 012 0v3a1 1 0 01-1 1h-3z"/>
-        </svg>
-      </span>
-      <span class="ai-dock__tab-label">Assistant</span>
-    </button>
+    3. Selecting "Assistant" from the top bar hands off to network-ux.js, which
+       slides the screenwide conversation sheet up. The page behind stays
+       scrollable and interactive.
 
-    <div class="ai-dock__sep" aria-hidden="true"></div>
-
-    <a class="ai-dock__tab ai-dock__tab--dashboard hidden"
-       id="ai-dock__tab--dashboard"
-       title="Dashboard"
-       href="https://github.com/neohiro/dashboard" target="_blank" rel="noopener">
-      <span class="ai-dock__tab-icon" aria-hidden="true">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-          <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-        </svg>
-      </span>
-      <span class="ai-dock__tab-label">Dashboard</span>
-    </a>
-
-    <button class="ai-dock__tab ai-dock__tab--user hidden"
-            role="tab"
-            aria-selected="false"
-            aria-controls="ai-dock__panel--user"
-            id="ai-dock__tab--user">
-      <img id="ai-dock__avatar" src="" alt="" width="20" height="20" style="border-radius:50%" loading="lazy">
-      <span id="ai-dock__username"></span>
-      <span class="ai-dock__role-badge" id="ai-dock__role"></span>
-    </button>
-
+    4. The panels below are kept because auth-bar.js wires them by id and the
+       top-bar Login button calls AuthBar.selectTab('login').
+-->
+<div class="ai-dock" id="ai-dock" role="navigation" aria-label="Assistant and account" hidden>
+  <div class="ai-dock__rail" hidden>
+    <!-- Visual rail hidden; AI button moved to bottom-bar.html -->
   </div>
 
   <div class="ai-dock__panels">
 
-    {# Placeholder panel — the real conversation UI is the screenwide sheet that
-       network-ux.js mounts (#ai-conv). Kept so aria-controls resolves. #}
+    {%- comment -%}
+  Placeholder panel. The real conversation UI is the screenwide sheet that
+  network-ux.js mounts with id ai-conv. Kept so aria-controls resolves.
+{%- endcomment -%}
     <div class="ai-dock__panel ai-dock__panel--ai"
          id="ai-dock__panel--ai"
          role="tabpanel"

@@ -607,22 +607,31 @@ body.ai-dock-present .ai-bar {
   justify-content: center;
 }
 .typewriter-prefix {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: 0.66rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--accent, #7c4dff);
-  background: var(--accent-dim, rgba(124,77,255,0.2));
-  border: 1px solid var(--accent, #7c4dff);
-  margin-bottom: 22px;
-  animation: twLabelPulse 3.6s ease-in-out infinite;
-}
-@keyframes twLabelPulse {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.66rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        /* Was accent text on an accent tint: 1.00:1 in light mode, so the "live
+           signal" badge was a violet smudge. Solid accent + light text is
+           legible in both schemes. */
+        color: #fff;
+        background: var(--accent, #7c4dff);
+        border: 1px solid var(--accent, #7c4dff);
+        margin-bottom: 22px;
+        animation: twLabelPulse 3.6s ease-in-out infinite;
+  }
+/* No dark-scheme override. There was one that restored the tinted treatment,
+       and it measured worse than the bug it was meant to fix: accent text on a
+       20% accent wash composites to roughly 2.9:1 against the dark surface, which
+       is still under the 4.5:1 threshold for text this size. Solid accent with
+       #fff is 4.8:1 in both schemes, so the badge uses one treatment
+       everywhere. */
+  @keyframes twLabelPulse {
   50% { box-shadow: 0 0 24px var(--accent-dim, rgba(124,77,255,0.2)); }
 }
 /* Bright solid fill on purpose. A previous revision used
@@ -630,17 +639,28 @@ body.ai-dock-present .ai-bar {
    the typed text render invisible (the gradient also faded out to --fg-muted, so
    even when the clip worked the tail of every line read as dim grey). */
 .typewriter {
-  font-family: var(--font-ui, 'Space Grotesk', system-ui, sans-serif);
-  font-weight: 600;
-  font-size: clamp(1.35rem, 3.6vw, 2.25rem);
-  line-height: 1.3;
-  color: #ffffff;
-  letter-spacing: -0.015em;
-  min-height: 1.4em;
-  display: inline-block;
-  text-shadow: 0 0 30px rgba(124,77,255,0.35), 0 2px 10px rgba(0,0,0,0.6);
-  padding-right: 2px;
-}
+    font-family: var(--font-ui, 'Space Grotesk', system-ui, sans-serif);
+    font-weight: 600;
+    font-size: clamp(1.35rem, 3.6vw, 2.25rem);
+    line-height: 1.3;
+    /* Was `color: #ffffff`. The typed line sits on the page background, so a
+       pinned white left it white-on-near-white in light mode -- the "Live
+       Signal" line simply vanished. The token follows the scheme on every site;
+       the dark-only glow is dropped on light below. (The earlier
+       -webkit-background-clip:text experiment failed for a different reason and
+       its note above still stands.) */
+    color: var(--fg);
+    letter-spacing: -0.015em;
+    min-height: 1.4em;
+    display: inline-block;
+    text-shadow: 0 0 30px rgba(124,77,255,0.35), 0 2px 10px rgba(0,0,0,0.6);
+    padding-right: 2px;
+  }
+  @media (prefers-color-scheme: light) {
+    .typewriter {
+      text-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+  }
 .typewriter-cursor {
   display: inline-block;
   width: 0.5ch;
@@ -691,13 +711,14 @@ body.ai-dock-present .ai-bar {
 /* ── Conversation sheet ─────────────────────────────────────────────────────
    Screenwide: full bleed from the bottom edge up, rounded only at the top. It
    deliberately does NOT use a backdrop — the user must still be able to scroll
-   and read the page underneath while a conversation is open. */
+   and read the page underneath while a conversation is open.
+   z-index: 910 (above bottom-bar@900, below skip-link@10000). */
 .ai-conv {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 89;
+  z-index: 910;
   width: 100%;
   max-width: none;
   pointer-events: none;
@@ -726,11 +747,22 @@ body.ai-dock-present .ai-bar {
     0 -20px 60px rgba(0, 0, 0, 0.55),
     0 0 0 1px var(--accent-dim, rgba(124, 77, 255, 0.15)),
     0 0 40px var(--accent-dim, rgba(124, 77, 255, 0.1));
-  overflow: hidden;
-  max-height: min(76vh, 720px);
-  display: flex;
-  flex-direction: column;
-}
+overflow: hidden;
+    /* Near-screenwide conversation frame.
+       Was `max-height: min(76vh, 720px)`, and that alone could never make the
+       frame tall: the chrome is a flex column whose only height was its content,
+       so a conversation that had just started measured ~220px -- 29% of the
+       viewport -- and read as a small bar sliding up rather than a place to talk.
+       `max-height` is a ceiling, not a size.
+       Now it is a real height, so the frame is the same size whether the thread
+       has one line in it or fifty. The message list takes the slack and scrolls
+       internally (see .ai-conv__messages), so the header and the composer stay
+       pinned instead of being pushed off screen by a long conversation. */
+    height: min(88vh, 960px);
+    max-height: calc(100vh - max(12px, env(safe-area-inset-top, 0px)));
+    display: flex;
+    flex-direction: column;
+  }
 /* Leave room for the dock rail so the close button is never under it. */
 body.ai-dock-present .ai-conv { bottom: var(--ai-dock-h, 52px); }
 /* …unless the dock has slid away for this conversation. Must come after the
@@ -809,10 +841,21 @@ body.ai-conv-active .ai-conv { bottom: 0; }
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: calc(65vh - 140px);
-  scroll-behavior: smooth;
-}
+gap: 12px;
+    /* `flex: 1` plus `min-height: 0` lets the thread absorb the slack in the
+       now-fixed-height frame and scroll inside it, instead of the list being
+       capped independently of the frame (which left dead space under the
+       composer, or clipped the list). `min-height: 0` is required for a flex
+       child to shrink below its content size -- without it this column refuses
+       to scroll and pushes the composer out of the frame entirely. */
+    flex: 1 1 auto;
+    min-height: 0;
+    /* Shrink harder than the triage form so a long thread gives up space before
+       the composer does -- the Send button must stay reachable at every
+       scroll position and with the triage form open. */
+    flex-shrink: 8;
+    scroll-behavior: smooth;
+  }
 .ai-conv__messages::-webkit-scrollbar { width: 5px; }
 .ai-conv__messages::-webkit-scrollbar-track { background: transparent; }
 .ai-conv__messages::-webkit-scrollbar-thumb { background: var(--border, #1f2a36); border-radius: 3px; }
@@ -996,6 +1039,14 @@ body.ai-conv-active .ai-conv { bottom: 0; }
 }
 
 .ai-conv__triage {
+  /* flex-shrink: 0 and an internal scroller. The chrome is a fixed-height flex
+     column, so a flex child defaults to `flex-shrink: 1` but is floored by its
+     content: opening the triage form added ~300px of fields to a frame that had
+     no slack left, so it overflowed and pushed the composer (and the Send
+     button) off the bottom of the screen. The form must yield instead. */
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;

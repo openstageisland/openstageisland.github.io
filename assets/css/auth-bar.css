@@ -19,12 +19,26 @@
 
 /* ── Bottom dock shell ───────────────────────────────────────────── */
 .ai-dock {
+  /* Retired dock. Its rail moved to bottom-bar.html and the conversation is
+     the screenwide `ai-conv` sheet that network-ux.js mounts. The markup keeps
+     the id because auth-bar.js wires the login panel, so the element stays in
+     the DOM but must never render.
+
+     `display: flex` used to sit here and silently defeated the `hidden`
+     attribute in the markup: an author-level `display` beats the UA
+     stylesheet's `[hidden] { display: none }`, so the dock painted at the
+     bottom of every page as an empty panel strip whose inner panels were all
+     individually hidden, while `.ai-dock__panels { pointer-events: auto }`
+     swallowed clicks over the real bar. Re-honouring the attribute fixes
+     both, and `display: none` here makes it the default rather than something
+     that depends on the attribute being present. */
+  display: none;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: var(--ai-dock-z);
-  display: flex;
+  
   flex-direction: column;
   align-items: stretch;
   font-family: var(--font-ui, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
@@ -40,7 +54,13 @@ body.ai-conv-active .ai-dock {
 
 .ai-dock__rail,
 .ai-dock__panels {
-  pointer-events: auto;
+  /* Retired dock: never capture clicks, even if a script un-hides the element,
+     so nothing can intercept pointer events meant for the live bottom bar. */
+  pointer-events: none;
+}
+
+.ai-dock[hidden] {
+  display: none !important;
 }
 
 /* ── Persistent rail (the sway bar itself) ──────────────────────── */
@@ -217,7 +237,7 @@ body.ai-conv-active .ai-dock {
 }
 
 .ai-dock__panel[hidden] {
-  display: block !important;
+  display: none !important;
   visibility: hidden;
   pointer-events: none;
 }

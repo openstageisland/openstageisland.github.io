@@ -6,46 +6,86 @@
     </blockquote>
   </div>
 
-  {# The Ecosystem Network grid lives in ecosystem-network.html and is included once
+  <!-- The Ecosystem Network grid lives in ecosystem-network.html and is included once
      by _layouts/default.html directly after this file. It used to be duplicated in
-     both places, which rendered six ecosystem cards per page. #}
+     both places, which rendered six ecosystem cards per page. -->
 
-  <!-- Quick Links & Legal Directory -->
+  <!-- Quick Links & Legal Directory.
+
+       Every href below was checked against a path this site actually publishes.
+       The previous version linked /#featured-tools, /#hardening-guides,
+       /privacy/, /tos/, /LICENSE/ and /onboard/ — none of which exist here, and
+       the two anchor targets were called out as impossible in the header
+       comment in _layouts/default.html. A footer is the last place a visitor
+       looks before giving up, so a dead entry there is the most expensive kind.
+       If you add a page, add it here; if you remove one, remove it here. -->
   <div class="footer-columns">
     <div class="footer-column">
       <h4>Tooling &amp; Systems</h4>
       <ul>
-        <li><a href="{{ '/#featured-tools' | relative_url }}">Hardening Tools</a></li>
-        <li><a href="{{ '/#hardening-guides' | relative_url }}">Implementation Guides</a></li>
-        <li><a href="{{ '/repositories/' | relative_url }}">All Public Repositories</a></li>
-        <li><a href="{{ '/media/' | relative_url }}">Media &amp; Deep Dives</a></li>
-        <li><a href="{{ '/heartbeats/' | relative_url }}">System Heartbeats (Live SVGs)</a></li>
-        <li><a href="{{ '/onboard/' | relative_url }}">Onboarding &amp; Setup</a></li>
+                {%- if _url_index contains "|/hosts/|" %}
+<li><a href="{{ '/hosts/' | relative_url }}">Live Host Fleet</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/repositories/|" %}
+<li><a href="{{ '/repositories/' | relative_url }}">All Public Repositories</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/artists/|" %}
+<li><a href="{{ '/artists/' | relative_url }}">Artist Roster</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/technical/|" %}
+<li><a href="{{ '/technical/' | relative_url }}">Technical Deep Dives</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/app/|" %}
+<li><a href="{{ '/app/' | relative_url }}">Dashboard App</a></li>
+        {%- endif %}
+        <li><a href="https://github.com/neohiro/windows" target="_blank" rel="noopener">Windows Hardening Guide</a></li>
+        <li><a href="https://github.com/neohiro/linux" target="_blank" rel="noopener">Linux Hardening Guide</a></li>
       </ul>
     </div>
 
     <div class="footer-column">
-      <h4>Trust &amp; Governance</h4>
+      <h4>Media &amp; Community</h4>
       <ul>
-        <li><a href="{{ '/privacy/' | relative_url }}">Privacy Policy (Zero Telemetry)</a></li>
-        <li><a href="{{ '/tos/' | relative_url }}">Terms of Service</a></li>
-        <li><a href="{{ '/LICENSE/' | relative_url }}">Open Source Licensing</a></li>
-        <li><a href="https://github.com/neohiro/windows/security" target="_blank" rel="noopener">Security Advisories</a></li>
-        <li><a href="https://github.com/neohiro/neohiro.github.io/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener">Code of Conduct</a></li>
+                {%- if _url_index contains "|/media/|" %}
+<li><a href="{{ '/media/' | relative_url }}">Media &amp; Deep Dives</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/music/|" %}
+<li><a href="{{ '/music/' | relative_url }}">Music</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/timetable/|" %}
+<li><a href="{{ '/timetable/' | relative_url }}">Timetable</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/discord/|" %}
+<li><a href="{{ '/discord/' | relative_url }}">Discord</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/social/|" %}
+<li><a href="{{ '/social/' | relative_url }}">Every Social Channel</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/contact/|" %}
+<li><a href="{{ '/contact/' | relative_url }}">Contact</a></li>
+        {%- endif %}
       </ul>
     </div>
 
     <div class="footer-column footer-column-community">
-      <h4>Support &amp; Community</h4>
+      <h4>Trust &amp; Governance</h4>
       <p class="footer-support-text">Open-source defense engineering funded independently without telemetry, analytics, or trackers.</p>
+      <ul>
+                {%- if _url_index contains "|/disclaimer/|" %}
+<li><a href="{{ '/disclaimer/' | relative_url }}">Disclaimer</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/tor/|" %}
+<li><a href="{{ '/tor/' | relative_url }}">Onion Service</a></li>
+        {%- endif %}
+                {%- if _url_index contains "|/openpgp/|" %}
+<li><a href="{{ '/openpgp/' | relative_url }}">OpenPGP Key</a></li>
+        {%- endif %}
+        <li><a href="https://github.com/neohiro/windows/security" target="_blank" rel="noopener">Security Advisories</a></li>
+        <li><a href="https://github.com/neohiro/neohiro.github.io/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener">Code of Conduct</a></li>
+      </ul>
       <a href="https://github.com/sponsors/{{ site.github_username | default: 'neohiro' }}" class="footer-sponsor-button" target="_blank" rel="noopener">
-        <span class="heart-pulse" aria-hidden="true">♥</span> Sponsor neohiro on GitHub
+        <span class="heart-pulse" aria-hidden="true">&#9829;</span> Sponsor neohiro on GitHub
       </a>
-      <div class="footer-community-links">
-        <a href="https://github.com/neohiro/windows/issues" target="_blank" rel="noopener">Bug Reports</a> ·
-        <a href="https://github.com/neohiro/windows/discussions" target="_blank" rel="noopener">Discussions</a> ·
-        <a href="https://github.com/neohiro" target="_blank" rel="noopener">Org Overview</a>
-      </div>
     </div>
   </div>
 

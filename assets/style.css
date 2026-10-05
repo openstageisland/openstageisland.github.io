@@ -16,6 +16,30 @@
   --hero-aspect: 5 / 3;
   --hero-max-height: 500px;
   --nav-height: 56px;
+
+  /* ── Shared-widget token bridge (for network-ux.css, auth-bar.css, ecosystem-network.css) ────
+   * These aliases let shared CSS use a neutral vocabulary (--bg, --fg, --border, --accent, ...)
+   * while resolving to this site's --color-* palette. Defined here in :root so they're
+   * available globally without requiring site-chrome.css to load first.
+   * Both themes stay correct because every alias resolves through a --color-* token that
+   * redefines under prefers-color-scheme: dark.
+   * Enforced by .github/scripts/check_css_tokens.py.
+   * ------------------------------------------------------------------------------------------- */
+  --bg: var(--color-bg);
+  --bg-card: var(--color-surface);
+  --bg-elevated: var(--color-surface);
+  --fg: var(--color-text);
+  --muted: var(--color-text);
+  --fg-muted: color-mix(in srgb, var(--color-text) 80%, transparent);
+  --fg-subtle: color-mix(in srgb, var(--color-text) 70%, transparent);
+  --border: var(--color-border);
+  --accent: var(--color-accent);
+  --accent-strong: var(--color-accent-hover);
+  --accent-dim: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius-sm: 6px;
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -133,92 +157,126 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
   align-items: center;
   color: #fff;
   text-align: center;
-  padding: 2rem 1.5rem;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.7));
+  padding: 3rem 1.5rem;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.35) 40%,
+    rgba(0, 0, 0, 0.55) 70%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
 }
 
 .eyebrow {
-  margin: 0 0 0.5rem;
-  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
-  opacity: 0.85;
+  letter-spacing: 0.2em;
+  opacity: 0.8;
+  font-weight: 500;
 }
 
 .hero-overlay h1 {
-  font-size: clamp(2rem, 5vw, 3.25rem);
-  margin: 0 0 0.75rem;
-  text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+  font-size: clamp(2.25rem, 5.5vw, 3.75rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 1rem;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.4);
+  letter-spacing: -0.02em;
 }
 
 .tagline {
-  font-size: clamp(1rem, 2.2vw, 1.25rem);
-  margin: 0 0 1.5rem;
+  font-size: clamp(1.1rem, 2.5vw, 1.35rem);
+  font-weight: 400;
+  margin: 0 0 2.5rem;
   opacity: 0.95;
-  max-width: 36ch;
+  max-width: 42ch;
+  line-height: 1.5;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.tagline-secondary {
+  display: block;
+  margin: 0 0 3rem;
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  font-style: italic;
+  opacity: 0.85;
+  color: var(--color-focus);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .cta-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 1rem;
   justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
 }
 
 .cta-button {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
   background: var(--color-accent);
   color: #fff;
-  border-radius: var(--radius);
+  border-radius: 999px;
   font-weight: 600;
+  font-size: 1rem;
   border: 2px solid transparent;
-  transition: background var(--transition), transform var(--transition);
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+  white-space: nowrap;
 }
 .cta-button:hover,
 .cta-button:focus-visible {
   background: var(--color-accent-hover);
   color: #fff;
   text-decoration: none;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 .cta-secondary {
   background: transparent;
-  border-color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
 }
 .cta-secondary:hover,
 .cta-secondary:focus-visible {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.12);
   border-color: var(--color-focus);
+  color: #fff;
 }
 
 /* Signup CTA ("Register free" -> join.secondlife.com).
    The loudest element in the hero on purpose: the stage is only reachable by
    people who already have a Second Life account, so the offer to make one is
    the one action that unlocks everything else on the page. Stage pink, which
-   is the colour the rest of the site already uses for the venue itself, plus a
-   soft pulse so it reads as live without being an animation trap. The pulse is
-   gated on prefers-reduced-motion, as everywhere else in this sheet. */
+   is the colour the rest of the site already uses for the venue itself. */
 .cta-join {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.55rem;
   background: var(--color-stage);
   color: #fff;
-  border-color: #fff;
-  box-shadow: 0 0 0 0 rgba(255, 77, 141, 0.55);
+  border-color: transparent;
+  box-shadow: 0 4px 20px rgba(255, 77, 141, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15);
+  padding: 1rem 2rem;
+  font-size: 1.05rem;
 }
 .cta-join:hover,
 .cta-join:focus-visible {
   background: var(--color-stage-hover);
   color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(255, 77, 141, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 /* Darker yellow than --color-focus: the stage pink behind it needs more than
    the usual 3:1 to stay visible. */
 .cta-join:focus-visible {
   outline: 3px solid #b8860b;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 5px rgba(184, 134, 11, 0.25);
+  outline-offset: 3px;
+  box-shadow: 0 8px 32px rgba(255, 77, 141, 0.5), 0 0 0 5px rgba(184, 134, 11, 0.25);
 }
 .cta-join-icon {
   flex-shrink: 0;
@@ -236,6 +294,9 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
   background: transparent;
   border-color: var(--color-stage);
   color: var(--color-stage);
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 600;
 }
 .cta-outline:hover,
 .cta-outline:focus-visible {
@@ -251,12 +312,12 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
    read as an unexplained signup prompt. */
 .cta-hint {
   max-width: 42ch;
-  margin: 0.9rem 0 0;
+  margin: 1.5rem 0 0;
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: 1.6;
   color: #fff;
-  opacity: 0.92;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  opacity: 0.85;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 .cta-hint strong {
   font-weight: 700;
@@ -264,14 +325,14 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
 
 @media (prefers-reduced-motion: no-preference) {
   .cta-join {
-    animation: cta-join-pulse 2.8s ease-out infinite;
+    animation: cta-join-pulse 3.5s ease-out infinite;
   }
 }
 
 @keyframes cta-join-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(255, 77, 141, 0.5); }
-  70%  { box-shadow: 0 0 0 14px rgba(255, 77, 141, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 77, 141, 0); }
+  0%   { box-shadow: 0 4px 20px rgba(255, 77, 141, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15); }
+  50%  { box-shadow: 0 4px 20px rgba(255, 77, 141, 0.4), 0 0 0 18px rgba(255, 77, 141, 0.15); }
+  100% { box-shadow: 0 4px 20px rgba(255, 77, 141, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15); }
 }
 
 /* Below ~820px the fixed 5:3 hero is shorter than its own overlay: the CTA
@@ -293,6 +354,27 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
   .hero-overlay {
     position: static;
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.62));
+    padding: 2.5rem 1.25rem;
+  }
+  .hero-overlay h1 {
+    font-size: clamp(1.75rem, 6vw, 2.75rem);
+  }
+  .tagline {
+    margin-bottom: 1.75rem;
+  }
+  .tagline-secondary {
+    margin-bottom: 2rem;
+  }
+  .cta-group {
+    gap: 0.75rem;
+  }
+  .cta-join {
+    padding: 0.875rem 1.75rem;
+    font-size: 1rem;
+  }
+  .cta-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
   }
 }
 

@@ -1,4 +1,4 @@
-{# nav.html — the top bar. ONE template for every neohiro-network Jekyll site.
+<!-- nav.html — the top bar. ONE template for every neohiro-network Jekyll site.
 
    CONTRACT — keep in sync across neohiro / frenzypenguin-media / openstageisland /
    transhumanists (SSOT: template-shared/_includes/nav.html):
@@ -28,7 +28,7 @@
       Everything dropped is still reachable from the footer + Community menu.
    6. THE HEADER SCROLLS AWAY. Below the fold it translates out of view and a
       compact brand pill takes its place, so the hero and the live signal get
-      the full viewport. #}
+      the full viewport. -->
 {%- assign gh = site.github_username | default: 'neohiro' -%}
 {%- assign links = site.nav_links -%}
 {%- if links == nil or links == empty -%}
@@ -155,9 +155,9 @@
     </div>
   </div>
 
-  {# ── Auth slot. Static on purpose (see contract note 3).
+  <!-- ── Auth slot. Static on purpose (see contract note 3).
        /dashboard/ has no GitHub Pages deployment, so dashboard targets point at
-       the repository. Override with `dashboard_url` in _config.yml. #}
+       the repository. Override with `dashboard_url` in _config.yml. -->
   {%- assign dash = site.dashboard_url | default: 'https://github.com/neohiro/dashboard' -%}
   <button class="nav-auth nav-auth--login" id="nav-auth__login" type="button" data-nav-auth="login">
     <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15" aria-hidden="true">
@@ -181,7 +181,7 @@
 
   <a href="https://github.com/sponsors/{{ site.sponsor_username | default: gh }}" class="nav-link nav-sponsor" target="_blank" rel="noopener">♥ Sponsor</a>
 
-  {# Always last: the org glyph, hard against the right viewport edge. #}
+  <!-- Always last: the org glyph, hard against the right viewport edge. -->
   <a href="https://github.com/{{ gh | uri_escape }}" class="nav-github" target="_blank" rel="noopener"
      aria-label="{{ gh | escape }} on GitHub" title="{{ gh | escape }} on GitHub">
     <svg viewBox="0 0 24 24" fill="currentColor" width="19" height="19" aria-hidden="true">
