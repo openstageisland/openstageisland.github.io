@@ -21,6 +21,7 @@
   --bottom-bar-h: 72px;
   --ai-btn-size: 64px;
   --chrome-gap: 12px;
+  --ai-btn-protrusion: calc(var(--ai-btn-size) * 0.6); /* how far the AI button pokes below viewport */
   /* Total always-on chrome at the bottom of the viewport. */
   --chrome-bottom: var(--bottom-bar-h);
 }
@@ -101,17 +102,21 @@ html {
   grid-column: 3;
 }
 
-/* Curved canvas behind the bar — the top edge bows upward, so the bar reads as a
-   curved shelf rather than a flat strip, and the central AI button sits in the
-   dip of the sweep. */
+/* Curved canvas behind the bar — "happy face" smile curve:
+   center dips lowest, corners rise up. Achieved with a radial gradient mask
+   that carves the smile shape into the top edge. */
 .bottom-bar__canvas {
   position: absolute;
   inset: 0;
-  /* The elliptical horizontal/vertical radii give the top edge a wide, shallow
-     arc instead of two circular corner arcs. A plain `3rem 3rem 0 0` only rounds
-     the two corners and leaves the middle of the edge dead flat, which is what
-     made it read as a rectangle. */
-  border-radius: 3rem 3rem 0 0 / 2.25rem 2.25rem 0 0;
+  /* Mask creates the smile: radial gradient from center cuts the dip */
+  -webkit-mask-image:
+    radial-gradient(ellipse 60% 120% at 50% 100%, transparent 55%, black 70%),
+    linear-gradient(to top, transparent, black 40%);
+  mask-image:
+    radial-gradient(ellipse 60% 120% at 50% 100%, transparent 55%, black 70%),
+    linear-gradient(to top, transparent, black 40%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
   /* Fallbacks first, then the --color-* names. This file is shared by all four
      sites and the token vocabulary differs: OSI defines --color-surface /
      --color-border, while FPM, neohiro and transhumanists define --bg-card /
@@ -120,7 +125,9 @@ html {
      and no visible curve on three of the four sites. */
   background: var(--bg-card, var(--color-surface, #ffffff));
   border-top: 1px solid var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.1), 0 -1px 0 var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
+  box-shadow:
+    0 -4px 24px rgba(0, 0, 0, 0.1),
+    0 -1px 0 var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   pointer-events: none;
@@ -302,7 +309,7 @@ html {
   box-shadow: 0 2px 8px rgba(255, 77, 141, 0.35);
 }
 
-/* Central AI Button — protrudes upward from the curved bar */
+/* Central AI Button — protrudes downward OUT OF BOUNDS below viewport */
 .bottom-bar__ai {
   pointer-events: auto;
   position: relative;
@@ -310,7 +317,8 @@ html {
   width: var(--ai-btn-size);
   height: var(--ai-btn-size);
   margin: 0 0.5rem;
-  transform: translateY(calc(var(--ai-btn-size) * -0.45));
+  /* Protrude below viewport edge: positive translateY pushes DOWN */
+  transform: translateY(var(--ai-btn-protrusion));
   border: none;
   border-radius: 50%;
   background: var(--color-stage, var(--accent, #7c4dff));
@@ -319,7 +327,11 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(255, 77, 141, 0.45), 0 0 0 3px var(--color-surface, var(--bg-card, #111820));
+  box-shadow:
+    0 4px 20px rgba(255, 77, 141, 0.45),
+    0 0 0 3px var(--color-surface, var(--bg-card, #111820)),
+    /* Subtle glow on the bottom half that extends into the "void" */
+    0 calc(var(--ai-btn-size) * 0.3) calc(var(--ai-btn-size) * 0.5) rgba(255, 77, 141, 0.15);
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
               box-shadow 0.25s ease,
               background 0.2s ease;
@@ -327,8 +339,11 @@ html {
 }
 
 .bottom-bar__ai:hover {
-  transform: translateY(calc(var(--ai-btn-size) * -0.55)) scale(1.08);
-  box-shadow: 0 8px 32px rgba(255, 77, 141, 0.55), 0 0 0 3px var(--color-surface, var(--bg-card, #111820));
+  transform: translateY(calc(var(--ai-btn-protrusion) + 4px)) scale(1.08);
+  box-shadow:
+    0 8px 32px rgba(255, 77, 141, 0.55),
+    0 0 0 3px var(--color-surface, var(--bg-card, #111820)),
+    0 calc(var(--ai-btn-size) * 0.4) calc(var(--ai-btn-size) * 0.6) rgba(255, 77, 141, 0.25);
   background: var(--color-stage-hover, var(--accent-strong, #9d7aff));
 }
 
@@ -349,8 +364,8 @@ html {
 }
 
 @keyframes ai-btn-float {
-  0%, 100% { transform: translateY(calc(var(--ai-btn-size) * -0.45)); }
-  50% { transform: translateY(calc(var(--ai-btn-size) * -0.52)); }
+  0%, 100% { transform: translateY(var(--ai-btn-protrusion)); }
+  50% { transform: translateY(calc(var(--ai-btn-protrusion) + 6px)); }
 }
 
 .bottom-bar__ai-ring {
@@ -450,6 +465,7 @@ body.ai-conv-active .bottom-bar__ai {
   :root {
     --bottom-bar-h: 68px;
     --ai-btn-size: 56px;
+    --ai-btn-protrusion: calc(var(--ai-btn-size) * 0.65);
   }
   .bottom-bar__list {
     gap: 0.2rem;

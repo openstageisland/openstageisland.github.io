@@ -92,6 +92,10 @@ body:has(.bottom-bar) .ai-totop {
    * cannot shift the page it is floating over. */
   transition: opacity var(--ai-fade) ease, translate var(--ai-fade) ease;
   translate: 0 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .ai-seal__img {

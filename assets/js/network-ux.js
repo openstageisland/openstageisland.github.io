@@ -528,10 +528,8 @@
               <label class="ai-conv__var-row" title="Model">
                 <span class="ai-conv__var-label">Model</span>
                 <select class="ai-conv__var-select" name="model" aria-label="Model">
-                  <option value="auto">Auto (best fit)</option>
-                  <option value="brain">Brain (local classify)</option>
-                  <option value="mouth">Mouth (bridge)</option>
-                  <option value="heart">Heart (status)</option>
+                  <option value="low">Low — free-model routing</option>
+                  <option value="high">High — higher reasoning models</option>
                 </select>
               </label>
               <label class="ai-conv__var-row" title="Site scope">
@@ -702,7 +700,7 @@
     var counter = modal.querySelector('#ai-conv__counter');
     var varsBox = modal.querySelector('#ai-conv__vars');
     var varsToggle = modal.querySelector('#ai-conv__vars-toggle');
-    if (!form || !input || !send || !counter) return;
+    if (!form || !input || !send || !counter || !varsBox || !varsToggle) return;
 
     function updateCounter() {
       var n = input.value.length;
@@ -734,7 +732,7 @@
       var scopeSelect = form.querySelector('[name="scope"]');
       var replyModeSelect = form.querySelector('[name="replyMode"]');
       var composerOpts = {
-        model: modelSelect ? modelSelect.value : 'auto',
+        model: modelSelect ? modelSelect.value : 'low',
         scope: scopeSelect ? scopeSelect.value : 'all',
         replyMode: replyModeSelect ? replyModeSelect.value : 'assistant'
       };
@@ -1260,23 +1258,56 @@ function renderSafeHtml(html) {
       });
   }
 
+  /* Fetch and compact the site's README for context grounding.
+   Returns a Promise that resolves to a compacted string (max ~2000 chars). */
+  function fetchReadmeContext() {
+    var readmeUrl = location.origin + '/README.md';
+    return fetchWithTimeout(readmeUrl, { cache: 'no-store' }, 5000)
+      .then(function (r) { if (!r.ok) throw new Error('README HTTP ' + r.status); return r.text(); })
+      .then(function (text) {
+        // Compact: strip frontmatter, code blocks, images, badges, keep headings + first paragraph
+        var compact = text
+          .replace(/^---[\s\S]*?---/m, '') // frontmatter
+          .replace(/```[\s\S]*?```/g, '') // code blocks
+          .replace(/!\[.*?\]\(.*?\)/g, '') // images
+          .replace(/\[!\[.*?\]\(.*?\)\]\(.*?\)/g, '') // badges
+          .replace(/^#+\s+/gm, '') // heading markers
+          .replace(/\n{3,}/g, '\n\n') // collapse excessive newlines
+          .replace(/\s+/g, ' ') // collapse whitespace
+          .trim();
+        // Truncate to ~2000 chars for token optimization
+        return compact.length > 2000 ? compact.slice(0, 2000) + '…' : compact;
+      })
+      .catch(function () { return ''; }); // Silent failure, no context
+  }
+
   function fetchMouthReply(q) {
-    // POST JSON, not GET with a query string: it keeps the body out of proxy and
-    // access logs, and it is the shape brain-bridge actually accepts.
-    return fetchWithTimeout(
-      MOUTH_ENDPOINT,
-      {
-        method: 'POST',
-        mode: 'cors',
-        cache: 'no-store',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ q: q, site: SITE_KEY, page: location.pathname })
-      },
-      12000
-    )
-      .then(function (r) { if (!r.ok) throw new Error('Mouth HTTP ' + r.status); return r.json(); })
-      .then(function (j) { return j && (j.reply || j.answer || j.text) || null; })
-      .catch(function () { return null; });
+    // POST JSON with full context grounding: query + site + page + compacted README
+    return fetchReadmeContext().then(function (readmeCtx) {
+      return fetchWithTimeout(
+        MOUTH_ENDPOINT,
+        {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-store',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            q: q,
+            site: SITE_KEY,
+            page: location.pathname,
+            context: {
+              site: SITE_KEY,
+              path: location.pathname,
+              readme: readmeCtx
+            }
+          })
+        },
+        12000
+      )
+        .then(function (r) { if (!r.ok) throw new Error('Mouth HTTP ' + r.status); return r.json(); })
+        .then(function (j) { return j && (j.reply || j.answer || j.text) || null; })
+        .catch(function () { return null; });
+    });
   }
 
   /* ── Voicemail ──────────────────────────────────────────────────────────
@@ -1285,28 +1316,35 @@ function renderSafeHtml(html) {
      fsyncs it before acknowledging, so a "queued" receipt is a promise.
      Returns {ok, receipt} — the caller shows the receipt either way. */
   function sendVoicemail(message, who, about) {
-    return fetchWithTimeout(
-      VOICEMAIL_ENDPOINT,
-      {
-        method: 'POST',
-        mode: 'cors',
-        cache: 'no-store',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          message: message,
-          site: SITE_KEY,
-          page: location.pathname,
-          referrer: document.referrer || null,
-          about: about || '',
-          who: who || {},
-          auth: currentAuth()
-        })
-      },
-      12000
-    )
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
-      .then(function (res) { return { ok: res.ok, receipt: (res.body && res.body.id) || null }; })
-      .catch(function () { return { ok: false, receipt: null }; });
+    return fetchReadmeContext().then(function (readmeCtx) {
+      return fetchWithTimeout(
+        VOICEMAIL_ENDPOINT,
+        {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-store',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            message: message,
+            site: SITE_KEY,
+            page: location.pathname,
+            referrer: document.referrer || null,
+            about: about || '',
+            who: who || {},
+            auth: currentAuth(),
+            context: {
+              site: SITE_KEY,
+              path: location.pathname,
+              readme: readmeCtx
+            }
+          })
+        },
+        12000
+      )
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+        .then(function (res) { return { ok: res.ok, receipt: (res.body && res.body.id) || null }; })
+        .catch(function () { return { ok: false, receipt: null }; });
+    });
   }
 
   function detectStranger() {
@@ -1364,6 +1402,19 @@ function mountAssistantBar() {
             </svg>
           </button>
         </form>
+        <div class="ai-bar__vars" id="ai-bar__vars" hidden>
+          <label class="ai-bar__var-row" title="Model">
+            <span class="ai-bar__var-label">Model</span>
+            <select class="ai-bar__var-select" name="model" aria-label="Model">
+              <option value="low">Low — free-model routing</option>
+              <option value="high">High — higher reasoning models</option>
+            </select>
+          </label>
+          <button type="button" class="ai-bar__vars-toggle" id="ai-bar__vars-toggle" aria-expanded="false" aria-controls="ai-bar__vars">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            <span class="ai-bar__vars-toggle-text">Model</span>
+          </button>
+        </div>
         <div class="ai-bar__typing hidden" id="ai-bar__typing" role="status" aria-live="polite">
           <span class="ai-bar__dots" aria-hidden="true"><span></span><span></span><span></span></span>
           <span id="ai-bar__typing-text">Mouth is composing your reply…</span>
@@ -1394,29 +1445,44 @@ function mountAssistantBar() {
     }
     document.body.classList.add('ai-bar-mounted');
 
-    const form = document.getElementById('ai-bar__form');
+const form = document.getElementById('ai-bar__form');
     const input = document.getElementById('ai-bar__input');
     const counter = document.getElementById('ai-bar__counter');
     form.addEventListener('submit', onAsk);
-    // Live char counter: shows how much is left so users self-correct
-    // before hitting the 600-char cap and getting a silent truncation.
+    // Live char counter: shows only when near limit (cleaner minimal UI)
 function updateCounter() {
         var n = input.value.length;
         counter.textContent = n + ' / 600';
+        counter.classList.toggle('ai-bar__counter--visible', n >= 480 || n > 600);
         counter.classList.toggle('ai-bar__counter--near', n >= 540);
         counter.classList.toggle('ai-bar__counter--over', n > 600);
         form.classList.toggle('has-content', n > 0);
       }
     input.addEventListener('input', updateCounter);
     updateCounter();
+    // Wire up the model selection vars toggle
+    var varsBox = document.getElementById('ai-bar__vars');
+    var varsToggle = document.getElementById('ai-bar__vars-toggle');
+    if (varsToggle && varsBox) {
+      varsToggle.addEventListener('click', function () {
+        var open = varsBox.hasAttribute('hidden');
+        varsBox.hidden = !open;
+        varsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+          varsToggle.querySelector('.ai-bar__vars-toggle-text').textContent = 'Hide model';
+        } else {
+          varsToggle.querySelector('.ai-bar__vars-toggle-text').textContent = 'Model';
+        }
+      });
+    }
     // Cute dynamic cursor: shift placeholder text on focus/blur
     const placeholders = [
       'Ask the neohiro assistant — find a repo, report a bug, get a guide, or describe what you need…',
-      'Try: “harden my Windows laptop in 5 minutes”',
-      'Try: “show me encryption tools”',
-      'Try: “report a bug in Cripple-NetStrip”',
-      'Try: “take me to the world map dashboard”',
-      'Try: “how do I file a security advisory?”'
+      'Try: "harden my Windows laptop in 5 minutes"',
+      'Try: "show me encryption tools"',
+      'Try: "report a bug in Cripple-NetStrip"',
+      'Try: "take me to the world map dashboard"',
+      'Try: "how do I file a security advisory?"'
     ];
     let pIdx = 0;
     input.addEventListener('focus', () => {
@@ -1467,6 +1533,15 @@ function updateCounter() {
 
     const wrap = document.getElementById('ai-bar');
     wrap.classList.add('ai-bar--sent');
+
+    // Read variable menu selections (future: pass to backend)
+    var form = document.getElementById('ai-bar__form');
+    var modelSelect = form ? form.querySelector('[name="model"]') : null;
+    var composerOpts = {
+      model: modelSelect ? modelSelect.value : 'low',
+    };
+    window.__aiComposerOpts = composerOpts;
+
     input.setAttribute('aria-busy', 'true');
     input.disabled = true;
 
@@ -1477,7 +1552,7 @@ function updateCounter() {
     // Reset char counter (stale after programmatic clear; updateCounter()
     // lives in mountAssistantBar's closure so we write directly).
     var ctr = document.getElementById('ai-bar__counter');
-    if (ctr) { ctr.textContent = '0 / 600'; ctr.className = 'ai-bar__counter'; }
+    if (ctr) { ctr.textContent = '0 / 600'; ctr.className = 'ai-bar__counter'; ctr.classList.remove('ai-bar__counter--visible', 'ai-bar__counter--near', 'ai-bar__counter--over'); }
 
     // ── Step 2: probe Heart while typing indicator starts ─────────
     probeHeart();
@@ -1926,6 +2001,57 @@ Got it — I can help you with that. To give you the most useful answer, tell me
   }
 
   NEohiro.diagnose = function () { return NEohiro._lastDiag || null; };
+
+  /* ── Mainframe status indicator (bottom bar) ────────────────────────
+     Probes the Heart endpoint to determine if the mainframe is online.
+     Updates the status dot in the bottom bar every 30 seconds.
+     Uses the same fallback logic as probeHeart() for robustness. */
+  function startMainframeStatusProbe() {
+    var dot = document.getElementById('bottom-bar__status-dot');
+    var text = document.getElementById('bottom-bar__status-text');
+    if (!dot || !text) return;
+
+    var _statusProbed = false;
+    var _statusUp = null;
+
+    function probe() {
+      // Allow re-probe if previous attempt failed (_statusUp === false).
+      // Only short-circuit if we have a positive result cached.
+      if (_statusProbed && _statusUp) return Promise.resolve(_statusUp);
+      _statusProbed = true;
+      return HEART_ENDPOINTS.reduce(function (promise, url) {
+        return promise.catch(function () {
+          return fetchWithTimeout(url, { cache: 'no-store', mode: 'cors' }, 8000)
+            .then(function (r) { return r && r.ok; });
+        });
+      }, Promise.reject(new Error('no endpoints')))
+        .then(function (up) { _statusUp = up; return up; })
+        .catch(function () { _statusUp = false; return false; });
+    }
+
+    function updateUI(online) {
+      if (online) {
+        dot.style.background = 'var(--green, #66bb6a)';
+        dot.style.boxShadow = '0 0 6px var(--green, #66bb6a)';
+        text.textContent = 'Mainframe online';
+      } else {
+        dot.style.background = 'var(--red, #ef5350)';
+        dot.style.boxShadow = '0 0 6px var(--red, #ef5350)';
+        text.textContent = 'Mainframe offline';
+      }
+    }
+
+    // Initial probe
+    probe().then(updateUI);
+
+    // Probe every 30 seconds
+    setInterval(function () {
+      probe().then(updateUI);
+    }, 30000);
+  }
+
+  // Start the mainframe status probe after a short delay
+  setTimeout(startMainframeStatusProbe, 2000);
 
   // Expose
   window.NEohiro = NEohiro;
