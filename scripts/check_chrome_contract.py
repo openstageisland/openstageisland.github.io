@@ -485,6 +485,29 @@ check_shared_files()
 
 
 # ---------------------------------------------------------------------------
+# 7b. Internal tooling notes must not reach the rendered page.
+# ---------------------------------------------------------------------------
+# neohiro's layout carried `<!-- fonts: managed by template-shared/site_forge.py
+# from sites.yaml -->` as an HTML comment while the other three used
+# `{% comment %}`. An HTML comment renders as nothing, so it looks fine in
+# review, but it ships: 26 built pages carried the note, disclosing the internal
+# tooling and the repo layout to anyone reading page source. A Liquid comment is
+# stripped at build time and costs nothing.
+_INTERNAL_NOTE = re.compile(
+    r"<!--[^>]*\bmanaged by template-shared\b[^>]*-->", re.IGNORECASE)
+for site in SITES:
+    for rel in (os.path.join("_layouts", "default.html"),
+                os.path.join("_includes", "theme.html")):
+        txt = read(site, rel)
+        if txt is None:
+            continue
+        found = _INTERNAL_NOTE.findall(txt)
+        check(site, "internal tooling note is a Liquid comment, not HTML (%s)"
+              % rel.replace(os.sep, "/"),
+              not found, "; ".join(found[:2]))
+
+
+# ---------------------------------------------------------------------------
 # 8. Every custom property the shared CSS reads must actually resolve.
 # ---------------------------------------------------------------------------
 # This is the check that would have caught the invisible bar.
