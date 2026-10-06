@@ -455,6 +455,8 @@
   // Built hidden on first AI-bar mount; activated on submit.
   // Animates down from the AI bar, displays the user's query as a bubble,
   // then a typing indicator while Heart/Mouth is queried for a reply.
+  // Now includes inline prompt composer with wide query box, variable menus,
+  // and dual checkmarks for sent messages.
   function mountConversationModal() {
     if (document.getElementById('ai-conv')) return;
     const modal = document.createElement('div');
@@ -496,13 +498,66 @@
             <span id="ai-conv__typing-text">Mouth is composing your reply…</span>
           </div>
         </div>
-        <div class="ai-conv__footer">
-          <button type="button" class="ai-conv__message-toggle" id="ai-conv__message-toggle"
-                  aria-expanded="false" aria-controls="ai-conv__triage">
-            Leave a message
-          </button>
-          <span class="ai-conv__notice">We collect information so we can learn more about you</span>
-          <a class="ai-conv__privacy" href="https://neohiro.github.io/privacy/" rel="noopener" target="_blank">Privacy</a>
+
+        <!-- Inline prompt composer (replaces footer toggle flow) -->
+        <div class="ai-conv__composer" id="ai-conv__composer">
+          <form class="ai-conv__composer-form" id="ai-conv__composer-form" novalidate>
+            <div class="ai-conv__input-wrap">
+              <span class="ai-conv__input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                  <path d="M12 2L9 8l-6 1 4.5 4.5L6 20l6-3.5L18 20l-1.5-6.5L21 9l-6-1z"/>
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="ai-conv__input"
+                class="ai-conv__input"
+                name="q"
+                placeholder="Ask anything — find a repo, report a bug, get a guide, or describe what you need…"
+                aria-label="Ask the neohiro assistant"
+                maxlength="600"
+                autocomplete="off" />
+              <button type="submit" class="ai-conv__send" id="ai-conv__send" aria-label="Send message">
+                <span>Send</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+            <div class="ai-conv__vars" id="ai-conv__vars" hidden>
+              <label class="ai-conv__var-row" title="Model">
+                <span class="ai-conv__var-label">Model</span>
+                <select class="ai-conv__var-select" name="model" aria-label="Model">
+                  <option value="auto">Auto (best fit)</option>
+                  <option value="brain">Brain (local classify)</option>
+                  <option value="mouth">Mouth (bridge)</option>
+                  <option value="heart">Heart (status)</option>
+                </select>
+              </label>
+              <label class="ai-conv__var-row" title="Site scope">
+                <span class="ai-conv__var-label">Scope</span>
+                <select class="ai-conv__var-select" name="scope" aria-label="Site scope">
+                  <option value="all">All sites</option>
+                  <option value="neohiro">neohiro</option>
+                  <option value="fpm">frenzypenguin-media</option>
+                  <option value="osi">openstageisland</option>
+                  <option value="transhumanists">transhumanists</option>
+                </select>
+              </label>
+              <label class="ai-conv__var-row" title="Reply mode">
+                <span class="ai-conv__var-label">Reply mode</span>
+                <select class="ai-conv__var-select" name="replyMode" aria-label="Reply mode">
+                  <option value="assistant">Assistant</option>
+                  <option value="voicemail">Human (voicemail)</option>
+                </select>
+              </label>
+              <button type="button" class="ai-conv__vars-toggle" id="ai-conv__vars-toggle" aria-expanded="false" aria-controls="ai-conv__vars">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                <span class="ai-conv__vars-toggle-text">Variables</span>
+              </button>
+            </div>
+            <div class="ai-conv__counter" id="ai-conv__counter" aria-live="off" aria-atomic="true">0 / 600</div>
+          </form>
         </div>
 
         <!-- Voicemail triage. Two questions decide where a message ends up, so
@@ -539,6 +594,7 @@
     document.body.appendChild(modal);
     fillAvatarSlots(modal); // org avatar in conversation header + welcome bubble
     wireVoicemail(modal);
+    wireComposer(modal);
     // Close handlers
     document.getElementById('ai-conv__close').addEventListener('click', hideConversationModal);
     // Esc to close (handler is page-singleton; no leak)
@@ -638,6 +694,94 @@
     });
   }
 
+  /* ── Inline composer wiring ─────────────────────────────────────────── */
+  function wireComposer(modal) {
+    var form = modal.querySelector('#ai-conv__composer-form');
+    var input = modal.querySelector('#ai-conv__input');
+    var send = modal.querySelector('#ai-conv__send');
+    var counter = modal.querySelector('#ai-conv__counter');
+    var varsBox = modal.querySelector('#ai-conv__vars');
+    var varsToggle = modal.querySelector('#ai-conv__vars-toggle');
+    if (!form || !input || !send || !counter) return;
+
+    function updateCounter() {
+      var n = input.value.length;
+      counter.textContent = n + ' / 600';
+      counter.classList.toggle('ai-conv__counter--near', n >= 540);
+      counter.classList.toggle('ai-conv__counter--over', n > 600);
+      form.classList.toggle('has-content', n > 0);
+    }
+    input.addEventListener('input', updateCounter);
+    updateCounter();
+
+    varsToggle.addEventListener('click', function () {
+      var open = varsBox.hasAttribute('hidden');
+      varsBox.hidden = !open;
+      varsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) varsToggle.querySelector('.ai-conv__vars-toggle-text').textContent = 'Hide variables';
+      else varsToggle.querySelector('.ai-conv__vars-toggle-text').textContent = 'Variables';
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var raw = input.value;
+      var q = raw.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069]+/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!q) { input.focus(); return; }
+      if (q.length > 600) { input.value = q.slice(0, 600); input.focus(); return; }
+
+      var wrap = document.getElementById('ai-bar');
+      if (wrap) wrap.classList.add('ai-bar--sent');
+      input.setAttribute('aria-busy', 'true');
+      input.disabled = true;
+      send.disabled = true;
+
+      showConversationModal();
+      appendConvMessage('user', q, true); // true = from composer
+      input.value = '';
+      updateCounter();
+
+      probeHeart();
+
+      const cycle = [
+        'Mouth is reading your question…',
+        'Triage: identifying who you are and what you need…',
+        'Pulling the right repo / docs / step-by-step…',
+        'Composing a helpful reply…'
+      ];
+      const myVer = ++_inFlightVer;
+      let c = 0;
+      setConvTyping(true, cycle[0]);
+      _inFlightInt = setInterval(() => {
+        if (myVer !== _inFlightVer) return;
+        c = (c + 1) % cycle.length;
+        setConvTyping(true, cycle[c]);
+      }, 900);
+
+      const delay = 1500 + Math.random() * 600;
+      _inFlightTO = setTimeout(() => {
+        _inFlightInt && clearInterval(_inFlightInt);
+        _inFlightInt = null;
+        _inFlightTO = null;
+        if (myVer !== _inFlightVer) return;
+
+        setConvTyping(false);
+        const reply = fetchMouthReply(q)
+          .then(mouthText => mouthText || classify(q))
+          .catch(() => classify(q));
+
+        reply.then(replyHtml => {
+          if (myVer !== _inFlightVer) return;
+          appendConvMessage('assistant', replyHtml);
+          input.removeAttribute('aria-busy');
+          input.disabled = false;
+          send.disabled = false;
+          if (wrap) wrap.classList.remove('ai-bar--sent');
+          input.focus();
+        });
+      }, delay);
+    });
+  }
+
   var _prevFocus = null;
   var _closeTid = 0;
 
@@ -698,7 +842,7 @@
     _prevFocus = null;
   }
 
-  function appendConvMessage(role, md) {
+  function appendConvMessage(role, md, fromComposer) {
     const box = document.getElementById('ai-conv__messages');
     if (!box) return;
     // Validate role — only 'user' or 'assistant' allowed to prevent CSS injection via className
@@ -708,7 +852,24 @@
     if (safeRole === 'user') {
       // User text is always escaped — no markdown/HTML allowed.
       const safe = escapeHtml(String(md));
-      row.innerHTML = `<div class="ai-conv__bubble">${safe}</div>`;
+      // Dual checkmarks: top = sent from client (grey→bright), bottom = delivered/processed (grey→blue)
+      row.innerHTML = `
+        <div class="ai-conv__bubble">${safe}</div>
+        <div class="ai-conv__checks" aria-hidden="true">
+          <span class="ai-conv__check ai-conv__check--sent" title="Sent from your device">✓</span>
+          <span class="ai-conv__check ai-conv__check--delivered" title="Delivered to assistant">✓</span>
+        </div>
+      `;
+      // Animate checkmarks: sent immediately, delivered after processing
+      setTimeout(() => {
+        const sent = row.querySelector('.ai-conv__check--sent');
+        const delivered = row.querySelector('.ai-conv__check--delivered');
+        if (sent) sent.classList.add('ai-conv__check--active');
+        // Delivered brightens when internal reply is formulated (after delay)
+        setTimeout(() => {
+          if (delivered) delivered.classList.add('ai-conv__check--active');
+        }, fromComposer ? 800 : 0);
+      }, 0);
     } else {
       // Assistant markdown comes from classify() (trusted) or Mouth API (future).
       // Render via safe markdown→DOM (no HTML passthrough). For Mouth API responses
@@ -1284,7 +1445,7 @@ function updateCounter() {
 
     // ── Step 1: show the conversation modal ─────────────────────
     showConversationModal();
-    appendConvMessage('user', q);
+    appendConvMessage('user', q, false); // false = from AI bar (not composer)
     input.value = '';
     // Reset char counter (stale after programmatic clear; updateCounter()
     // lives in mountAssistantBar's closure so we write directly).

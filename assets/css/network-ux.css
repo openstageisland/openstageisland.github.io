@@ -705,7 +705,8 @@ body.ai-dock-present .ai-bar {
    Screenwide: full bleed from the bottom edge up, rounded only at the top. It
    deliberately does NOT use a backdrop — the user must still be able to scroll
    and read the page underneath while a conversation is open.
-   z-index: 910 (above bottom-bar@900, below skip-link@10000). */
+   z-index: 910 (above bottom-bar@900, below skip-link@10000).
+   Animation is faster (0.22s) so the modal "stops faster" and feels snappier. */
 .ai-conv {
   position: fixed;
   left: 0;
@@ -718,17 +719,17 @@ body.ai-dock-present .ai-bar {
 }
 .ai-conv.hidden { display: none; }
 .ai-conv--open {
-  animation: convSlideUp 0.36s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: convSlideUp 0.22s cubic-bezier(0.2, 0.6, 0.3, 1) both;
   pointer-events: auto;
 }
 .ai-conv--closing {
   /* Closing shrinks away and fades out — NOT convSlideDown, which would replay
      the opening direction on the way out. */
-  animation: convFadeUp 0.24s ease-in both;
+  animation: convFadeUp 0.18s ease-in both;
   pointer-events: none;
 }
 @keyframes convSlideUp {
-  from { opacity: 0; transform: translateY(6%) scale(0.985); }
+  from { opacity: 0; transform: translateY(4%) scale(0.99); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .ai-conv__chrome {
@@ -1118,6 +1119,225 @@ gap: 12px;
 @media (max-width: 560px) {
   .ai-conv__footer { flex-wrap: wrap; }
   .ai-conv__message-toggle { order: -1; }
+}
+
+/* ── Inline composer (wide rectangular query box, rounder corners, vars) ── */
+.ai-conv__composer {
+  flex-shrink: 0;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--border, #1f2a36);
+  background: var(--bg-card, #111820);
+}
+.ai-conv__composer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-conv__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-elevated, #161e26);
+  border: 1px solid var(--border, #1f2a36);
+  border-radius: 18px;
+  box-shadow:
+    0 4px 24px rgba(0,0,0,0.4),
+    0 0 0 1px var(--accent-dim, rgba(124,77,255,0.15));
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.ai-conv__composer-form:focus-within .ai-conv__input-wrap,
+.ai-conv__composer-form.has-content .ai-conv__input-wrap {
+  border-color: var(--accent, #7c4dff);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.5),
+    0 0 0 2px var(--accent, #7c4dff),
+    0 0 20px var(--accent-dim, rgba(124,77,255,0.2));
+  background: var(--bg-card, #111820);
+}
+.ai-conv__input-icon {
+  flex-shrink: 0;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent, #7c4dff);
+  filter: drop-shadow(0 0 6px var(--accent-dim, rgba(124,77,255,0.2)));
+}
+.ai-conv__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fg, #eceff1);
+  font-family: var(--font-ui, 'Space Grotesk', system-ui, sans-serif);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  padding: 4px 0;
+  caret-color: var(--accent, #7c4dff);
+  min-width: 0;
+}
+.ai-conv__input:focus-visible {
+  outline: 2px solid var(--accent, #7c4dff);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.ai-conv__input::placeholder { color: var(--fg-subtle, #8a9baa); font-style: italic; }
+.ai-conv__send {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--font-ui, 'Space Grotesk', system-ui, sans-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent, #7c4dff) 0%, var(--accent-strong, #9d7aff) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+  flex-shrink: 0;
+}
+.ai-conv__send:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px var(--accent-dim, rgba(124,77,255,0.2));
+}
+.ai-conv__send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.ai-conv__send svg { transition: transform 0.2s; }
+.ai-conv__send:hover:not(:disabled) svg { transform: translateX(2px); }
+
+/* Variable menus underneath the input */
+.ai-conv__vars {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 4px 0;
+  margin-top: -4px;
+  animation: varsSlide 0.2s ease-out both;
+}
+@keyframes varsSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ai-conv__var-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--fg-muted, #96a8b8);
+}
+.ai-conv__var-label {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-subtle, #6d7f8f);
+}
+.ai-conv__var-select {
+  appearance: none;
+  background: var(--bg-elevated, #161e26);
+  border: 1px solid var(--border, #1f2a36);
+  border-radius: 8px;
+  padding: 4px 28px 4px 10px;
+  font-family: var(--font-ui, 'Space Grotesk', system-ui, sans-serif);
+  font-size: 0.75rem;
+  color: var(--fg, #eceff1);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c4dff' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.ai-conv__var-select:focus {
+  outline: none;
+  border-color: var(--accent, #7c4dff);
+  box-shadow: 0 0 0 2px var(--accent-dim, rgba(124,77,255,0.2));
+}
+.ai-conv__vars-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 10px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted, #96a8b8);
+  background: transparent;
+  border: 1px solid var(--border, #1f2a36);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.ai-conv__vars-toggle:hover {
+  color: var(--fg, #eceff1);
+  border-color: var(--accent, #7c4dff);
+}
+.ai-conv__vars-toggle[aria-expanded="true"] {
+  color: #fff;
+  background: var(--accent, #7c4dff);
+  border-color: var(--accent, #7c4dff);
+}
+.ai-conv__counter {
+  align-self: flex-end;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 0.7rem;
+  color: var(--fg-subtle, #8a9baa);
+  opacity: 0.6;
+  transition: color 0.15s, opacity 0.15s;
+}
+.ai-conv__counter--near { color: var(--amber, #ffb74d); opacity: 1; }
+.ai-conv__counter--over { color: var(--red, #ef5350); opacity: 1; font-weight: 600; }
+
+/* Dual checkmarks for user messages — stacked, grey→bright, grey→blue */
+.ai-conv__msg--user {
+  position: relative;
+}
+.ai-conv__msg--user .ai-conv__bubble {
+  margin-right: 56px; /* space for checkmarks */
+}
+.ai-conv__checks {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+}
+.ai-conv__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 50%;
+  background: var(--fg-subtle, #6d7f8f);
+  color: var(--bg, #0b0e12);
+  opacity: 0.5;
+  transform: scale(0.6);
+  transition: all 0.2s cubic-bezier(0.2, 0.6, 0.3, 1);
+}
+.ai-conv__check--sent.ai-conv__check--active {
+  background: var(--fg-muted, #96a8b8);
+  color: var(--bg, #0b0e12);
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 0 8px var(--fg-muted, #96a8b8);
+}
+.ai-conv__check--delivered.ai-conv__check--active {
+  background: var(--blue, #42a5f5);
+  color: #fff;
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 0 10px var(--blue, #42a5f5), 0 0 20px var(--blue, #42a5f5);
+}
+/* Confirmation style for human messages (LLM reply message experience) */
+.ai-conv__msg--assistant.llm-reply .ai-conv__bubble {
+  border-left: 3px solid var(--blue, #42a5f5);
+  background: linear-gradient(90deg, rgba(66,165,245,0.08), transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
