@@ -210,6 +210,29 @@ body:has(.bottom-bar) .ai-totop {
   pointer-events: none;
 }
 
+/* Stand down while a conversation is open.
+   The sheet is z-index 910 and anchored to the bottom of the viewport at 87% of
+   its height, so the bottom-right corner is squarely inside it -- and this sheet
+   is 940. The arrow and the seal therefore painted on top of the open
+   conversation, floating over the composer's right-hand side. Measured before
+   the fix: elementFromPoint at the arrow's centre returned the arrow, not the
+   sheet.
+
+   The bottom bar already translates itself away for `ai-conv-active`
+   (bottom-bar.css) and network-ux.js sets that class on <body>, so this follows
+   the established treatment rather than inventing one. Losing the arrow for the
+   duration is the intended trade: the sheet holds a focus trap and closes on
+   Escape, so nothing in the conversation becomes unreachable without it.
+
+   Specificity: `body.ai-conv-active .ai-totop` is 0,2,1 against 0,2,0 for
+   `.ai-totop.is-visible`, so this wins even when the arrow is showing. */
+body.ai-conv-active .ai-seal-dock,
+body.ai-conv-active .ai-totop {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .ai-totop__img {
   display: block;
   width: 100%;

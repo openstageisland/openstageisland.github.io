@@ -335,6 +335,14 @@ for site in SITES:
     check(site, "ai-seal.js mirrors the arrow state onto <html>",
           bool(js) and 'classList.toggle("ai-arrow-visible"' in js, "")
 
+    # The sheet is z-index 910 and fills 87% of the viewport from the bottom, so
+    # the bottom-right corner is inside it. This sheet is 940, which put the
+    # arrow and the seal on top of the open conversation. Verified before the
+    # fix: elementFromPoint at the arrow's centre returned the arrow.
+    check(site, "seal and arrow stand down while a conversation is open",
+          re.search(r"body\.ai-conv-active\s+\.ai-totop\s*\{[^}]*visibility\s*:\s*hidden",
+                    css) is not None, "")
+
 
 # ---------------------------------------------------------------------------
 # 3. Page text must follow the colour scheme.
@@ -430,6 +438,19 @@ for site in SITES:
     check(site, "chip strip carries data-bar-scroller",
           'class="bottom-bar__list" data-bar-scroller' in include
           or ("data-bar-scroller" in include and "bottom-bar__list" in include), "")
+
+    # The scroll buttons shipped with tabindex="-1" to stay out of the tab order.
+    # That is redundant while they are `display: none` (which already removes an
+    # element from the tab order) and harmful once the strip overflows: the
+    # buttons become visible and enabled while still being unreachable by
+    # keyboard, with :focus-visible styling that could never fire.
+    buttons = re.findall(r"<button[^>]*data-bar-scroll[^>]*>", include, re.IGNORECASE)
+    check(site, "chip scroll buttons exist and are keyboard reachable",
+          len(buttons) == 2 and not any("tabindex" in b for b in buttons),
+          ("%d button(s); tabindex on: %s"
+           % (len(buttons),
+              ", ".join(b[:60] for b in buttons if "tabindex" in b))
+           if buttons and any("tabindex" in b for b in buttons) else ""))
 
 
 # ---------------------------------------------------------------------------

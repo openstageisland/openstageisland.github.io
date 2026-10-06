@@ -40,8 +40,20 @@ Design:
       overflows, so on the three sites that have no chips they never appear at
       all, and it disables whichever one points past the end of the strip.
     {%- endcomment -%}
+    {%- comment -%}
+      No tabindex on the scroll buttons. They were shipped with tabindex="-1" to
+      keep them out of the tab order, but that only hides them when they are
+      hidden: the buttons are `display: none` until the strip actually overflows,
+      and `display: none` already removes an element from the tab order. So the
+      attribute did nothing while hidden and, once the strip overflowed and the
+      buttons became visible and enabled, it kept a visible, operable control
+      unreachable by keyboard -- with :focus-visible styling that could never
+      fire. Verified: prev.tabIndex was -1, prev.focusableByKeyboard false, and
+      prev.focus() did not move focus. `disabled` still removes a button from the
+      tab order on its own, which is what handles the at-each-end state.
+    {%- endcomment -%}
     <button type="button" class="bottom-bar__scroll-btn bottom-bar__scroll-btn--prev"
-            data-bar-scroll="prev" tabindex="-1" aria-label="Scroll site sections left" disabled>
+            data-bar-scroll="prev" aria-label="Scroll site sections left" disabled>
       <span aria-hidden="true">&#8249;</span>
     </button>
     <ul class="bottom-bar__list" data-bar-scroller>
@@ -53,7 +65,7 @@ Design:
       {%- endfor -%}
     </ul>
     <button type="button" class="bottom-bar__scroll-btn bottom-bar__scroll-btn--next"
-            data-bar-scroll="next" tabindex="-1" aria-label="Scroll site sections right" disabled>
+            data-bar-scroll="next" aria-label="Scroll site sections right" disabled>
       <span aria-hidden="true">&#8250;</span>
     </button>
   </div>

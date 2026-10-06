@@ -113,6 +113,13 @@ jobs:
         # byte-identity comparison runs in the workspace.
         run: python3 scripts/check_chrome_contract.py
 
+      - name: Test the chrome gate itself
+        # A checker that silently stops detecting things reports green, which is
+        # how this gate could pass while the bottom bar was invisible. The
+        # self-test pins a real defect for every rule and fails loudly if the
+        # gate stops catching it.
+        run: python3 scripts/test_check_chrome_contract.py
+
       - name: Validate _config.yml
         # Was an inline `python3 -c "..."` block whose Python sat at column 0
         # inside this `run: |` scalar. That terminated the block and made the
