@@ -1,5 +1,5 @@
 {%- comment -%}
-bottom-bar.html â€” persistent curved section menu with central AI button.
+bottom-bar.html — persistent curved section menu with central AI button.
 Shared across neohiro / frenzypenguin-media / openstageisland / transhumanists.
 
 Site identity comes from `site.shell` (_config.yml), NOT `site.github_username`:
@@ -40,16 +40,18 @@ Design:
       overflows, so on the three sites that have no chips they never appear at
       all, and it disables whichever one points past the end of the strip.
     {%- endcomment -%}
-    {# No tabindex="-1" here. The arrows ship `disabled` and bottom-bar.js enables
-       them only once the strip actually overflows - and a disabled button is
-       already out of the tab order, so the attribute bought nothing. What it did
-       buy was permanent: the script clears `disabled` but never touched tabindex,
-       so the arrows became visible, clickable and still unreachable from the
-       keyboard. That is the exact opposite of what shipping them disabled was
-       for, and it is invisible to every other check here - the markup is valid,
-       the styling is right, and the button still answers a click.
-
-       scripts/check_chrome_contract.py now asserts this, so it cannot come back. #}
+    {%- comment -%}
+      No tabindex on the scroll buttons. They were shipped with tabindex="-1" to
+      keep them out of the tab order, but that only hides them when they are
+      hidden: the buttons are `display: none` until the strip actually overflows,
+      and `display: none` already removes an element from the tab order. So the
+      attribute did nothing while hidden and, once the strip overflowed and the
+      buttons became visible and enabled, it kept a visible, operable control
+      unreachable by keyboard -- with :focus-visible styling that could never
+      fire. Verified: prev.tabIndex was -1, prev.focusableByKeyboard false, and
+      prev.focus() did not move focus. `disabled` still removes a button from the
+      tab order on its own, which is what handles the at-each-end state.
+    {%- endcomment -%}
     <button type="button" class="bottom-bar__scroll-btn bottom-bar__scroll-btn--prev"
             data-bar-scroll="prev" aria-label="Scroll site sections left" disabled>
       <span aria-hidden="true">&#8249;</span>
@@ -74,7 +76,7 @@ Design:
           aria-label="Open assistant"
           aria-expanded="false"
           aria-controls="ai-conv"
-          title="Talk to the neohiro assistant â€” questions, bug reports, access requests">
+          title="Talk to the neohiro assistant — questions, bug reports, access requests">
     <span class="bottom-bar__ai-ring" aria-hidden="true">
       <svg class="bottom-bar__ai-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" aria-hidden="true">
         <path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 2a8 8 0 110 16 8 8 0 010-16zm-1 3v4.586l-2.707 2.707-1.414-1.414L11.293 9.88 8.586 7.172A1 1 0 009.586 6.172l3 3A1 1 0 0112 10.586V7a1 1 0 012 0v3a1 1 0 01-1 1h-3z"/>
@@ -87,8 +89,8 @@ Design:
   {%- when 'osi' -%}
   <div class="bottom-bar__right" role="group" aria-label="Primary action">
     <a class="bottom-bar__cta" href="https://join.secondlife.com/" rel="noopener"
-       title="Create a free Second Life account â€” it costs nothing to make an avatar">
-      <span class="bottom-bar__cta-icon" aria-hidden="true">ðŸŽŸï¸</span>
+       title="Create a free Second Life account — it costs nothing to make an avatar">
+      <span class="bottom-bar__cta-icon" aria-hidden="true">🎟️</span>
       Register free
     </a>
   </div>
@@ -96,7 +98,7 @@ Design:
   <div class="bottom-bar__right" role="group" aria-label="Primary action">
     <a class="bottom-bar__cta" href="https://github.com/neohiro" target="_blank" rel="noopener"
        title="View neohiro on GitHub">
-      <span class="bottom-bar__cta-icon" aria-hidden="true">â­</span>
+      <span class="bottom-bar__cta-icon" aria-hidden="true">⭐</span>
       GitHub
     </a>
   </div>
@@ -104,7 +106,7 @@ Design:
   <div class="bottom-bar__right" role="group" aria-label="Primary action">
     <a class="bottom-bar__cta" href="https://www.youtube.com/@FrenzyPenguinMedia" target="_blank" rel="noopener"
        title="Watch the shows on YouTube">
-      <span class="bottom-bar__cta-icon" aria-hidden="true">â–¶</span>
+      <span class="bottom-bar__cta-icon" aria-hidden="true">▶</span>
       Watch
     </a>
   </div>
@@ -112,7 +114,7 @@ Design:
   <div class="bottom-bar__right" role="group" aria-label="Primary action">
     <a class="bottom-bar__cta" href="https://github.com/transhumanists" target="_blank" rel="noopener"
        title="View Transhumanists on GitHub">
-      <span class="bottom-bar__cta-icon" aria-hidden="true">ðŸ§¬</span>
+      <span class="bottom-bar__cta-icon" aria-hidden="true">🧬</span>
       GitHub
     </a>
   </div>

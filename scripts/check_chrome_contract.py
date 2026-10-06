@@ -38,34 +38,6 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_SHARED = os.path.dirname(_HERE)
 WORKSPACE = os.path.dirname(TEMPLATE_SHARED)
 
-# Read once, up front, so an undecodable file produces one clear line naming it
-# instead of surfacing later as a cascade of "rule not found" failures on rules
-# that are present and correct. The alternative -- letting each read() call
-# swallow the error -- made an unreadable bottom-bar.css indistinguishable from a
-# bottom-bar.css with nothing in it: eight unrelated rules failed and none of them
-# said "this file could not be decoded".
-UNREADABLE = []
-
-
-def _note_unreadable(path, exc):
-    UNREADABLE.append((path, type(exc).__name__))
-
-
-def _read_text(path):
-    """Return file text, or None if missing or not decodable as UTF-8.
-
-    Every caller goes through here so that the encoding problem is recorded once
-    and reported with the path that caused it.
-    """
-    if not os.path.isfile(path):
-        return None
-    try:
-        with io.open(path, encoding="utf-8") as handle:
-            return handle.read()
-    except (UnicodeDecodeError, IOError, OSError) as exc:
-        _note_unreadable(path, exc)
-        return None
-
 KNOWN_SITES = [
     "frenzypenguin-media.github.io",
     "neohiro.github.io",
@@ -135,6 +107,33 @@ def _resolve_sites(argv):
 
 ROOT, SITES, DIFF_ONLY = _resolve_sites(sys.argv)
 
+# Every unreadable file, recorded once, as (site_dir, rel_path, exception_name).
+#
+# The site has to be carried alongside the path. The first version stored only the
+# absolute path and then, at report time, looped over every site computing a
+# relpath against each one -- so an unreadable file in neohiro was also reported
+# against openstageisland, as "../neohiro.github.io/assets/css/ai-seal.css". A
+# file that is fine on three sites gets three failures naming a path that does not
+# exist on any of them, which is worse than not reporting it at all.
+UNREADABLE = []
+
+
+def _read_text(path, site=None, rel=None):
+    """Return file text, or None if missing or not decodable as UTF-8.
+
+    `site`/`rel` are the site-relative coordinates of `path`, when the caller has
+    them, so an encoding failure can be reported against the site it belongs to
+    rather than against whichever site is being examined at the time.
+    """
+    if not os.path.isfile(path):
+        return None
+    try:
+        with io.open(path, encoding="utf-8") as handle:
+            return handle.read()
+    except (UnicodeDecodeError, IOError, OSError) as exc:
+        UNREADABLE.append((site, rel or path, type(exc).__name__))
+        return None
+
 
 def read(site, rel):
     """Read a site-relative file, or None if it is absent or unreadable.
@@ -146,7 +145,7 @@ def read(site, rel):
     encoding problem is named once instead of masquerading as every rule that
     reads the file being missing.
     """
-    return _read_text(os.path.join(ROOT, site, rel))
+    return _read_text(os.path.join(ROOT, site, rel), site, rel)
 
 
 def normalised_bytes(site, rel):
@@ -295,27 +294,64 @@ def check_unreadable_files():
     a lie: an undecodable bottom-bar.css made the gate report that the grid rules
     were missing, which invites someone to go and "fix" a file that is fine.
     """
+    # Deduped, because the same file is read once per rule that needs it and a
+    # stylesheet with forty checks against it would otherwise be reported forty
+    # times. Keyed on the path as recorded, not on a relpath recomputed per site:
+    # a file belongs to exactly one site, and recomputing that relation for every
+    # site in scope was what produced cross-site nonsense before.
     seen = set()
+    for site, rel, exc in UNREADABLE:
+        key = (site, rel)
+        if key in seen:
+            continue
+        seen.add(key)
+        check(site if site else "workspace",
+              "shared file decodes as UTF-8: %s" % rel.replace(os.sep, "/"),
+              False, "%s -- the gate cannot verify rules in this file" % exc)
+
+
+# Mojibake signatures: what UTF-8 bytes look like after being decoded as cp1252
+# and re-encoded. UTF-8 puts every multi-byte sequence in the E2-E3 lead range,
+# which cp1252 maps to â and Ã, so these two characters immediately followed by
+# another cp1252-mapped byte are a reliable marker.
+#
+# This corruption shipped. A mis-set PowerShell encoding rewrote files in place,
+# and it reached published markup: the bottom bar's `title=` read "Talk to the
+# neohiro assistant â€” questions", and 30 sequences sat in FPM's home.css. It was
+# invisible to every other check here, because the files still parsed, still
+# hashed consistently across three of four sites, and still rendered -- just with
+# â€” where an em dash belonged. Two things made it hard to see: the damaged
+# characters are valid Unicode, so a "does this file decode as UTF-8" check passes,
+# and once three of four copies were corrupted the byte-identity comparison
+# reported them as agreeing.
+_MOJIBAKE = re.compile(r"[\u00e2\u00c3][\u20ac\u0080-\u009f]")
+
+
+def check_mojibake():
+    # The shared files, plus the three prose-carrying files that are per-site and so
+    # are not covered by the byte-identity comparison at all.
     for site in SITES:
-        for path, exc in list(UNREADABLE):
-            under = os.path.join(os.path.normpath(site), "")
-            rel = path
-            try:
-                rel = os.path.relpath(path, os.path.join(ROOT, site))
-            except ValueError:
-                pass
-            key = (os.path.basename(os.path.normpath(site)), rel)
-            if key in seen:
+        for rel in list(SHARED_FILES) + ["assets/css/home.css", "index.html",
+                                         "_includes/footer-button-row.html"]:
+            text = read(site, rel)
+            if text is None:
                 continue
-            seen.add(key)
-            check(os.path.basename(os.path.normpath(site)),
-                  "shared file decodes as UTF-8: %s" % rel.replace(os.sep, "/"),
-                  False, "%s -- the gate cannot verify rules in this file" % exc)
+            hits = _MOJIBAKE.findall(text)
+            if not hits:
+                continue
+            first = _MOJIBAKE.search(text)
+            line = text[:first.start()].count("\n") + 1
+            check(site,
+                  "no mojibake in %s" % rel.replace(os.sep, "/"),
+                  False,
+                  "%d sequence(s), first at line %d: %r"
+                  % (len(hits), line, text[first.start():first.start() + 12]))
 
 
 def report():
     """Print every check, then exit non-zero if any failed."""
     check_unreadable_files()
+    check_mojibake()
     fails = [r for r in results if not r[2]]
     cur = None
     label = lambda s: os.path.basename(os.path.normpath(s))  # noqa: E731
@@ -693,10 +729,32 @@ def _defined_props(path):
 def read_from(path):
     """Read a filesystem path, or None if absent or unreadable.
 
-    Same swallowing as `read()`: an undecodable stylesheet must produce a
-    reported failure, not a traceback.
+    Same swallowing as `read()`, and for the same reason: an undecodable
+    stylesheet must produce a reported failure, not a traceback. `site`/`rel` are
+    supplied by the caller where it has them, so a failure here is still attributed
+    to the right site -- this function is reached from token resolution, which
+    walks each site's linked stylesheets by absolute path.
     """
-    return _read_text(path)
+    return _read_text(path, *_coords(path))
+
+
+def _coords(path):
+    """(site, rel) for an absolute path under one of the sites, else (None, path).
+
+    A path can only be attributed if it lies inside a site being checked; anything
+    else is reported against the workspace with its path as-is, rather than being
+    forced into some site's relpath.
+    """
+    for site in SITES:
+        root = os.path.join(ROOT, site)
+        try:
+            common = os.path.commonpath([os.path.abspath(path), os.path.abspath(root)])
+        except ValueError:
+            continue     # different drives on Windows
+        if os.path.normcase(common) == os.path.normcase(os.path.abspath(root)):
+            return (os.path.basename(os.path.normpath(site)),
+                    os.path.relpath(path, root))
+    return (None, path)
 
 
 def check_token_resolution():

@@ -417,10 +417,10 @@ def main():
     # 9b. An undecodable file must be named, not turned into a cascade of
     #     "rule not found" failures on rules that are present and correct.
     # ---------------------------------------------------------------------------
-    def undecodable_css(site):
-        # `make_site` already built the rest of the fixture around `site`; the caller
-        # passes the site path itself, not a temp root to create one in.
-        path = os.path.join(site, "assets", "css", "bottom-bar.css")
+    def undecodable_css(site, rel="assets/css/bottom-bar.css"):
+        # `make_site` already built the rest of the fixture around `site`; the
+        # caller passes the site path itself, not a temp root to create one in.
+        path = os.path.join(site, rel.replace("/", os.sep))
         d = os.path.dirname(path)
         if not os.path.isdir(d):
             os.makedirs(d)
@@ -437,12 +437,99 @@ def main():
               "Traceback" not in out, out.strip().splitlines()[-1] if out.strip() else "")
         check("an undecodable stylesheet is named explicitly",
               code == 1 and failing(out, "decodes as UTF-8"), "exit=%d" % code)
+
+        # Two sites, one unreadable file: the good site must not be blamed.
+        def two_sites_one_unreadable():
+            # The layout links ai-seal.css on purpose. Token resolution re-reads
+            # every linked stylesheet, so this is what makes one bad file be read
+            # more than once -- and therefore what makes the report's dedupe
+            # observable. With no links in the layout the file is read exactly once
+            # and the dedupe assertion below would pass even with dedupe removed.
+            link = '<link rel="stylesheet" href="{{ \'/assets/css/ai-seal.css\' | relative_url }}">'
+
+            def build(tmp_site, bad_seal):
+                make_site(tmp_site, link)
+                for rel, txt in [("assets/js/bottom-bar.js", "const x = 1;\n"),
+                                 ("assets/css/network-ux.css",
+                                  ".ai-conv__chrome {\n  height: 88vh;\n}\n"),
+                                 ("assets/css/ai-seal.css", ".ai-totop {\n  opacity: 1;\n}\n"),
+                                 ("assets/css/bottom-bar.css", SHARED_CSS)]:
+                    write(os.path.join(tmp_site, rel.replace("/", os.sep)), txt)
+                if bad_seal:
+                    undecodable_css(tmp_site, rel="assets/css/ai-seal.css")
+
+            return {
+                "neohiro.github.io": lambda s: build(s, True),
+                "openstageisland.github.io": lambda s: build(s, False),
+            }
+
+        code, out = workspace_run(two_sites_one_unreadable())
+        # The gate prints a `-- <site> --` header and then that site's results, so
+        # a failing line has to be attributed through the header rather than
+        # read off the line itself.
+        current, blamed = None, []
+        for ln in out.splitlines():
+            if ln.startswith("-- ") and ln.rstrip().endswith(" --"):
+                current = ln.strip()[3:-3].strip()
+            elif "decodes as UTF-8" in ln and ln.strip().startswith("FAIL"):
+                blamed.append((current, ln.strip()))
+
+        check("an unreadable file is blamed only on the site that has it",
+              len(blamed) == 1
+              and blamed[0][0] == "neohiro.github.io"
+              and "openstageisland" not in blamed[0][1]
+              and ".." not in blamed[0][1],
+              " | ".join("%s :: %s" % (s, l[:60]) for s, l in blamed) or "none reported")
+
+        # Known gap: the report's dedupe of repeated reads of the same file is not
+        # covered here. How many times a file is read depends on which rules
+        # reference it and on what the layout links, so a fixture that forces
+        # several reads is fragile. Deliberately left as a note rather than an
+        # assertion that would pass either way.
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
     # ---------------------------------------------------------------------------
-    # 10. The gate must not crash on a nearly-empty site.
+    # 10. Mojibake must be reported, not silently shipped.
+    #     This corruption shipped: a mis-set PowerShell encoding rewrote files in
+    #     place, so the bottom bar's `title=` read "Talk to the neohiro assistant
+    #     â€” questions". Nothing else caught it -- the files still parsed as UTF-8,
+    #     three of four copies still hashed equal, and the page still rendered, just
+    #     with â€” where an em dash belonged.
+    # ---------------------------------------------------------------------------
+    def mojibake_em_dash():
+        # What an em dash becomes when its UTF-8 bytes are decoded as cp1252.
+        return "\u2014".encode("utf-8").decode("cp1252")
+
+    def mut_mojibake(site):
+        path = os.path.join(site, "assets", "css", "bottom-bar.css")
+        with io.open(path, "w", encoding="utf-8", newline="") as fh:
+            fh.write("/* note: em dash %s here */\n" % mojibake_em_dash())
+
+    code, out = with_site(mut_mojibake)
+    check("mojibake is reported with its file and line",
+          code == 1 and failing(out, "no mojibake in assets/css/bottom-bar.css"),
+          "exit=%d" % code)
+    check("mojibake report quotes the offending sequence",
+          failing(out, mojibake_em_dash()[:3]), "")
+
+    # A genuine non-ASCII character must not be mistaken for corruption. The
+    # signature is U+00E2/U+00C3 followed by another cp1252-mapped byte; a correct
+    # em dash or ellipsis is not that, and a gate that cried wolf here would be
+    # disabled.
+    def mut_correct_dashes(site):
+        write(os.path.join(site, "assets", "css", "bottom-bar.css"),
+              "/* em dash \u2014 ellipsis \u2026 arrow \u2192 accented caf\u00e9 */\n"
+              ".bottom-bar__ai {\n  content: \"\u2014\";\n}\n")
+
+    code, out = with_site(mut_correct_dashes)
+    check("correct non-ASCII characters are not reported as mojibake",
+          not failing(out, "no mojibake in"), "")
+
+
+    # ---------------------------------------------------------------------------
+    # 11. The gate must not crash on a nearly-empty site.
     # ---------------------------------------------------------------------------
     def mut_strip_everything(site):
         shutil.rmtree(os.path.join(site, "_includes"))
