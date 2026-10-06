@@ -19,6 +19,14 @@ Every assertion is verified to bite: sabotaging the gate's token resolution turn
 this file red. An assertion that passes for any gate output is worthless, so if
 you add a check here, break the gate on purpose and confirm the new assertion
 fails before trusting it.
+
+Layout note: the assertions run at import time under a `main()` call, not at module
+top level. That is deliberate. This file lives in `scripts/`, and transhumanists
+runs `pytest scripts/` over that directory, so pytest imports this module to look
+for `test_*` functions -- and a `sys.exit()` at import time raises SystemExit
+inside pytest's collector, which kills the whole run with an INTERNALERROR and no
+test results at all. The `test_gate_detects_each_defect` wrapper below means
+pytest gets a normal pass/fail for this file instead.
 """
 
 from __future__ import print_function
@@ -135,311 +143,337 @@ def failing(out, needle):
 
 
 # ---------------------------------------------------------------------------
-# 1. A bare var() whose token no linked stylesheet defines must be reported.
-#    This is the transparent-background bug: bottom-bar.css read --color-stage,
-#    which only assets/style.css defines, and three of four layouts never link
-#    that file.
-# ---------------------------------------------------------------------------
-def mut_bare_token(site):
-    write(os.path.join(site, "assets", "css", "bottom-bar.css"),
-          ".bottom-bar__ai {\n  background: var(--stage-glass);\n}\n")
 
-code, out = with_site(mut_bare_token,
-                      '<link rel="stylesheet" href="{{ \'/assets/css/bottom-bar.css\' | relative_url }}">')
-check("unresolvable token is reported",
-      code == 1 and failing(out, "no fallback and not defined by any linked stylesheet"),
-      "exit=%d" % code)
-check("unresolvable token names the file and the token",
-      failing(out, "bottom-bar.css") and failing(out, "--stage-glass"), "")
+def main():
+    """Run every assertion and return a process exit code."""
+    # Reset first, before any assertion runs. `main()` is called both from the
+    # command line and by the pytest wrapper, and can be called twice in one
+    # process; without this the second run would inherit the first run's tally and
+    # report its own results against the previous run's count.
+    del failures[:]
+    globals()["checks_run"] = 0
+    globals()["_last_output"] = ""
 
-# The same file with a fallback is fine.
-def mut_token_with_fallback(site):
-    write(os.path.join(site, "assets", "css", "bottom-bar.css"),
-          ".bottom-bar__ai {\n  background: var(--stage-glass, var(--accent, #7c4dff));\n}\n")
+    # 1. A bare var() whose token no linked stylesheet defines must be reported.
+    #    This is the transparent-background bug: bottom-bar.css read --color-stage,
+    #    which only assets/style.css defines, and three of four layouts never link
+    #    that file.
+    # ---------------------------------------------------------------------------
+    def mut_bare_token(site):
+        write(os.path.join(site, "assets", "css", "bottom-bar.css"),
+              ".bottom-bar__ai {\n  background: var(--stage-glass);\n}\n")
 
-code, out = with_site(mut_token_with_fallback,
-                      '<link rel="stylesheet" href="{{ \'/assets/css/bottom-bar.css\' | relative_url }}">')
-check("fallback clears the token finding",
-      not failing(out, "--stage-glass"), "")
+    code, out = with_site(mut_bare_token,
+                          '<link rel="stylesheet" href="{{ \'/assets/css/bottom-bar.css\' | relative_url }}">')
+    check("unresolvable token is reported",
+          code == 1 and failing(out, "no fallback and not defined by any linked stylesheet"),
+          "exit=%d" % code)
+    check("unresolvable token names the file and the token",
+          failing(out, "bottom-bar.css") and failing(out, "--stage-glass"), "")
 
+    # The same file with a fallback is fine.
+    def mut_token_with_fallback(site):
+        write(os.path.join(site, "assets", "css", "bottom-bar.css"),
+              ".bottom-bar__ai {\n  background: var(--stage-glass, var(--accent, #7c4dff));\n}\n")
 
-# ---------------------------------------------------------------------------
-# 2. A token defined by a stylesheet the page does NOT link is still unresolved.
-#    This distinction is the whole point: the token existed in the repo, which is
-#    why a grep-based review missed it.
-# ---------------------------------------------------------------------------
-def mut_token_in_unlinked(site):
-    write(os.path.join(site, "assets", "css", "bottom-bar.css"),
-          ".bottom-bar__ai {\n  background: var(--stage-glass);\n}\n")
-    write(os.path.join(site, "assets", "style.css"), ":root{--stage-glass:#ff4d8d;}\n")
-
-code, out = with_site(
-    mut_token_in_unlinked,
-    '<link rel="stylesheet" href="{{ \'/assets/css/bottom-bar.css\' | relative_url }}">')
-check("token defined only in an unlinked sheet is still reported",
-      code == 1 and failing(out, "--stage-glass")
-      and failing(out, "no fallback and not defined"), "exit=%d" % code)
+    code, out = with_site(mut_token_with_fallback,
+                          '<link rel="stylesheet" href="{{ \'/assets/css/bottom-bar.css\' | relative_url }}">')
+    check("fallback clears the token finding",
+          not failing(out, "--stage-glass"), "")
 
 
-# ---------------------------------------------------------------------------
-# 3. Both Liquid href shapes must be parsed.
-#    The layouts use BOTH `{{ '/x.css' }}` and `{{ "/x.css" }}` -- the second
-#    embeds double quotes inside a double-quoted attribute, and a non-greedy
-#    parser drops that stylesheet, which then makes its tokens look unresolved.
-# ---------------------------------------------------------------------------
-def mut_needs_orbtokens(site):
-    write(os.path.join(site, "assets", "css", "orb.css"), ":root{--orb1-x:15%;}\n")
-    write(os.path.join(site, "assets", "css", "bottom-bar.css"),
-          ".bottom-bar__left {\n  left: var(--orb1-x);\n}\n")
+    # ---------------------------------------------------------------------------
+    # 2. A token defined by a stylesheet the page does NOT link is still unresolved.
+    #    This distinction is the whole point: the token existed in the repo, which is
+    #    why a grep-based review missed it.
+    # ---------------------------------------------------------------------------
+    def mut_token_in_unlinked(site):
+        write(os.path.join(site, "assets", "css", "bottom-bar.css"),
+              ".bottom-bar__ai {\n  background: var(--stage-glass);\n}\n")
+        write(os.path.join(site, "assets", "style.css"), ":root{--stage-glass:#ff4d8d;}\n")
 
-code, out = with_site(
-    mut_needs_orbtokens,
-    '<link rel="stylesheet" href="{{ "/assets/css/orb.css" | relative_url }}">')
-check("href with nested double quotes is parsed",
-      not failing(out, "--orb1-x"), out.strip().splitlines()[-1:] and "")
-
-code, out = with_site(
-    mut_needs_orbtokens,
-    '<link rel="stylesheet" href="{{ \'/assets/css/orb.css\' | relative_url }}">')
-check("href with single quotes is parsed",
-      not failing(out, "--orb1-x"), "")
-
-code, out = with_site(mut_needs_orbtokens, "<!-- no links at all -->")
-check("a layout with no stylesheet links is reported, not silently passed",
-      code == 1 and failing(out, "could not find any"), "exit=%d" % code)
+    code, out = with_site(
+        mut_token_in_unlinked,
+        '<link rel="stylesheet" href="{{ \'/assets/css/bottom-bar.css\' | relative_url }}">')
+    check("token defined only in an unlinked sheet is still reported",
+          code == 1 and failing(out, "--stage-glass")
+          and failing(out, "no fallback and not defined"), "exit=%d" % code)
 
 
-# ---------------------------------------------------------------------------
-# 4. Selector matching must not read the wrong rule.
-#    `.ai-dock` once matched `body.ai-conv-active .ai-dock`, so a correct
-#    `display: none` was reported as `display: flex`.
-# ---------------------------------------------------------------------------
-def mut_dock_compound(site):
-    write(os.path.join(site, "assets", "css", "auth-bar.css"),
-          ".ai-dock {\n  display: none;\n}\n"
-          ".ai-dock[hidden] {\n  display: none !important;\n}\n"
-          ".ai-dock__panel[hidden] {\n  display: none !important;\n}\n"
-          "body.ai-conv-active .ai-dock {\n  display: flex;\n}\n")
+    # ---------------------------------------------------------------------------
+    # 3. Both Liquid href shapes must be parsed.
+    #    The layouts use BOTH `{{ '/x.css' }}` and `{{ "/x.css" }}` -- the second
+    #    embeds double quotes inside a double-quoted attribute, and a non-greedy
+    #    parser drops that stylesheet, which then makes its tokens look unresolved.
+    # ---------------------------------------------------------------------------
+    def mut_needs_orbtokens(site):
+        write(os.path.join(site, "assets", "css", "orb.css"), ":root{--orb1-x:15%;}\n")
+        write(os.path.join(site, "assets", "css", "bottom-bar.css"),
+              ".bottom-bar__left {\n  left: var(--orb1-x);\n}\n")
 
-code, out = with_site(mut_dock_compound)
-check("a descendant .ai-dock rule is not mistaken for the base rule",
-      not failing(out, "retired .ai-dock is not display"), "")
+    code, out = with_site(
+        mut_needs_orbtokens,
+        '<link rel="stylesheet" href="{{ "/assets/css/orb.css" | relative_url }}">')
+    check("href with nested double quotes is parsed",
+          not failing(out, "--orb1-x"), out.strip().splitlines()[-1:] and "")
 
-def mut_dock_really_flex(site):
-    write(os.path.join(site, "assets", "css", "auth-bar.css"),
-          ".ai-dock {\n  display: flex;\n}\n"
-          ".ai-dock[hidden] {\n  display: none !important;\n}\n"
-          ".ai-dock__panel[hidden] {\n  display: none !important;\n}\n")
+    code, out = with_site(
+        mut_needs_orbtokens,
+        '<link rel="stylesheet" href="{{ \'/assets/css/orb.css\' | relative_url }}">')
+    check("href with single quotes is parsed",
+          not failing(out, "--orb1-x"), "")
 
-code, out = with_site(mut_dock_really_flex)
-check("a base .ai-dock set to flex IS reported",
-      code == 1 and failing(out, "retired .ai-dock is not display"), "exit=%d" % code)
-
-
-# ---------------------------------------------------------------------------
-# 5. Prose in a comment must not satisfy or defeat a check.
-#    Several rules carry a comment naming the value they replaced, and an
-#    earlier version matched against the raw file and so failed on the very fix
-#    that had been made.
-# ---------------------------------------------------------------------------
-def mut_comment_mentions_colour(site):
-    write(os.path.join(site, "assets", "css", "bottom-bar.css"),
-          "/* Was color: #ffffff, a hardcoded white. */\n"
-          ".bottom-bar__ai {\n  background: var(--stage-glass, var(--accent, #7c4dff));\n}\n")
-
-code, out = with_site(mut_comment_mentions_colour,
-                      '<link rel="stylesheet" href="{{ \'/assets/css/bottom-bar.css\' | relative_url }}">')
-check("comment prose does not produce a false alarm",
-      not failing(out, "no fallback and not defined"), "")
+    code, out = with_site(mut_needs_orbtokens, "<!-- no links at all -->")
+    check("a layout with no stylesheet links is reported, not silently passed",
+          code == 1 and failing(out, "could not find any"), "exit=%d" % code)
 
 
-# ---------------------------------------------------------------------------
-# 6. The chip scroll buttons must be keyboard reachable.
-# ---------------------------------------------------------------------------
-def mut_tabindex(site):
-    write(os.path.join(site, "_includes", "bottom-bar.html"),
-          '<ul class="bottom-bar__list" data-bar-scroller></ul>\n'
-          '<button type="button" data-bar-scroll="prev" tabindex="-1" aria-label="left"></button>\n'
-          '<button type="button" data-bar-scroll="next" tabindex="-1" aria-label="right"></button>\n')
+    # ---------------------------------------------------------------------------
+    # 4. Selector matching must not read the wrong rule.
+    #    `.ai-dock` once matched `body.ai-conv-active .ai-dock`, so a correct
+    #    `display: none` was reported as `display: flex`.
+    # ---------------------------------------------------------------------------
+    def mut_dock_compound(site):
+        write(os.path.join(site, "assets", "css", "auth-bar.css"),
+              ".ai-dock {\n  display: none;\n}\n"
+              ".ai-dock[hidden] {\n  display: none !important;\n}\n"
+              ".ai-dock__panel[hidden] {\n  display: none !important;\n}\n"
+              "body.ai-conv-active .ai-dock {\n  display: flex;\n}\n")
 
-code, out = with_site(mut_tabindex)
-check("tabindex on the chip scroll buttons is reported",
-      code == 1 and failing(out, "keyboard reachable"), "exit=%d" % code)
+    code, out = with_site(mut_dock_compound)
+    check("a descendant .ai-dock rule is not mistaken for the base rule",
+          not failing(out, "retired .ai-dock is not display"), "")
 
-code, out = with_site()
-check("keyboard-reachable scroll buttons pass that check",
-      not failing(out, "keyboard reachable"), "")
+    def mut_dock_really_flex(site):
+        write(os.path.join(site, "assets", "css", "auth-bar.css"),
+              ".ai-dock {\n  display: flex;\n}\n"
+              ".ai-dock[hidden] {\n  display: none !important;\n}\n"
+              ".ai-dock__panel[hidden] {\n  display: none !important;\n}\n")
 
-
-# ---------------------------------------------------------------------------
-# 7. The seal must not be driven off :has(), and must stand down for the
-#    conversation sheet it used to float over.
-# ---------------------------------------------------------------------------
-def mut_seal_has_crossfade(site):
-    write(os.path.join(site, "assets", "css", "ai-seal.css"),
-          "body:has(.ai-totop.is-visible) .ai-seal {\n  opacity: 0;\n}\n")
-
-code, out = with_site(mut_seal_has_crossfade)
-check("crossfade driven off :has() is reported",
-      code == 1 and failing(out, "does not depend on :has()"), "exit=%d" % code)
+    code, out = with_site(mut_dock_really_flex)
+    check("a base .ai-dock set to flex IS reported",
+          code == 1 and failing(out, "retired .ai-dock is not display"), "exit=%d" % code)
 
 
-# ---------------------------------------------------------------------------
-# 8. Internal tooling notes must not be shipped as HTML comments.
-# ---------------------------------------------------------------------------
-def mut_html_comment_note(site):
-    write(os.path.join(site, "_layouts", "default.html"),
-          "<!-- fonts: managed by template-shared/site_forge.py from sites.yaml -->\n")
+    # ---------------------------------------------------------------------------
+    # 5. Prose in a comment must not satisfy or defeat a check.
+    #    Several rules carry a comment naming the value they replaced, and an
+    #    earlier version matched against the raw file and so failed on the very fix
+    #    that had been made.
+    # ---------------------------------------------------------------------------
+    def mut_comment_mentions_colour(site):
+        write(os.path.join(site, "assets", "css", "bottom-bar.css"),
+              "/* Was color: #ffffff, a hardcoded white. */\n"
+              ".bottom-bar__ai {\n  background: var(--stage-glass, var(--accent, #7c4dff));\n}\n")
 
-code, out = with_site(mut_html_comment_note)
-check("internal tooling note as an HTML comment is reported",
-      code == 1 and failing(out, "Liquid comment, not HTML"), "exit=%d" % code)
+    code, out = with_site(mut_comment_mentions_colour,
+                          '<link rel="stylesheet" href="{{ \'/assets/css/bottom-bar.css\' | relative_url }}">')
+    check("comment prose does not produce a false alarm",
+          not failing(out, "no fallback and not defined"), "")
 
 
-# ---------------------------------------------------------------------------
-# 9. The cross-site diff, which is the check that exists because these files have
-#    drifted before. The previous version of this test built two sites and then
-#    invoked `--diff --site <one of them>`, so `check_shared_files()` returned
-#    early on `len(SITES) < 2` and never ran: the assertion passed for free and
-#    EOL normalisation, the drift case the whole function exists to handle, had
-#    no coverage at all.
-#
-#    Exercising it needs a real workspace, because the gate locates sites as
-#    siblings of template-shared/. So the gate is copied into a temp workspace and
-#    two real site names are created beside it.
-# ---------------------------------------------------------------------------
-def workspace_run(site_bodies, argv=None):
-    """Run the gate as if from <ws>/template-shared/tests/, over N real sites.
+    # ---------------------------------------------------------------------------
+    # 6. The chip scroll buttons must be keyboard reachable.
+    # ---------------------------------------------------------------------------
+    def mut_tabindex(site):
+        write(os.path.join(site, "_includes", "bottom-bar.html"),
+              '<ul class="bottom-bar__list" data-bar-scroller></ul>\n'
+              '<button type="button" data-bar-scroll="prev" tabindex="-1" aria-label="left"></button>\n'
+              '<button type="button" data-bar-scroll="next" tabindex="-1" aria-label="right"></button>\n')
 
-    `site_bodies` maps a site directory name to a callable that writes that
-    site's files. Returns (exit code, output).
-    """
-    tmp = tempfile.mkdtemp(prefix="chrome-contract-ws-")
+    code, out = with_site(mut_tabindex)
+    check("tabindex on the chip scroll buttons is reported",
+          code == 1 and failing(out, "keyboard reachable"), "exit=%d" % code)
+
+    code, out = with_site()
+    check("keyboard-reachable scroll buttons pass that check",
+          not failing(out, "keyboard reachable"), "")
+
+
+    # ---------------------------------------------------------------------------
+    # 7. The seal must not be driven off :has(), and must stand down for the
+    #    conversation sheet it used to float over.
+    # ---------------------------------------------------------------------------
+    def mut_seal_has_crossfade(site):
+        write(os.path.join(site, "assets", "css", "ai-seal.css"),
+              "body:has(.ai-totop.is-visible) .ai-seal {\n  opacity: 0;\n}\n")
+
+    code, out = with_site(mut_seal_has_crossfade)
+    check("crossfade driven off :has() is reported",
+          code == 1 and failing(out, "does not depend on :has()"), "exit=%d" % code)
+
+
+    # ---------------------------------------------------------------------------
+    # 8. Internal tooling notes must not be shipped as HTML comments.
+    # ---------------------------------------------------------------------------
+    def mut_html_comment_note(site):
+        write(os.path.join(site, "_layouts", "default.html"),
+              "<!-- fonts: managed by template-shared/site_forge.py from sites.yaml -->\n")
+
+    code, out = with_site(mut_html_comment_note)
+    check("internal tooling note as an HTML comment is reported",
+          code == 1 and failing(out, "Liquid comment, not HTML"), "exit=%d" % code)
+
+
+    # ---------------------------------------------------------------------------
+    # 9. The cross-site diff, which is the check that exists because these files have
+    #    drifted before. The previous version of this test built two sites and then
+    #    invoked `--diff --site <one of them>`, so `check_shared_files()` returned
+    #    early on `len(SITES) < 2` and never ran: the assertion passed for free and
+    #    EOL normalisation, the drift case the whole function exists to handle, had
+    #    no coverage at all.
+    #
+    #    Exercising it needs a real workspace, because the gate locates sites as
+    #    siblings of template-shared/. So the gate is copied into a temp workspace and
+    #    two real site names are created beside it.
+    # ---------------------------------------------------------------------------
+    def workspace_run(site_bodies, argv=None):
+        """Run the gate as if from <ws>/template-shared/tests/, over N real sites.
+
+        `site_bodies` maps a site directory name to a callable that writes that
+        site's files. Returns (exit code, output).
+        """
+        tmp = tempfile.mkdtemp(prefix="chrome-contract-ws-")
+        try:
+            # The gate derives the workspace root from its own path
+            # (<ws>/template-shared/tests/), so it has to be *placed* there rather than
+            # merely pointed at, or it will look for siblings beside this repo.
+            tests_dir = os.path.join(tmp, "template-shared", "tests")
+            os.makedirs(tests_dir, exist_ok=True)
+            gate = os.path.join(tests_dir, "check_chrome_contract.py")
+            shutil.copyfile(GATE, gate)
+            for name in site_bodies:
+                site_bodies[name](os.path.join(tmp, name))
+            proc = subprocess.Popen(
+                [sys.executable, gate] + (argv or []),
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            out = proc.communicate(timeout=60)[0].decode("utf-8", "replace")
+            return proc.returncode, out
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+    SHARED_CSS = ".bottom-bar__ai {\n  background: var(--accent);\n}\n"
+
+
+    def two_sites(second_body, first_body=None):
+        """Two sites sharing every file except bottom-bar.css, which is given
+        separately so a test can vary exactly one thing."""
+        def build(tmp_site, css_body):
+            write(os.path.join(tmp_site, "_layouts", "default.html"), "")
+            write(os.path.join(tmp_site, "assets", "js", "network-ux.js"),
+                  "function labelFor(h){return h;}\n")
+            write(os.path.join(tmp_site, "assets", "css", "network-ux.css"),
+                  ".ai-conv__chrome {\n  height: 88vh;\n}\n")
+            write(os.path.join(tmp_site, "assets", "css", "ai-seal.css"),
+                  ".ai-totop {\n  opacity: 1;\n}\n")
+            write(os.path.join(tmp_site, "assets", "js", "bottom-bar.js"),
+                  "const x = 1;\n")
+            write(os.path.join(tmp_site, "_includes", "bottom-bar.html"),
+                  '<ul class="bottom-bar__list" data-bar-scroller></ul>\n')
+            write(os.path.join(tmp_site, "assets", "css", "bottom-bar.css"), css_body)
+
+        return {
+            "neohiro.github.io": lambda s: build(s, first_body or SHARED_CSS),
+            "openstageisland.github.io": lambda s: build(s, second_body),
+        }
+
+
+    # Identical content, different line endings: must NOT read as drift.
+    code, out = workspace_run(two_sites(SHARED_CSS.replace("\n", "\r\n")), ["--diff"])
+    check("CRLF vs LF is not reported as shared-file drift",
+          code == 0 and not failing(out, "shared file identical"),
+          "exit=%d" % code)
+
+    # Genuinely different content: must be reported, naming the odd copy out.
+    code, out = workspace_run(two_sites(SHARED_CSS + ".extra { color: red; }\n"), ["--diff"])
+    check("real content drift across two sites IS reported",
+          code == 1 and failing(out, "shared file identical"), "exit=%d" % code)
+
+    # --diff must report only the shared-file checks. It used to parse the flag and
+    # then ignore it, running and reporting all 150 per-site checks, so a green
+    # --diff proved nothing about drift and looked identical to a plain run.
+    code, out = workspace_run(two_sites(SHARED_CSS), ["--diff"])
+    check("--diff reports only the shared-file checks",
+          "checks passed across 2 sites" in out and not failing(out, "keyboard reachable"),
+          out.strip().splitlines()[-1:] and "")
+    check("--diff does not run the per-site rules",
+          not failing(out, "retired .ai-dock"), "")
+
+    # Single-site --diff has nothing to compare and must not claim the files match.
+    single = tempfile.mkdtemp(prefix="chrome-contract-single-")
     try:
-        # The gate derives the workspace root from its own path
-        # (<ws>/template-shared/tests/), so it has to be *placed* there rather than
-        # merely pointed at, or it will look for siblings beside this repo.
-        tests_dir = os.path.join(tmp, "template-shared", "tests")
-        os.makedirs(tests_dir, exist_ok=True)
-        gate = os.path.join(tests_dir, "check_chrome_contract.py")
-        shutil.copyfile(GATE, gate)
-        for name in site_bodies:
-            site_bodies[name](os.path.join(tmp, name))
-        proc = subprocess.Popen(
-            [sys.executable, gate] + (argv or []),
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        site = make_site(single, "")
+        proc = subprocess.Popen([sys.executable, GATE, "--diff", "--site", site],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         out = proc.communicate(timeout=60)[0].decode("utf-8", "replace")
-        return proc.returncode, out
+        check("single-site --diff does not claim the shared files match",
+              not failing(out, "shared file identical"), "")
+    finally:
+        shutil.rmtree(single, ignore_errors=True)
+
+
+    # ---------------------------------------------------------------------------
+    # 9b. An undecodable file must be named, not turned into a cascade of
+    #     "rule not found" failures on rules that are present and correct.
+    # ---------------------------------------------------------------------------
+    def undecodable_css(site):
+        # `make_site` already built the rest of the fixture around `site`; the caller
+        # passes the site path itself, not a temp root to create one in.
+        path = os.path.join(site, "assets", "css", "bottom-bar.css")
+        d = os.path.dirname(path)
+        if not os.path.isdir(d):
+            os.makedirs(d)
+        with open(path, "wb") as fh:
+            fh.write(SHARED_CSS.encode("utf-8"))
+            fh.write(b"/* latin-1 caf\xe9 */\n")
+
+    tmp = tempfile.mkdtemp(prefix="chrome-contract-enc-")
+    try:
+        fixture = make_site(tmp, "")
+        undecodable_css(fixture)
+        code, out = run_gate(fixture)
+        check("an undecodable stylesheet does not crash the gate",
+              "Traceback" not in out, out.strip().splitlines()[-1] if out.strip() else "")
+        check("an undecodable stylesheet is named explicitly",
+              code == 1 and failing(out, "decodes as UTF-8"), "exit=%d" % code)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-SHARED_CSS = ".bottom-bar__ai {\n  background: var(--accent);\n}\n"
+    # ---------------------------------------------------------------------------
+    # 10. The gate must not crash on a nearly-empty site.
+    # ---------------------------------------------------------------------------
+    def mut_strip_everything(site):
+        shutil.rmtree(os.path.join(site, "_includes"))
+        shutil.rmtree(os.path.join(site, "assets"))
 
-
-def two_sites(second_body, first_body=None):
-    """Two sites sharing every file except bottom-bar.css, which is given
-    separately so a test can vary exactly one thing."""
-    def build(tmp_site, css_body):
-        write(os.path.join(tmp_site, "_layouts", "default.html"), "")
-        write(os.path.join(tmp_site, "assets", "js", "network-ux.js"),
-              "function labelFor(h){return h;}\n")
-        write(os.path.join(tmp_site, "assets", "css", "network-ux.css"),
-              ".ai-conv__chrome {\n  height: 88vh;\n}\n")
-        write(os.path.join(tmp_site, "assets", "css", "ai-seal.css"),
-              ".ai-totop {\n  opacity: 1;\n}\n")
-        write(os.path.join(tmp_site, "assets", "js", "bottom-bar.js"),
-              "const x = 1;\n")
-        write(os.path.join(tmp_site, "_includes", "bottom-bar.html"),
-              '<ul class="bottom-bar__list" data-bar-scroller></ul>\n')
-        write(os.path.join(tmp_site, "assets", "css", "bottom-bar.css"), css_body)
-
-    return {
-        "neohiro.github.io": lambda s: build(s, first_body or SHARED_CSS),
-        "openstageisland.github.io": lambda s: build(s, second_body),
-    }
-
-
-# Identical content, different line endings: must NOT read as drift.
-code, out = workspace_run(two_sites(SHARED_CSS.replace("\n", "\r\n")), ["--diff"])
-check("CRLF vs LF is not reported as shared-file drift",
-      code == 0 and not failing(out, "shared file identical"),
-      "exit=%d" % code)
-
-# Genuinely different content: must be reported, naming the odd copy out.
-code, out = workspace_run(two_sites(SHARED_CSS + ".extra { color: red; }\n"), ["--diff"])
-check("real content drift across two sites IS reported",
-      code == 1 and failing(out, "shared file identical"), "exit=%d" % code)
-
-# --diff must report only the shared-file checks. It used to parse the flag and
-# then ignore it, running and reporting all 150 per-site checks, so a green
-# --diff proved nothing about drift and looked identical to a plain run.
-code, out = workspace_run(two_sites(SHARED_CSS), ["--diff"])
-check("--diff reports only the shared-file checks",
-      "checks passed across 2 sites" in out and not failing(out, "keyboard reachable"),
-      out.strip().splitlines()[-1:] and "")
-check("--diff does not run the per-site rules",
-      not failing(out, "retired .ai-dock"), "")
-
-# Single-site --diff has nothing to compare and must not claim the files match.
-single = tempfile.mkdtemp(prefix="chrome-contract-single-")
-try:
-    site = make_site(single, "")
-    proc = subprocess.Popen([sys.executable, GATE, "--diff", "--site", site],
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    out = proc.communicate(timeout=60)[0].decode("utf-8", "replace")
-    check("single-site --diff does not claim the shared files match",
-          not failing(out, "shared file identical"), "")
-finally:
-    shutil.rmtree(single, ignore_errors=True)
-
-
-# ---------------------------------------------------------------------------
-# 9b. An undecodable file must be named, not turned into a cascade of
-#     "rule not found" failures on rules that are present and correct.
-# ---------------------------------------------------------------------------
-def undecodable_css(site):
-    # `make_site` already built the rest of the fixture around `site`; the caller
-    # passes the site path itself, not a temp root to create one in.
-    path = os.path.join(site, "assets", "css", "bottom-bar.css")
-    d = os.path.dirname(path)
-    if not os.path.isdir(d):
-        os.makedirs(d)
-    with open(path, "wb") as fh:
-        fh.write(SHARED_CSS.encode("utf-8"))
-        fh.write(b"/* latin-1 caf\xe9 */\n")
-
-tmp = tempfile.mkdtemp(prefix="chrome-contract-enc-")
-try:
-    fixture = make_site(tmp, "")
-    undecodable_css(fixture)
-    code, out = run_gate(fixture)
-    check("an undecodable stylesheet does not crash the gate",
+    code, out = with_site(mut_strip_everything)
+    check("a site missing its assets produces a result, not a traceback",
           "Traceback" not in out, out.strip().splitlines()[-1] if out.strip() else "")
-    check("an undecodable stylesheet is named explicitly",
-          code == 1 and failing(out, "decodes as UTF-8"), "exit=%d" % code)
-finally:
-    shutil.rmtree(tmp, ignore_errors=True)
 
 
-# ---------------------------------------------------------------------------
-# 10. The gate must not crash on a nearly-empty site.
-# ---------------------------------------------------------------------------
-def mut_strip_everything(site):
-    shutil.rmtree(os.path.join(site, "_includes"))
-    shutil.rmtree(os.path.join(site, "assets"))
-
-code, out = with_site(mut_strip_everything)
-check("a site missing its assets produces a result, not a traceback",
-      "Traceback" not in out, out.strip().splitlines()[-1] if out.strip() else "")
-
-
-print("")
-print("Results: %d passed, %d failed" % (checks_run - len(failures), len(failures)))
-if failures:
     print("")
-    for name, detail in failures:
-        print("  FAILED: %s%s" % (name, (" -> %s" % detail) if detail else ""))
-    sys.exit(1)
-print("  OK: the gate detects each defect it was written for")
-sys.exit(0)
+    print("Results: %d passed, %d failed" % (checks_run - len(failures), len(failures)))
+    if failures:
+        print("")
+        for name, detail in failures:
+            print("  FAILED: %s%s" % (name, (" -> %s" % detail) if detail else ""))
+        return 1
+    print("  OK: the gate detects each defect it was written for")
+    return 0
+
+
+def test_gate_detects_each_defect():
+    """pytest entry point.
+
+    pytest imports this module because the filename matches `test_*`, and a
+    module-level sys.exit() raises SystemExit inside the collector, which
+    aborts the whole run with an INTERNALERROR and reports nothing at all.
+    One wrapper test keeps this file usable by `pytest scripts/`.
+    """
+    assert main() == 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
