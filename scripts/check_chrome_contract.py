@@ -38,6 +38,34 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_SHARED = os.path.dirname(_HERE)
 WORKSPACE = os.path.dirname(TEMPLATE_SHARED)
 
+# Read once, up front, so an undecodable file produces one clear line naming it
+# instead of surfacing later as a cascade of "rule not found" failures on rules
+# that are present and correct. The alternative -- letting each read() call
+# swallow the error -- made an unreadable bottom-bar.css indistinguishable from a
+# bottom-bar.css with nothing in it: eight unrelated rules failed and none of them
+# said "this file could not be decoded".
+UNREADABLE = []
+
+
+def _note_unreadable(path, exc):
+    UNREADABLE.append((path, type(exc).__name__))
+
+
+def _read_text(path):
+    """Return file text, or None if missing or not decodable as UTF-8.
+
+    Every caller goes through here so that the encoding problem is recorded once
+    and reported with the path that caused it.
+    """
+    if not os.path.isfile(path):
+        return None
+    try:
+        with io.open(path, encoding="utf-8") as handle:
+            return handle.read()
+    except (UnicodeDecodeError, IOError, OSError) as exc:
+        _note_unreadable(path, exc)
+        return None
+
 KNOWN_SITES = [
     "frenzypenguin-media.github.io",
     "neohiro.github.io",
@@ -109,11 +137,16 @@ ROOT, SITES, DIFF_ONLY = _resolve_sites(sys.argv)
 
 
 def read(site, rel):
-    path = os.path.join(ROOT, site, rel)
-    if not os.path.isfile(path):
-        return None
-    with io.open(path, encoding="utf-8") as handle:
-        return handle.read()
+    """Read a site-relative file, or None if it is absent or unreadable.
+
+    Decoding errors are swallowed rather than raised. A gate that dies with a
+    UnicodeDecodeError reports a traceback and no verdicts, which reads as "the
+    gate is broken" and invites disabling it. The specific complaint is
+    registered on UNREADABLE and reported by its own check at the end, so an
+    encoding problem is named once instead of masquerading as every rule that
+    reads the file being missing.
+    """
+    return _read_text(os.path.join(ROOT, site, rel))
 
 
 def normalised_bytes(site, rel):
@@ -253,6 +286,69 @@ results = []
 
 def check(site, name, ok, detail=""):
     results.append((site, name, bool(ok), detail))
+
+
+def check_unreadable_files():
+    """Every file this gate read must have decoded as UTF-8.
+
+    Reported separately from the per-site rules because the symptom it causes is
+    a lie: an undecodable bottom-bar.css made the gate report that the grid rules
+    were missing, which invites someone to go and "fix" a file that is fine.
+    """
+    seen = set()
+    for site in SITES:
+        for path, exc in list(UNREADABLE):
+            under = os.path.join(os.path.normpath(site), "")
+            rel = path
+            try:
+                rel = os.path.relpath(path, os.path.join(ROOT, site))
+            except ValueError:
+                pass
+            key = (os.path.basename(os.path.normpath(site)), rel)
+            if key in seen:
+                continue
+            seen.add(key)
+            check(os.path.basename(os.path.normpath(site)),
+                  "shared file decodes as UTF-8: %s" % rel.replace(os.sep, "/"),
+                  False, "%s -- the gate cannot verify rules in this file" % exc)
+
+
+def report():
+    """Print every check, then exit non-zero if any failed."""
+    check_unreadable_files()
+    fails = [r for r in results if not r[2]]
+    cur = None
+    label = lambda s: os.path.basename(os.path.normpath(s))  # noqa: E731
+    for site, name, ok, detail in results:
+        if site != cur:
+            print("\n-- %s --" % label(site))
+            cur = site
+        print("  %s    %s%s" % ("ok  " if ok else "FAIL", name,
+                               ("  -> %s" % detail) if detail and not ok else ""))
+
+    print("\n== summary ==")
+    if fails:
+        print("  FAILED: %d of %d checks" % (len(fails), len(results)))
+        for site, name, _ok, detail in fails:
+            print("    %s: %s%s" % (site, name, (" -> %s" % detail) if detail else ""))
+        sys.exit(1)
+
+    print("  OK: %d checks passed across %d sites" % (len(results), len(SITES)))
+    sys.exit(0)
+
+
+# `--diff` asks only "did the hand-copied files drift apart?", which is a
+# question about file bytes, not about any one site's CSS being correct. Run
+# only that check and stop: the per-site rules are ~500 lines of parsing and are
+# answered by the single-site run in each repo's CI, so a diff check that also
+# reported all of them would bury the one line the caller asked for. The flag used
+# to be parsed and then ignored, which meant `--diff` silently ran and reported
+# all 150 checks -- indistinguishable from a plain run, and a real risk of
+# someone reading a green --diff as proof the shared files match when the check
+# had been skipped for want of a second site.
+if DIFF_ONLY:
+    check_shared_files()
+    report()
 
 
 # ---------------------------------------------------------------------------
@@ -595,10 +691,12 @@ def _defined_props(path):
 
 
 def read_from(path):
-    if not os.path.isfile(path):
-        return None
-    with io.open(path, encoding="utf-8") as handle:
-        return handle.read()
+    """Read a filesystem path, or None if absent or unreadable.
+
+    Same swallowing as `read()`: an undecodable stylesheet must produce a
+    reported failure, not a traceback.
+    """
+    return _read_text(path)
 
 
 def check_token_resolution():
@@ -635,22 +733,4 @@ check_token_resolution()
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
-fails = [r for r in results if not r[2]]
-cur = None
-label = lambda s: os.path.basename(os.path.normpath(s))  # noqa: E731
-for site, name, ok, detail in results:
-    if site != cur:
-        print("\n-- %s --" % label(site))
-        cur = site
-    print("  %s    %s%s" % ("ok  " if ok else "FAIL", name,
-                             ("  -> %s" % detail) if detail and not ok else ""))
-
-print("\n== summary ==")
-if fails:
-    print("  FAILED: %d of %d checks" % (len(fails), len(results)))
-    for site, name, _ok, detail in fails:
-        print("    %s: %s%s" % (site, name, (" -> %s" % detail) if detail else ""))
-    sys.exit(1)
-
-print("  OK: %d checks passed across %d sites" % (len(results), len(SITES)))
-sys.exit(0)
+report()

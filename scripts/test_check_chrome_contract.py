@@ -297,36 +297,129 @@ check("internal tooling note as an HTML comment is reported",
 
 
 # ---------------------------------------------------------------------------
-# 9. EOL style alone must not be reported as shared-file drift.
-#    Five of six shared files hashed differently purely because two sites were on
-#    CRLF and two on LF.
+# 9. The cross-site diff, which is the check that exists because these files have
+#    drifted before. The previous version of this test built two sites and then
+#    invoked `--diff --site <one of them>`, so `check_shared_files()` returned
+#    early on `len(SITES) < 2` and never ran: the assertion passed for free and
+#    EOL normalisation, the drift case the whole function exists to handle, had
+#    no coverage at all.
+#
+#    Exercising it needs a real workspace, because the gate locates sites as
+#    siblings of template-shared/. So the gate is copied into a temp workspace and
+#    two real site names are created beside it.
 # ---------------------------------------------------------------------------
-def two_site_eol_run(mixed):
-    tmp = tempfile.mkdtemp(prefix="chrome-contract-eol-")
+def workspace_run(site_bodies, argv=None):
+    """Run the gate as if from <ws>/template-shared/tests/, over N real sites.
+
+    `site_bodies` maps a site directory name to a callable that writes that
+    site's files. Returns (exit code, output).
+    """
+    tmp = tempfile.mkdtemp(prefix="chrome-contract-ws-")
     try:
-        sites = []
-        for i in range(2):
-            site = make_site(tmp, "")
-            rename = os.path.join(tmp, "site%d" % i)
-            shutil.move(site, rename)
-            sites.append(rename)
-        body = '.bottom-bar__ai {\n  background: var(--accent);\n}\n'
-        for i, site in enumerate(sites):
-            text = body if i == 0 or not mixed else body.replace("\n", "\r\n")
-            write(os.path.join(site, "assets", "css", "bottom-bar.css"), text)
+        # The gate derives the workspace root from its own path
+        # (<ws>/template-shared/tests/), so it has to be *placed* there rather than
+        # merely pointed at, or it will look for siblings beside this repo.
+        tests_dir = os.path.join(tmp, "template-shared", "tests")
+        os.makedirs(tests_dir, exist_ok=True)
+        gate = os.path.join(tests_dir, "check_chrome_contract.py")
+        shutil.copyfile(GATE, gate)
+        for name in site_bodies:
+            site_bodies[name](os.path.join(tmp, name))
         proc = subprocess.Popen(
-            [sys.executable, GATE, "--diff", "--site", sites[0]],
+            [sys.executable, gate] + (argv or []),
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        out = proc.communicate()[0].decode("utf-8", "replace")
+        out = proc.communicate(timeout=60)[0].decode("utf-8", "replace")
         return proc.returncode, out
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
-# --diff against a single site has nothing to compare, so it must say so
-# quietly rather than claim the files match.
-code, out = two_site_eol_run(mixed=True)
-check("single-site --diff does not claim the shared files match",
-      not failing(out, "shared file identical"), "")
+
+SHARED_CSS = ".bottom-bar__ai {\n  background: var(--accent);\n}\n"
+
+
+def two_sites(second_body, first_body=None):
+    """Two sites sharing every file except bottom-bar.css, which is given
+    separately so a test can vary exactly one thing."""
+    def build(tmp_site, css_body):
+        write(os.path.join(tmp_site, "_layouts", "default.html"), "")
+        write(os.path.join(tmp_site, "assets", "js", "network-ux.js"),
+              "function labelFor(h){return h;}\n")
+        write(os.path.join(tmp_site, "assets", "css", "network-ux.css"),
+              ".ai-conv__chrome {\n  height: 88vh;\n}\n")
+        write(os.path.join(tmp_site, "assets", "css", "ai-seal.css"),
+              ".ai-totop {\n  opacity: 1;\n}\n")
+        write(os.path.join(tmp_site, "assets", "js", "bottom-bar.js"),
+              "const x = 1;\n")
+        write(os.path.join(tmp_site, "_includes", "bottom-bar.html"),
+              '<ul class="bottom-bar__list" data-bar-scroller></ul>\n')
+        write(os.path.join(tmp_site, "assets", "css", "bottom-bar.css"), css_body)
+
+    return {
+        "neohiro.github.io": lambda s: build(s, first_body or SHARED_CSS),
+        "openstageisland.github.io": lambda s: build(s, second_body),
+    }
+
+
+# Identical content, different line endings: must NOT read as drift.
+code, out = workspace_run(two_sites(SHARED_CSS.replace("\n", "\r\n")), ["--diff"])
+check("CRLF vs LF is not reported as shared-file drift",
+      code == 0 and not failing(out, "shared file identical"),
+      "exit=%d" % code)
+
+# Genuinely different content: must be reported, naming the odd copy out.
+code, out = workspace_run(two_sites(SHARED_CSS + ".extra { color: red; }\n"), ["--diff"])
+check("real content drift across two sites IS reported",
+      code == 1 and failing(out, "shared file identical"), "exit=%d" % code)
+
+# --diff must report only the shared-file checks. It used to parse the flag and
+# then ignore it, running and reporting all 150 per-site checks, so a green
+# --diff proved nothing about drift and looked identical to a plain run.
+code, out = workspace_run(two_sites(SHARED_CSS), ["--diff"])
+check("--diff reports only the shared-file checks",
+      "checks passed across 2 sites" in out and not failing(out, "keyboard reachable"),
+      out.strip().splitlines()[-1:] and "")
+check("--diff does not run the per-site rules",
+      not failing(out, "retired .ai-dock"), "")
+
+# Single-site --diff has nothing to compare and must not claim the files match.
+single = tempfile.mkdtemp(prefix="chrome-contract-single-")
+try:
+    site = make_site(single, "")
+    proc = subprocess.Popen([sys.executable, GATE, "--diff", "--site", site],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out = proc.communicate(timeout=60)[0].decode("utf-8", "replace")
+    check("single-site --diff does not claim the shared files match",
+          not failing(out, "shared file identical"), "")
+finally:
+    shutil.rmtree(single, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# 9b. An undecodable file must be named, not turned into a cascade of
+#     "rule not found" failures on rules that are present and correct.
+# ---------------------------------------------------------------------------
+def undecodable_css(site):
+    # `make_site` already built the rest of the fixture around `site`; the caller
+    # passes the site path itself, not a temp root to create one in.
+    path = os.path.join(site, "assets", "css", "bottom-bar.css")
+    d = os.path.dirname(path)
+    if not os.path.isdir(d):
+        os.makedirs(d)
+    with open(path, "wb") as fh:
+        fh.write(SHARED_CSS.encode("utf-8"))
+        fh.write(b"/* latin-1 caf\xe9 */\n")
+
+tmp = tempfile.mkdtemp(prefix="chrome-contract-enc-")
+try:
+    fixture = make_site(tmp, "")
+    undecodable_css(fixture)
+    code, out = run_gate(fixture)
+    check("an undecodable stylesheet does not crash the gate",
+          "Traceback" not in out, out.strip().splitlines()[-1] if out.strip() else "")
+    check("an undecodable stylesheet is named explicitly",
+          code == 1 and failing(out, "decodes as UTF-8"), "exit=%d" % code)
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
