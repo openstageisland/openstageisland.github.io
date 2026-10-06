@@ -775,7 +775,7 @@
         if (myVer !== _inFlightVer) return;
 
         setConvTyping(false);
-        const reply = fetchMouthReply(q)
+        const reply = fetchMouthReply(q, composerOpts)
           .then(mouthText => mouthText || classify(q))
           .catch(() => classify(q));
 
@@ -1259,10 +1259,24 @@ function renderSafeHtml(html) {
   }
 
   /* Fetch and compact the site's README for context grounding.
-   Returns a Promise that resolves to a compacted string (max ~2000 chars). */
-  function fetchReadmeContext() {
+     Returns a Promise that resolves to a compacted string (max ~2000 chars).
+     Memoized: subsequent calls within the session return the cached result.
+     Abortable: pass an AbortSignal to cancel in-flight requests. */
+  var _readmeCache = null;
+  var _readmeInflight = null;
+  function fetchReadmeContext(signal) {
+    // Return cached result immediately if available
+    if (_readmeCache !== null) {
+      return Promise.resolve(_readmeCache);
+    }
+    // If a fetch is already in flight, return that promise (deduplication)
+    if (_readmeInflight) {
+      return _readmeInflight;
+    }
     var readmeUrl = location.origin + '/README.md';
-    return fetchWithTimeout(readmeUrl, { cache: 'no-store' }, 5000)
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var fetchSignal = signal || (ctrl ? ctrl.signal : null);
+    var fetchPromise = fetchWithTimeout(readmeUrl, { cache: 'no-store', signal: fetchSignal }, 5000)
       .then(function (r) { if (!r.ok) throw new Error('README HTTP ' + r.status); return r.text(); })
       .then(function (text) {
         // Compact: strip frontmatter, code blocks, images, badges, keep headings + first paragraph
@@ -1276,13 +1290,26 @@ function renderSafeHtml(html) {
           .replace(/\s+/g, ' ') // collapse whitespace
           .trim();
         // Truncate to ~2000 chars for token optimization
-        return compact.length > 2000 ? compact.slice(0, 2000) + '…' : compact;
+        var result = compact.length > 2000 ? compact.slice(0, 2000) + '…' : compact;
+        _readmeCache = result;
+        _readmeInflight = null;
+        return result;
       })
-      .catch(function () { return ''; }); // Silent failure, no context
+      .catch(function (err) {
+        _readmeInflight = null;
+        if (err && err.name === 'AbortError') return '';
+        return ''; // Silent failure, no context
+      });
+    _readmeInflight = fetchPromise;
+    return fetchPromise;
   }
 
-  function fetchMouthReply(q) {
+  function fetchMouthReply(q, opts) {
     // POST JSON with full context grounding: query + site + page + compacted README
+    // opts: { model, scope, replyMode }
+    var model = (opts && opts.model) || 'low';
+    var scope = (opts && opts.scope) || 'all';
+    var replyMode = (opts && opts.replyMode) || 'assistant';
     return fetchReadmeContext().then(function (readmeCtx) {
       return fetchWithTimeout(
         MOUTH_ENDPOINT,
@@ -1295,6 +1322,9 @@ function renderSafeHtml(html) {
             q: q,
             site: SITE_KEY,
             page: location.pathname,
+            model: model,
+            scope: scope,
+            replyMode: replyMode,
             context: {
               site: SITE_KEY,
               path: location.pathname,
@@ -1310,12 +1340,16 @@ function renderSafeHtml(html) {
     });
   }
 
-  /* ── Voicemail ──────────────────────────────────────────────────────────
-     A question the assistant cannot answer becomes a message for a human, and
-     that message must not evaporate. It is POSTed to brain-bridge, which
-     fsyncs it before acknowledging, so a "queued" receipt is a promise.
-     Returns {ok, receipt} — the caller shows the receipt either way. */
-  function sendVoicemail(message, who, about) {
+/* ── Voicemail ──────────────────────────────────────────────────────────
+   A question the assistant cannot answer becomes a message for a human, and
+   that message must not evaporate. It is POSTed to brain-bridge, which
+   fsyncs it before acknowledging, so a "queued" receipt is a promise.
+   Returns {ok, receipt} — the caller shows the receipt either way. */
+  function sendVoicemail(message, who, about, opts) {
+    // opts: { model, scope, replyMode }
+    var model = (opts && opts.model) || 'low';
+    var scope = (opts && opts.scope) || 'all';
+    var replyMode = (opts && opts.replyMode) || 'assistant';
     return fetchReadmeContext().then(function (readmeCtx) {
       return fetchWithTimeout(
         VOICEMAIL_ENDPOINT,
@@ -1332,6 +1366,9 @@ function renderSafeHtml(html) {
             about: about || '',
             who: who || {},
             auth: currentAuth(),
+            model: model,
+            scope: scope,
+            replyMode: replyMode,
             context: {
               site: SITE_KEY,
               path: location.pathname,
@@ -1532,7 +1569,7 @@ function updateCounter() {
     if (_inFlightTO) return;
 
     const wrap = document.getElementById('ai-bar');
-    wrap.classList.add('ai-bar--sent');
+    if (wrap) wrap.classList.add('ai-bar--sent');
 
     // Read variable menu selections (future: pass to backend)
     var form = document.getElementById('ai-bar__form');
@@ -1581,7 +1618,7 @@ function updateCounter() {
       if (myVer !== _inFlightVer) return;
 
       setConvTyping(false);
-      const reply = fetchMouthReply(q)
+      const reply = fetchMouthReply(q, composerOpts)
         .then(mouthText => mouthText || classify(q))
         .catch(() => classify(q));
 
@@ -1590,7 +1627,7 @@ function updateCounter() {
         appendConvMessage('assistant', replyHtml);
         input.removeAttribute('aria-busy');
         input.disabled = false;
-        wrap.classList.remove('ai-bar--sent');
+        if (wrap) wrap.classList.remove('ai-bar--sent');
         input.focus();
       });
     }, delay);
