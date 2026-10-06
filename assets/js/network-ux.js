@@ -331,16 +331,36 @@
     } catch (_) { return null; }
   }
   function hostOf(url) { try { return new URL(url).hostname; } catch (_) { return ''; } }
+  /* Display name for a host, used by the cross-site "Back to ..." control.
+   *
+   * Strip one leading "www." and lower-case before matching.
+   *
+   * The apex of the media site is served both as frenzypenguin.media and as
+   * www.frenzypenguin.media, and the github.io form is a third shape. Matching
+   * on the "frenzypenguin" prefix covers all three, so the custom domain cannot
+   * end up labelled "neohiro" -- the wrong name, on the one host a visitor is
+   * most likely to have typed or been sent to.
+   *
+   * Exactly one "www." is removed, so www.www.example.com cannot be made to
+   * look like www.example.com.
+   *
+   * Known limitation, pre-existing and deliberately unchanged: the prefixes are
+   * substring matches, so a lookalike host such as "frenzypenguin-attacker.com"
+   * also resolves to this site's label. That is cosmetic rather than a spoofing
+   * hole -- this function only chooses which name to display; the link it labels
+   * is built elsewhere. Tightening it is not a one-liner, because the
+   * legitimate hostnames here have two different shapes ("frenzypenguin.media"
+   * and "frenzypenguin-media.github.io") and a plain hostname-boundary match
+   * would reject the second.
+   */
   function labelFor(host) {
-  if (!host) return "Unknown";
-  return host
-    .replace(/^www\./i, "")
-    .replace(/\.github\.io$/i, "")
-    .replace(/^neohiro$/, "neohiro")
-    .replace(/^frenzypenguin-media$/, "fpm")
-    .replace(/^transhumanists$/, "transhumanists")
-    .replace(/^openstageisland$/, "openstageisland");
-}
+    if (!host) return "Unknown";
+    var h = String(host).toLowerCase().replace(/^www\./, "");
+    if (h.indexOf("transhumanists") === 0) return "transhumanists";
+    if (h.indexOf("frenzypenguin") === 0)   return "FrenzyPenguin Media";
+    if (h.indexOf("openstageisland") === 0) return "Open Stage Island";
+    return "neohiro";
+  }
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }

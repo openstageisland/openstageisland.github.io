@@ -156,12 +156,6 @@ body > .ambient-orb {
 }
 
 /* ── Float tag for hero eyebrow / labels ────────────────────────── */
-@keyframes floatTag {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-4px); }
-}
-.float-tag { animation: floatTag 4s ease-in-out infinite; }
-
 /* ── Scroll reveal (universal — add class="reveal" then "reveal-in") ── */
 .reveal {
   opacity: 0;
