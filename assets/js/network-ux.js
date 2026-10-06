@@ -725,9 +725,21 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var raw = input.value;
-      var q = raw.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069]+/g, ' ').replace(/\s+/g, ' ').trim();
+      var q = sanitizeQuery(raw);
       if (!q) { input.focus(); return; }
       if (q.length > 600) { input.value = q.slice(0, 600); input.focus(); return; }
+
+      // Read variable menu selections (future: pass to backend)
+      var modelSelect = form.querySelector('[name="model"]');
+      var scopeSelect = form.querySelector('[name="scope"]');
+      var replyModeSelect = form.querySelector('[name="replyMode"]');
+      var composerOpts = {
+        model: modelSelect ? modelSelect.value : 'auto',
+        scope: scopeSelect ? scopeSelect.value : 'all',
+        replyMode: replyModeSelect ? replyModeSelect.value : 'assistant'
+      };
+      // Store for potential future use by fetchMouthReply/classify
+      window.__aiComposerOpts = composerOpts;
 
       var wrap = document.getElementById('ai-bar');
       if (wrap) wrap.classList.add('ai-bar--sent');
@@ -735,7 +747,7 @@
       input.disabled = true;
       send.disabled = true;
 
-      showConversationModal();
+      showConversationModal(input);
       appendConvMessage('user', q, true); // true = from composer
       input.value = '';
       updateCounter();
@@ -785,7 +797,7 @@
   var _prevFocus = null;
   var _closeTid = 0;
 
-  function showConversationModal() {
+  function showConversationModal(focusTarget) {
     var m = document.getElementById('ai-conv');
     if (!m) return;
     // Cancel any in-flight close-timer from a prior hide; otherwise its
@@ -804,10 +816,9 @@
     if (aiBtn) aiBtn.setAttribute('aria-expanded', 'true');
     var legacyTab = document.getElementById('ai-dock__tab--ai');
     if (legacyTab) legacyTab.setAttribute('aria-expanded', 'true');
-    // Move the reader's focus to the close button rather than the first focusable
-    // (which is the heart status pill) so Esc-and-dismiss is discoverable.
-    var close = m.querySelector('.ai-conv__close');
-    if (close) close.focus();
+    // Focus: prefer explicit target (e.g., composer input), else close button for Esc-dismiss discoverability.
+    var target = focusTarget || m.querySelector('.ai-conv__close');
+    if (target && typeof target.focus === 'function') target.focus();
     else {
       var first = m.querySelector('input, textarea, button, [tabindex]:not([tabindex="-1"])');
       if (first) first.focus();
@@ -861,12 +872,15 @@
         </div>
       `;
       // Animate checkmarks: sent immediately, delivered after processing
+      // Guard against row removal (modal close, clear) before timeout fires.
       setTimeout(() => {
+        if (!row.isConnected) return;
         const sent = row.querySelector('.ai-conv__check--sent');
         const delivered = row.querySelector('.ai-conv__check--delivered');
         if (sent) sent.classList.add('ai-conv__check--active');
         // Delivered brightens when internal reply is formulated (after delay)
         setTimeout(() => {
+          if (!row.isConnected) return;
           if (delivered) delivered.classList.add('ai-conv__check--active');
         }, fromComposer ? 800 : 0);
       }, 0);
@@ -888,6 +902,17 @@
     box.appendChild(row);
     fillAvatarSlots(row); // org avatar on assistant replies
     box.scrollTop = box.scrollHeight;
+  }
+
+  /* ── Shared input sanitization ───────────────────────────────────────────
+     Strips C0/C1 control chars, zero-width/RTL-override chars, collapses whitespace.
+     Returns trimmed string, or empty string if input becomes empty after sanitization. */
+  function sanitizeQuery(raw) {
+    if (!raw) return '';
+    return String(raw)
+      .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   // ── Safe HTML renderer ──────────────────────────────────────────
@@ -1214,7 +1239,9 @@ function renderSafeHtml(html) {
   }
 
   function probeHeart() {
-    if (_heartProbed) return Promise.resolve(_heartUp);
+    // Allow re-probe if previous attempt failed (_heartUp === false).
+    // Only short-circuit if we have a positive result cached.
+    if (_heartProbed && _heartUp) return Promise.resolve(_heartUp);
     _heartProbed = true;
     setConvHeart('ai-conv__heart--probe', 'probing heart…');
     // Try each endpoint in sequence until one succeeds
@@ -1425,7 +1452,7 @@ function updateCounter() {
     //   - zero-width / RTL-override chars spoofing intent
     //   - tab/CR injection into the classify() regex subject
     //   - log-spamming via \b\b\b or terminal escapes
-    const q = raw.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const q = sanitizeQuery(raw);
     if (!q) { input.focus(); return; }
     if (q.length > 600) {
       // Truncate — the live counter already warned at 540+ (amber) and 600+ (red).
