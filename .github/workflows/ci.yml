@@ -99,6 +99,20 @@ jobs:
         # the two; this asserts the bridge still covers the shared CSS.
         run: python3 .github/scripts/check_css_tokens.py --site .
 
+      - name: Check shared chrome contract
+        # The shared chrome (ai-seal.css, bottom-bar.css, network-ux.css) is
+        # hand-copied to all four *.github.io sites and has shipped broken while
+        # every other gate stayed green: a `display: flex` surviving a
+        # `display: none` fix so the retired dock kept painting and stealing
+        # clicks, hardcoded #fff on text that sits on the page background
+        # (1.05:1 in light mode), and a conversation frame sized by its content
+        # rather than its container. None of that fails a Jekyll build.
+        #
+        # Single-site mode (a checkout has no siblings to diff against), so it
+        # checks this site's own copy of each shared file; the cross-site
+        # byte-identity comparison runs in the workspace.
+        run: python3 scripts/check_chrome_contract.py
+
       - name: Validate _config.yml
         # Was an inline `python3 -c "..."` block whose Python sat at column 0
         # inside this `run: |` scalar. That terminated the block and made the

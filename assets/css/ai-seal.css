@@ -183,20 +183,30 @@ body:has(.bottom-bar) .ai-totop {
   border-radius: 50%;
 }
 
-/* The crossfade. ai-seal.js puts `.is-visible` on the arrow once the visitor
-   scrolls past the trigger, and `body:has()` lets the seal react to that so no
-   extra state has to be mirrored in JS.
+/* The crossfade.
+   ai-seal.js mirrors the arrow's state onto <html> as `.ai-arrow-visible` in the
+   same tick that adds `.is-visible` to the arrow itself.
+
+   That mirror exists because this used to be `body:has(.ai-totop.is-visible)`.
+   `:has()` is unsupported on Firefox before 121, and where it is unsupported the
+   entire rule is dropped rather than degraded -- so the seal stayed at its
+   resting opacity while the arrow painted on top of it. Two controls stacked in
+   one corner, which is precisely the defect the crossfade exists to prevent, and
+   it was invisible in every modern browser this was tested in. Keying off a
+   class that the same function that shows the arrow also sets removes the
+   feature-detection question entirely: the arrow is never visible without JS
+   having run, so the class is always in agreement with `.is-visible`.
 
    The seal fades to 0 *and* gives up hit-testing, because an invisible link that
    still intercepts clicks would sit under the arrow and swallow the tap. */
-body:has(.ai-totop.is-visible) .ai-seal {
+.ai-arrow-visible .ai-seal {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
   transition: opacity var(--ai-fade) ease, visibility 0s linear var(--ai-fade);
 }
 
-body:has(.ai-totop.is-visible) .ai-seal-dock {
+.ai-arrow-visible .ai-seal-dock {
   pointer-events: none;
 }
 
@@ -246,7 +256,7 @@ body:has(.ai-totop.is-visible) .ai-seal-dock {
   /* No fade means the swap is a hard cut, so the outgoing link must stop taking
      clicks on the same frame it stops being painted -- otherwise an invisible
      seal would sit on top of the arrow. */
-  body:has(.ai-totop.is-visible) .ai-seal {
+  .ai-arrow-visible .ai-seal {
     visibility: hidden;
     transition: none;
   }

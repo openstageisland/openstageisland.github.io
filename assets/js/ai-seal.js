@@ -75,11 +75,28 @@
       if (scrollable <= 8) {
         /* Nothing to scroll: a control that cannot do anything stays off. */
         button.classList.remove("is-visible");
+        document.documentElement.classList.remove("ai-arrow-visible");
         button.setAttribute("aria-hidden", "true");
         return;
       }
       button.removeAttribute("aria-hidden");
-      button.classList.toggle("is-visible", window.pageYOffset >= offset);
+      var show = window.pageYOffset >= offset;
+      button.classList.toggle("is-visible", show);
+      /* Mirror the state onto <html> as well.
+       *
+       * The crossfade between the seal and the arrow used to be driven from CSS
+       * alone, via `body:has(.ai-totop.is-visible) .ai-seal`. That silently
+       * regressed on any browser without `:has()` support (Firefox before 121):
+       * the whole rule is dropped, so the seal stayed at its resting opacity
+       * *and* the arrow painted over it -- two controls stacked in one corner,
+       * which is the exact complaint the crossfade was introduced to fix.
+       *
+       * The arrow cannot become visible without this function running anyway, so
+       * this class always agrees with `.is-visible` and needs no `:has()` at all.
+       * `ai-seal.css` keys the fade off this class; the `:has()` variant is kept
+       * only for the bottom-bar lift, which genuinely depends on markup that
+       * varies per page. */
+      document.documentElement.classList.toggle("ai-arrow-visible", show);
     }
 
     function onScroll() {

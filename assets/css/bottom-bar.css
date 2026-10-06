@@ -282,21 +282,21 @@ html {
   font-weight: 500;
   line-height: 1.4;
   white-space: nowrap;
-  color: var(--color-text);
+  color: var(--color-text, var(--fg, #eceff1));
   text-decoration: none;
   transition: background var(--transition), color var(--transition), transform var(--transition);
 }
 .bottom-bar__link:hover,
 .bottom-bar__link:focus-visible {
-  background: var(--color-surface-alt);
-  color: var(--color-heading);
+  background: var(--color-surface-alt, var(--bg-elevated, #161e26));
+  color: var(--color-heading, var(--fg, #eceff1));
   text-decoration: none;
   transform: translateY(-1px);
 }
 
 /* Current-section marker, driven by assets/js/section-nav.js. */
 .bottom-bar__link[aria-current="true"] {
-  background: var(--color-stage);
+  background: var(--color-stage, var(--accent, #7c4dff));
   color: #fff;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(255, 77, 141, 0.35);
@@ -313,13 +313,13 @@ html {
   transform: translateY(calc(var(--ai-btn-size) * -0.45));
   border: none;
   border-radius: 50%;
-  background: var(--color-stage);
+  background: var(--color-stage, var(--accent, #7c4dff));
   color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(255, 77, 141, 0.45), 0 0 0 3px var(--color-surface);
+  box-shadow: 0 4px 20px rgba(255, 77, 141, 0.45), 0 0 0 3px var(--color-surface, var(--bg-card, #111820));
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
               box-shadow 0.25s ease,
               background 0.2s ease;
@@ -328,8 +328,8 @@ html {
 
 .bottom-bar__ai:hover {
   transform: translateY(calc(var(--ai-btn-size) * -0.55)) scale(1.08);
-  box-shadow: 0 8px 32px rgba(255, 77, 141, 0.55), 0 0 0 3px var(--color-surface);
-  background: var(--color-stage-hover);
+  box-shadow: 0 8px 32px rgba(255, 77, 141, 0.55), 0 0 0 3px var(--color-surface, var(--bg-card, #111820));
+  background: var(--color-stage-hover, var(--accent-strong, #9d7aff));
 }
 
 .bottom-bar__ai:focus-visible {
@@ -338,8 +338,8 @@ html {
 }
 
 .bottom-bar__ai[aria-expanded="true"] {
-  background: var(--color-stage-hover);
-  box-shadow: 0 8px 32px rgba(255, 77, 141, 0.55), 0 0 0 3px var(--color-surface);
+  background: var(--color-stage-hover, var(--accent-strong, #9d7aff));
+  box-shadow: 0 8px 32px rgba(255, 77, 141, 0.55), 0 0 0 3px var(--color-surface, var(--bg-card, #111820));
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -375,7 +375,7 @@ html {
   position: absolute;
   inset: -4px;
   border-radius: 50%;
-  background: var(--color-stage);
+  background: var(--color-stage, var(--accent, #7c4dff));
   opacity: 0.4;
   animation: ai-pulse-ring 2.5s ease-out infinite;
   pointer-events: none;
@@ -407,7 +407,7 @@ html {
   gap: 0.4rem;
   padding: 0.5rem 1rem;
   border-radius: 999px;
-  background: var(--color-stage);
+  background: var(--color-stage, var(--accent, #7c4dff));
   color: #fff;
   font-size: 0.85rem;
   font-weight: 600;
@@ -419,7 +419,7 @@ html {
 }
 .bottom-bar__cta:hover,
 .bottom-bar__cta:focus-visible {
-  background: var(--color-stage-hover);
+  background: var(--color-stage-hover, var(--accent-strong, #9d7aff));
   color: #fff;
   text-decoration: none;
   transform: translateY(-1px);

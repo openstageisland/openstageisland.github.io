@@ -155,7 +155,6 @@ body > .ambient-orb {
   animation: shimmer 4s linear infinite;
 }
 
-/* ── Float tag for hero eyebrow / labels ────────────────────────── */
 /* ── Scroll reveal (universal — add class="reveal" then "reveal-in") ── */
 .reveal {
   opacity: 0;

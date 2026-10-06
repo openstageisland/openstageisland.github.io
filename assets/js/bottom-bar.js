@@ -41,11 +41,20 @@
 
     var raf = 0;
 
-    /* `scrollLeft` is negative on RTL in some engines; normalise so the
-     * comparisons below are the same everywhere. */
-    function offset() {
-      return Math.abs(scroller.scrollLeft);
-    }
+/* Scroll offset from the strip's start.
+   *
+   * LTR only, and deliberately so: no page in this network declares `dir="rtl"`,
+   * so an RTL path here would be code that has never run against a rendered page.
+   * An earlier version of this comment claimed to normalise RTL by taking the
+   * absolute value of `scrollLeft`, which was only half true -- the disabled
+   * state would have been right, but `step()` scrolls to a positive target, and
+   * that moves the wrong way in RTL. A misleading comment about a direction the
+   * code does not handle is worse than an honest assumption, so if an RTL page is
+   * ever added this needs a direction check on both `offset()` and `step()`, plus
+   * a test for it. */
+  function offset() {
+    return scroller.scrollLeft;
+  }
 
     function update() {
       raf = 0;
