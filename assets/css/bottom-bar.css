@@ -27,7 +27,7 @@
 }
 
 /* Reserve room so content can scroll clear of the fixed chrome at the bottom
- * of the viewport. The AI button protrudes upward out of the bar; --chrome-bottom
+ * of the viewport. The AI button protrudes downward out of the bar; --chrome-bottom
  * already folds that in, so content never vanishes behind the floating button. */
 body {
   padding-bottom: var(--chrome-bottom);
