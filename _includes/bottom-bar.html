@@ -8,13 +8,12 @@ neohiro's "GitHub" CTA and neohiro's section chips on FPM. See the shell: note i
 frenzypenguin-media.github.io/_config.yml.
 
 Design:
-- Curved bottom bar (border-radius: 2rem 2rem 0 0) with subtle backdrop blur
-- Central circular AI button protruding upward (transform: translateY(-45%))
+- Curved bottom bar (border-radius: 2rem 2rem 0 0) solid background
+- Central circular AI button protruding downward (transform: translateY(35%))
 - Section chips horizontally scrollable beside the AI button
 - Right side: one persistent CTA, the site's single most important outbound link
-- Left side: in-page section chips. Only Open Stage Island is a single-page guide,
-  so only it has sections to link to; the other three are multi-page and would
-  ship 15 dead fragment links if we guessed at anchors.
+- Left side: in-page section chips. OSI has in-page sections; neohiro now has
+  main_sections from _config.yml; FPM/transhumanists are multi-page with no chips.
 - AI button opens the full-width conversation sheet above the bar
 - Live mainframe status indicator (green/red dot + text) left of AI button
 {%- endcomment -%}
@@ -25,12 +24,25 @@ Design:
 {%- if shell == 'osi' -%}
   {%- assign guide_ids = "welcome,music,open-stage,reservations,streaming,hosting,membership,about,features,location,live,faq,estate,links,network" | split: "," -%}
   {%- assign guide_labels = "Welcome,Music,Open Stage,Reservations,Streaming,Hosting,Membership,About,Features,Visit,Live,FAQ,Estate,Links,Network" | split: "," -%}
+{%- elsif shell == 'neohiro' -%}
+  {%- assign sections = site.main_sections | default: "" -%}
+  {%- if sections != "" -%}
+    {%- assign guide_ids = "" -%}
+    {%- assign guide_labels = "" -%}
+    {%- for section in sections -%}
+      {%- assign parts = section | split: "|" -%}
+      {%- assign guide_ids = guide_ids | append: parts[1] | replace: "#", "" | append: "," -%}
+      {%- assign guide_labels = guide_labels | append: parts[0] | append: "," -%}
+    {%- endfor -%}
+    {%- assign guide_ids = guide_ids | split: "," -%}
+    {%- assign guide_labels = guide_labels | split: "," -%}
+  {%- endif -%}
 {%- endif -%}
 
 <nav class="bottom-bar" aria-label="Site navigation and assistant" role="navigation">
   <div class="bottom-bar__canvas" aria-hidden="true"></div>
 
-  {%- if guide_ids.size > 0 -%}
+{%- if guide_ids.size > 0 -%}
   <div class="bottom-bar__left" role="group" aria-label="Site sections">
     {%- comment -%}
       Scroll affordances for the chip strip. Open Stage Island is the only site
@@ -69,10 +81,23 @@ Design:
             data-bar-scroll="next" aria-label="Scroll site sections right" disabled>
       <span aria-hidden="true">&#8250;</span>
     </button>
+    <!-- Mainframe status indicator - right end of left section -->
+    <div class="bottom-bar__status" aria-live="polite" aria-atomic="true">
+      <span class="bottom-bar__status-dot" id="bottom-bar__status-dot" aria-hidden="true"></span>
+      <span class="bottom-bar__status-text" id="bottom-bar__status-text">Checking…</span>
+    </div>
   </div>
-  {%- endif -%}
+{%- else -%}
+  <!-- Mainframe status indicator for sites without section chips -->
+  <div class="bottom-bar__left bottom-bar__left--status-only" role="group" aria-label="Mainframe status">
+    <div class="bottom-bar__status" aria-live="polite" aria-atomic="true">
+      <span class="bottom-bar__status-dot" id="bottom-bar__status-dot" aria-hidden="true"></span>
+      <span class="bottom-bar__status-text" id="bottom-bar__status-text">Checking…</span>
+    </div>
+  </div>
+{%- endif -%}
 
-  <!-- Central AI Button - protrudes upward from the curved bar -->
+  <!-- Central AI Button - protrudes downward from the curved bar -->
   {%- assign ai_title = "Talk to the " | append: site.shell | append: " assistant — questions, bug reports, access requests" -%}
   <button type="button" class="bottom-bar__ai" id="bottom-bar__ai" data-ai-trigger
           aria-label="Open assistant"

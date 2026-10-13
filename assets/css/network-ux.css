@@ -825,7 +825,7 @@ overflow: hidden;
        has one line in it or fifty. The message list takes the slack and scrolls
        internally (see .ai-conv__messages), so the header and the composer stay
        pinned instead of being pushed off screen by a long conversation. */
-    height: min(88vh, 960px);
+    height: min(80vh, 800px);
     max-height: calc(100vh - max(12px, env(safe-area-inset-top, 0px)));
     display: flex;
     flex-direction: column;
@@ -836,7 +836,7 @@ body.ai-dock-present .ai-conv { bottom: var(--ai-dock-h, 52px); }
    rule above (equal specificity, later wins). */
 body.ai-conv-active .ai-conv { bottom: 0; }
 @media (max-width: 680px) {
-  .ai-conv__chrome { max-height: 82vh; border-radius: 14px 14px 0 0; }
+  .ai-conv__chrome { max-height: 75vh; border-radius: 14px 14px 0 0; }
 }
 .ai-conv__header {
   display: flex;

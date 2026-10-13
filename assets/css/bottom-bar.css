@@ -20,10 +20,10 @@
 :root {
   --bottom-bar-h: 72px;
   --ai-btn-size: 64px;
-  --ai-btn-protrusion: calc(var(--ai-btn-size) * -0.25); /* AI button floats above the dock, never clipped */
+  --ai-btn-protrusion: calc(var(--ai-btn-size) * 0.35); /* AI button protrudes BELOW the dock, into the void */
   --chrome-gap: 12px;
   /* Total always-on chrome at the bottom of the viewport. */
-  --chrome-bottom: calc(var(--bottom-bar-h) + var(--ai-btn-protrusion) * -1);
+  --chrome-bottom: calc(var(--bottom-bar-h) + var(--ai-btn-protrusion));
 }
 
 /* Reserve room so content can scroll clear of the fixed chrome at the bottom
@@ -117,57 +117,21 @@ html {
     linear-gradient(to top, transparent, black 40%);
   -webkit-mask-composite: source-in;
   mask-composite: intersect;
-  /* Fallbacks first, then the --color-* names. This file is shared by all four
-     sites and the token vocabulary differs: OSI defines --color-surface /
-     --color-border, while FPM, neohiro and transhumanists define --bg-card /
-     --bg-elevated / --border. Without both lists the canvas resolved to an
-     invalid colour and rendered fully transparent, so the bar had no surface
-     and no visible curve on three of the four sites. */
-  background: var(--bg-card, var(--color-surface, #ffffff));
+  /* Solid background, no transparency fade. Fallbacks for all four sites. */
+  background: var(--bg-card, var(--color-surface, #0f1318));
   border-top: 1px solid var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
   box-shadow:
-    0 -4px 24px rgba(0, 0, 0, 0.1),
+    0 -4px 24px rgba(0, 0, 0, 0.4),
     0 -1px 0 var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* No backdrop-filter - solid bar */
   pointer-events: none;
   z-index: -1;
 }
 
-/* The upward sweep, drawn as a light-catching highlight along the arc so the
-   curvature is legible on a surface-coloured bar. Purely decorative. */
-.bottom-bar__canvas::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.5),
-    rgba(255, 255, 255, 0) 38%
-  );
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  .bottom-bar__canvas::after {
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.09),
-      rgba(255, 255, 255, 0) 38%
-    );
-  }
-}
-
-/* Dark-mode tint. Uses the shared token vocabulary with the --color-* names as
-   a second choice, because this file is shared by all four sites and they do not
-   agree on names: OSI defines --color-surface / --color-border, the other three
-   define --bg-card / --border. Resolving only one set left the canvas untinted,
-   or transparent, on three of the four. */
+/* Dark-mode: solid background, no transparency */
 @media (prefers-color-scheme: dark) {
   .bottom-bar__canvas {
-    background: color-mix(in srgb, var(--bg-card, var(--color-surface, #111820)) 92%, transparent);
+    background: var(--bg-card, var(--color-surface, #0f1318));
     box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.5),
                 0 -1px 0 var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
   }
@@ -185,6 +149,60 @@ html {
   justify-content: flex-start;
   padding-right: calc(var(--ai-btn-size) / 2 + 1rem);
   margin-left: -0.5rem;
+}
+
+/* Mainframe status indicator — sits at right end of left section, left of AI button */
+.bottom-bar__status {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0.75rem;
+  margin-left: auto; /* Push to right end of left section */
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted, #96a8b8);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Status-only left section (for sites without chips: FPM, transhumanists) */
+.bottom-bar__left--status-only {
+  pointer-events: auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Status at right end, near AI button */
+  padding-right: calc(var(--ai-btn-size) / 2 + 1rem);
+  margin-left: -0.5rem;
+}
+
+.bottom-bar__status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fg-subtle, #6d7f8f);
+  box-shadow: 0 0 0 0 transparent;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bottom-bar__status-dot.is-online {
+  background: var(--green, #66bb6a);
+  box-shadow: 0 0 8px var(--green, #66bb6a), 0 0 16px var(--green, #66bb6a);
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+.bottom-bar__status-dot.is-offline {
+  background: var(--red, #ef5350);
+  box-shadow: 0 0 8px var(--red, #ef5350);
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* The scrollable strip IS the list.
@@ -309,7 +327,7 @@ html {
   box-shadow: 0 2px 8px rgba(255, 77, 141, 0.35);
 }
 
-/* Central AI Button — protrudes downward OUT OF BOUNDS below viewport */
+/* Central AI Button — protrudes BELOW the dock, into the void */
 .bottom-bar__ai {
   pointer-events: auto;
   position: relative;
@@ -465,7 +483,7 @@ body.ai-conv-active .bottom-bar__ai {
   :root {
     --bottom-bar-h: 68px;
     --ai-btn-size: 56px;
-    --ai-btn-protrusion: calc(var(--ai-btn-size) * -0.25);
+    --ai-btn-protrusion: calc(var(--ai-btn-size) * 0.35);
   }
   .bottom-bar__list {
     gap: 0.2rem;

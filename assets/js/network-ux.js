@@ -45,7 +45,7 @@
       ['mountStarfield', mountStarfield],
       ['mountPreviousButton', mountPreviousButton],
       ['mountConversationModal', mountConversationModal],
-      ['mountAssistantBar', mountAssistantBar],
+      ['recordCurrentPage', recordCurrent],
       ['fillAvatarSlots', function () { fillAvatarSlots(document.body); }],
       ['injectNavAuth', injectNavAuth],
       ['wireAITriggers', wireAITriggers],
@@ -405,7 +405,7 @@
   }
 
   // Injects the org avatar into every assistant avatar slot + the
-  // conversation header brand. The slot's existing glyph (✦ / ðŸ¤–) stays
+  // conversation header brand. The slot's existing glyph (✦ / 🤖) stays
   // underneath as a graceful offline fallback: if the image errors out it
   // is removed and the glyph + tinted circle remain.
   function fillAvatarSlots(root) {
