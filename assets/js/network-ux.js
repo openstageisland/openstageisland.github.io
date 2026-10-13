@@ -241,6 +241,12 @@
   /* ── Starfield (parallax deep-space, 3 layers) ───────────── */
   function mountStarfield() {
     if (document.getElementById('starfield')) return;
+
+    // Respect reduced-motion and skip on small screens for performance
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobile = window.innerWidth < 600;
+    if (reduceMotion || isMobile) return;
+
     const s = document.createElement('div');
     s.id = 'starfield';
     s.className = 'starfield';

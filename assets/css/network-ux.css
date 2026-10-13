@@ -276,6 +276,13 @@ body > .ambient-orb {
 .nav-auth--user .role-badge--godadmin { background: var(--red, #ef5350); color: #fff; }
 .nav-auth svg { flex-shrink: 0; }
 .nav-auth.hidden { display: none !important; }
+/* The assistant variable panels are display:flex boxes. The UA [hidden] rule
+   loses to that, and these panels are toggled via the `hidden` property (not
+   the .hidden class), so without this override they never visually hide. */
+.ai-bar__vars[hidden],
+.ai-conv__vars[hidden] {
+  display: none !important;
+}
 @media (max-width: 768px) {
   .nav-auth span:not(.role-badge) { display: none; }
   .nav-auth { padding: 8px !important; }

@@ -20,17 +20,17 @@
 :root {
   --bottom-bar-h: 72px;
   --ai-btn-size: 64px;
+  --ai-btn-protrusion: calc(var(--ai-btn-size) * -0.25); /* AI button floats above the dock, never clipped */
   --chrome-gap: 12px;
-  --ai-btn-protrusion: calc(var(--ai-btn-size) * 0.6); /* how far the AI button pokes below viewport */
   /* Total always-on chrome at the bottom of the viewport. */
-  --chrome-bottom: var(--bottom-bar-h);
+  --chrome-bottom: calc(var(--bottom-bar-h) + var(--ai-btn-protrusion) * -1);
 }
 
 /* Reserve room so content can scroll clear of the fixed chrome at the bottom
- * of the viewport. Every page carries the bottom bar, so every page needs its
- * height. The auth dock is now integrated into the bottom bar via the AI button. */
+ * of the viewport. The AI button protrudes upward out of the bar; --chrome-bottom
+ * already folds that in, so content never vanishes behind the floating button. */
 body {
-  padding-bottom: var(--bottom-bar-h);
+  padding-bottom: var(--chrome-bottom);
 }
 
 /* Ensure ecosystem network frame clears the curved bottom bar.
@@ -57,7 +57,7 @@ html[data-scroll-anim] {
  * native fragment jumps too (browser back/forward, JS disabled). */
 html {
   scroll-padding-top: var(--chrome-gap);
-  scroll-padding-bottom: calc(var(--bottom-bar-h) + var(--chrome-gap));
+  scroll-padding-bottom: var(--chrome-bottom);
 }
 
 /* ---------------------------------------------------------------------------
@@ -465,7 +465,7 @@ body.ai-conv-active .bottom-bar__ai {
   :root {
     --bottom-bar-h: 68px;
     --ai-btn-size: 56px;
-    --ai-btn-protrusion: calc(var(--ai-btn-size) * 0.65);
+    --ai-btn-protrusion: calc(var(--ai-btn-size) * -0.25);
   }
   .bottom-bar__list {
     gap: 0.2rem;
