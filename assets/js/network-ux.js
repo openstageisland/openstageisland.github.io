@@ -1233,23 +1233,37 @@ function renderSafeHtml(html) {
 
   let _heartUp = null;
   let _heartProbed = false;
+  let _heartProbePromise = null; // Deduplicate concurrent probes
 
   function fetchWithTimeout(url, opts, ms) {
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var signal = ctrl ? ctrl.signal : null;
     var tid = setTimeout(function () { if (ctrl) ctrl.abort(); }, ms);
     return fetch(url, Object.assign({}, opts || {}, { signal: signal }))
-      .finally(function () { clearTimeout(tid); });
+      .finally(function () { clearTimeout(tid); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r;
+      })
+      .catch(function (err) {
+        if (err && err.name === 'AbortError') {
+          var e = new Error('Request timeout');
+          e.code = 'ETIMEDOUT';
+          throw e;
+        }
+        throw err;
+      });
   }
 
   function probeHeart() {
+    if (_heartProbePromise) return _heartProbePromise; // Return existing in-flight probe
     // Allow re-probe if previous attempt failed (_heartUp === false).
     // Only short-circuit if we have a positive result cached.
     if (_heartProbed && _heartUp) return Promise.resolve(_heartUp);
     _heartProbed = true;
     setConvHeart('ai-conv__heart--probe', 'probing heart…');
     // Try each endpoint in sequence until one succeeds
-    return HEART_ENDPOINTS.reduce(function (promise, url) {
+    _heartProbePromise = HEART_ENDPOINTS.reduce(function (promise, url) {
       return promise.catch(function () {
         return fetchWithTimeout(url, { cache: 'no-store', mode: 'cors' }, 8000)
           .then(function (r) { return r && r.ok; });
@@ -1260,8 +1274,10 @@ function renderSafeHtml(html) {
       .then(function (up) {
         setConvHeart(up ? 'ai-conv__heart--up' : 'ai-conv__heart--down',
                      up ? 'heart online' : 'heart offline (local brain)');
+        _heartProbePromise = null; // Clear for future probes
         return up;
       });
+    return _heartProbePromise;
   }
 
   /* Fetch and compact the site's README for context grounding.
@@ -1277,6 +1293,15 @@ function renderSafeHtml(html) {
     }
     // If a fetch is already in flight, return that promise (deduplication)
     if (_readmeInflight) {
+      // If caller provides a signal, attach abort handling
+      if (signal) {
+        return new Promise(function (resolve, reject) {
+          _readmeInflight.then(resolve, reject);
+          signal.addEventListener('abort', function () {
+            reject(new DOMException('Aborted', 'AbortError'));
+          }, { once: true });
+        });
+      }
       return _readmeInflight;
     }
     var readmeUrl = location.origin + '/README.md';
@@ -2056,20 +2081,25 @@ Got it — I can help you with that. To give you the most useful answer, tell me
 
     var _statusProbed = false;
     var _statusUp = null;
+    var _statusProbePromise = null;
+    var _statusInterval = null;
 
     function probe() {
+      if (_statusProbePromise) return _statusProbePromise;
       // Allow re-probe if previous attempt failed (_statusUp === false).
       // Only short-circuit if we have a positive result cached.
       if (_statusProbed && _statusUp) return Promise.resolve(_statusUp);
       _statusProbed = true;
-      return HEART_ENDPOINTS.reduce(function (promise, url) {
+      _statusProbePromise = HEART_ENDPOINTS.reduce(function (promise, url) {
         return promise.catch(function () {
           return fetchWithTimeout(url, { cache: 'no-store', mode: 'cors' }, 8000)
             .then(function (r) { return r && r.ok; });
         });
       }, Promise.reject(new Error('no endpoints')))
         .then(function (up) { _statusUp = up; return up; })
-        .catch(function () { _statusUp = false; return false; });
+        .catch(function () { _statusUp = false; return false; })
+        .finally(function () { _statusProbePromise = null; });
+      return _statusProbePromise;
     }
 
     function updateUI(online) {
@@ -2084,13 +2114,21 @@ Got it — I can help you with that. To give you the most useful answer, tell me
       }
     }
 
-    // Initial probe
-    probe().then(updateUI);
+    function scheduleNext() {
+      if (_statusInterval) clearInterval(_statusInterval);
+      _statusInterval = setInterval(function () {
+        probe().then(updateUI);
+      }, 30000);
+    }
 
-    // Probe every 30 seconds
-    setInterval(function () {
-      probe().then(updateUI);
-    }, 30000);
+    // Initial probe
+    probe().then(updateUI).then(scheduleNext);
+
+    // Cleanup on page unload
+    window.addEventListener('pagehide', function cleanup() {
+      if (_statusInterval) clearInterval(_statusInterval);
+      window.removeEventListener('pagehide', cleanup);
+    }, { once: true });
   }
 
   // Start the mainframe status probe after a short delay
