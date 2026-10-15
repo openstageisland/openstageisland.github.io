@@ -30,8 +30,9 @@
     try { localStorage.setItem(STORAGE_PREFIX + 'collapsed', isCollapsed); } catch(e){}
   });
 
-  // Most popular tracks from hearthis.at/neohiro (sorted by playback_count descending)
+  // Curated most-popular tracks from hearthis.at/neohiro (sorted by playback_count desc)
   let tracks = [
+    { name: "What's in the box? [Burn2] (783 listens)", streamUrl: "https://hearthis.app/neohiro/rec20230920-141543/listen/?s=wxD", baseFreq: 146.83, type: 'sawtooth' },
     { name: "Open Stage Island - rec_20250506-142557", streamUrl: "https://hearthis.app/neohiro/rec20250506-142557/listen/?s=pAd", baseFreq: 146.83, type: 'sawtooth' },
     { name: "Open Stage Island - rec_20250407-183453", streamUrl: "https://hearthis.app/neohiro/rec20250407-183453/listen/?s=ypV", baseFreq: 164.81, type: 'square' },
     { name: "Open Stage Island - rec_20250428-203324", streamUrl: "https://hearthis.app/neohiro/rec20250428-203324/listen/?s=QGi", baseFreq: 110.00, type: 'triangle' },
@@ -42,9 +43,13 @@
     { name: "Nexus {V0id} - rec_20250722-210047", streamUrl: "https://hearthis.app/neohiro/techno-1h-nexus-void/listen/?s=BTN", baseFreq: 110.00, type: 'square' }
   ];
 
-  // Dynamically fetch freshest tracks from hearthis.at API with fallback to curated list
-  fetch('https://api-v2.hearthis.at/neohiro/?type=tracks&count=20')
-    .then(res => res.json())
+  // Fetch freshest tracks from hearthis.at API, sorted by popularity
+  const fetchController = new AbortController();
+  const fetchPromise = fetch('https://api-v2.hearthis.at/neohiro/?type=tracks&count=20', { signal: fetchController.signal })
+    .then(res => {
+      if (!res.ok) throw new Error('API error');
+      return res.json();
+    })
     .then(data => {
       if (Array.isArray(data) && data.length > 0) {
         tracks = data
@@ -73,6 +78,28 @@
   let isPlaying = false;
   let animationId = null;
   let usingSynth = false;
+  let playPromise = null; // Track in-flight play() promise
+
+  function cleanupAudio() {
+    if (audioElement) {
+      try {
+        audioElement.pause();
+        audioElement.src = '';
+        audioElement.load();
+      } catch(e) {}
+      audioElement = null;
+    }
+    if (osc1) { try { osc1.stop(); osc1.disconnect(); } catch(e) {} osc1 = null; }
+    if (osc2) { try { osc2.stop(); osc2.disconnect(); } catch(e) {} osc2 = null; }
+    if (filter) { try { filter.disconnect(); } catch(e) {} filter = null; }
+    if (masterGain) { try { masterGain.disconnect(); } catch(e) {} masterGain = null; }
+    if (analyser) { try { analyser.disconnect(); } catch(e) {} analyser = null; }
+    if (audioCtx && audioCtx.state !== 'closed') {
+      try { audioCtx.close(); } catch(e) {}
+      audioCtx = null;
+    }
+    usingSynth = false;
+  }
 
   function updateTrack() {
     trackTitle.textContent = tracks[currentTrack].name;
@@ -84,10 +111,16 @@
   }
 
   function startAudio() {
+    // Cancel any in-flight play
+    if (playPromise) {
+      playPromise.catch(() => {});
+      playPromise = null;
+    }
+
+    cleanupAudio();
+
     try {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') audioCtx.resume();
 
       masterGain = audioCtx.createGain();
@@ -103,22 +136,21 @@
       const track = tracks[currentTrack];
       
       if (track.streamUrl) {
-        if (!audioElement) {
-          audioElement = new Audio();
-          audioElement.crossOrigin = 'anonymous';
-          audioElement.loop = true;
-        }
+        audioElement = new Audio();
+        audioElement.crossOrigin = 'anonymous';
+        audioElement.loop = true;
         audioElement.src = track.streamUrl;
         
         try {
           const trackSource = audioCtx.createMediaElementSource(audioElement);
           trackSource.connect(masterGain);
         } catch(e) {
-          // Already connected or cross-origin handled by direct audio output
-          audioElement.connect = null;
+          // Cross-origin blocked - fall back to direct audio (no visualizer)
         }
 
-        audioElement.play().then(() => {
+        playPromise = audioElement.play();
+        playPromise.then(() => {
+          playPromise = null;
           usingSynth = false;
           isPlaying = true;
           playBtn.textContent = '‖';
@@ -127,6 +159,7 @@
           try { localStorage.setItem(STORAGE_PREFIX + 'playing', 'true'); } catch(e){}
           drawVisualizer();
         }).catch(() => {
+          playPromise = null;
           startSynthFallback(track);
         });
       } else {
@@ -173,14 +206,11 @@
   }
 
   function stopAudio() {
-    if (audioElement) {
-      try { audioElement.pause(); } catch(e){}
+    if (playPromise) {
+      playPromise.catch(() => {});
+      playPromise = null;
     }
-    if (usingSynth) {
-      if (osc1) { try { osc1.stop(); osc1.disconnect(); } catch(e){} }
-      if (osc2) { try { osc2.stop(); osc2.disconnect(); } catch(e){} }
-      if (filter) { try { filter.disconnect(); } catch(e){} }
-    }
+    cleanupAudio();
     isPlaying = false;
     playBtn.textContent = '▶';
     playBtn.setAttribute('aria-label', 'Play music');
@@ -240,7 +270,7 @@
     const val = parseFloat(e.target.value);
     try { localStorage.setItem(STORAGE_PREFIX + 'vol', val); } catch(e){}
     if (masterGain && audioCtx) {
-      masterGain.gain.setValueAtTime(usingSynth ? val * 0.15 : val, audioCtx.currentTime);
+      masterGain.gain.setValueAtTime(val, audioCtx.currentTime);
     }
     if (audioElement) {
       audioElement.volume = val;
@@ -258,4 +288,10 @@
   }
 
   clearCanvas();
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    fetchController.abort();
+    stopAudio();
+  });
 })();

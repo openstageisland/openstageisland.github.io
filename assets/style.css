@@ -586,13 +586,14 @@ section[id] {
 footer {
   text-align: center;
   padding: 1.5rem 1rem;
-  background: var(--color-heading);
-  color: #fff;
+  background: var(--color-surface);
+  color: var(--color-heading);
   margin-top: 2rem;
+  border-top: 1px solid var(--color-border);
 }
 footer p { margin: 0; font-size: 0.9rem; }
-footer a { color: #fff; }
-footer a:hover { color: var(--color-focus); }
+footer a { color: var(--color-accent); }
+footer a:hover { color: var(--color-accent-hover); }
 
 footer .footer-button-row {
   display: flex;
@@ -604,15 +605,17 @@ footer .footer-button-row {
 footer .footer-button-row a {
   display: inline-block;
   padding: 4px 10px;
-  border: 1px solid rgba(255,255,255,0.35);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 0.8rem;
   text-decoration: none;
-  transition: border-color 0.2s, color 0.2s;
+  color: var(--color-text);
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 footer .footer-button-row a:hover {
-  border-color: var(--color-focus);
-  color: var(--color-focus);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-surface-alt);
 }
 
 @media (max-width: 600px) {
@@ -772,4 +775,140 @@ footer .footer-button-row a:hover {
 @media (max-width:600px) { .osi-live-frame,.osi-live-frame-wrap { height:360px; min-height:360px; } }
 /* Screen-reader only utility */
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* ==========================================================================
+   Side Tags — vertical scroll navigation that tracks section position
+   ========================================================================== */
+.side-tags {
+  position: fixed;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.side-tags__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: auto;
+}
+
+.side-tags__item {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.side-tags__item.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.side-tags__link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem 0.5rem 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.side-tags__link:hover,
+.side-tags__link:focus-visible {
+  background: var(--color-surface-alt);
+  color: var(--color-heading);
+  border-color: var(--color-accent);
+  transform: translateX(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  text-decoration: none;
+}
+
+.side-tags__link.is-active {
+  background: var(--color-stage);
+  color: #fff;
+  border-color: var(--color-stage);
+  box-shadow: 0 4px 20px rgba(255, 77, 141, 0.4);
+}
+
+.side-tags__link.is-active:hover {
+  background: var(--color-stage-hover);
+  color: #fff;
+  transform: translateX(-4px);
+}
+
+.side-tags__link span {
+  max-width: 0;
+  opacity: 0;
+  transition: max-width 0.3s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.side-tags__link:hover span,
+.side-tags__link:focus-visible span,
+.side-tags__link.is-active span {
+  max-width: 120px;
+  opacity: 1;
+}
+
+.side-tags__indicator {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 0;
+  background: var(--color-stage);
+  border-radius: 1px;
+  transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s ease;
+  pointer-events: none;
+  box-shadow: 0 0 8px var(--color-stage);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .side-tags__link {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  .side-tags__link:hover,
+  .side-tags__link:focus-visible {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .side-tags__item,
+  .side-tags__link,
+  .side-tags__link span,
+  .side-tags__indicator {
+    transition: none !important;
+  }
+}
+
+/* Responsive - hide on small screens */
+@media (max-width: 1024px) {
+  .side-tags {
+    display: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .side-tags {
+    display: none;
+  }
+}
 
