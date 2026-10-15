@@ -49,6 +49,7 @@
 </head>
 {%- comment -%} decor: managed by template-shared/site_forge.py from sites.yaml {%- endcomment -%}
 <body class="{{ page.decor_class | default: site.decor_class | default: 'decor-aurora' }}">
+  {% include music-player.html %}
   <a class="skip-link" href="#main">Skip to main content</a>
 
   {%- comment -%}
