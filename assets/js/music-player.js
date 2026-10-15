@@ -30,40 +30,40 @@
     try { localStorage.setItem(STORAGE_PREFIX + 'collapsed', isCollapsed); } catch(e){}
   });
 
-  // Curated sets from hearthis.at/neohiro
+  // Verified top streamed sets from hearthis.at/neohiro
   let tracks = [
-    { name: "Neohiro — Live at Cyberia #1", streamUrl: "https://hearthis.at/neohiro/live-cyberia-1/listen/", baseFreq: 146.83, type: 'sawtooth' },
-    { name: "Triquetra — Analog Session #2", streamUrl: "https://hearthis.at/neohiro/triquetra-analog-2/listen/", baseFreq: 164.81, type: 'square' },
-    { name: "Deep Space Ambient Transmission", streamUrl: "https://hearthis.at/neohiro/deep-space-transmission/listen/", baseFreq: 110.00, type: 'triangle' }
+    { name: "Techno Point — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/rec20250810-175936/listen/?s=paL", baseFreq: 146.83, type: 'sawtooth' },
+    { name: "Korea City — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/rec20250808-152942/listen/?s=D1Z", baseFreq: 164.81, type: 'square' },
+    { name: "Little Mistake — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/littlemistakeneo-rec20250803-185930/listen/?s=Ty6", baseFreq: 110.00, type: 'triangle' },
+    { name: "DubWarz — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/rec20250802-225902/listen/?s=t0W", baseFreq: 130.81, type: 'sawtooth' },
+    { name: "Nexus {V0id} — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/techno-1h-nexus-void/listen/?s=BTN", baseFreq: 123.47, type: 'square' }
   ];
 
-  // Try fetching latest sets from hearthis.at API dynamically
-  fetch('https://api-v2.hearthis.at/neohiro/?type=tracks&count=5')
+  // Dynamically fetch freshest tracks from hearthis.at API with fallback to curated list
+  fetch('https://api-v2.hearthis.at/neohiro/?type=tracks&count=10')
     .then(res => res.json())
     .then(data => {
       if (Array.isArray(data) && data.length > 0) {
         tracks = data.map(t => ({
-          name: t.title || "Neohiro Set",
+          name: (t.title || "Neohiro Set") + " (hearthis.at)",
           streamUrl: t.stream_url || t.permalink_url,
           baseFreq: 146.83,
           type: 'sawtooth'
         }));
-        trackTitle.textContent = tracks[currentTrack % tracks.length].name;
+        currentTrack = ((currentTrack % tracks.length) + tracks.length) % tracks.length;
+        trackTitle.textContent = tracks[currentTrack].name;
       }
     })
-    .catch(() => {
-      // Fallback to curated static list if offline/CORS
-    });
+    .catch(() => {});
 
   currentTrack = ((currentTrack % tracks.length) + tracks.length) % tracks.length;
   trackTitle.textContent = tracks[currentTrack].name;
 
   let audioElement = null;
   let audioCtx = null;
-  let audioSourceNode = null;
   let masterGain = null;
   let analyser = null;
-  let osc1 = null, osc2 = null, subOsc = null, lfo1 = null, filter = null;
+  let osc1 = null, osc2 = null, filter = null;
   let isPlaying = false;
   let animationId = null;
   let usingSynth = false;
@@ -96,16 +96,22 @@
 
       const track = tracks[currentTrack];
       
-      // Attempt streaming from hearthis.at streamUrl
-      if (track.streamUrl && !audioElement) {
-        audioElement = new Audio();
-        audioElement.crossOrigin = 'anonymous';
+      if (track.streamUrl) {
+        if (!audioElement) {
+          audioElement = new Audio();
+          audioElement.crossOrigin = 'anonymous';
+          audioElement.loop = true;
+        }
         audioElement.src = track.streamUrl;
-        audioElement.loop = true;
         
-        const trackSource = audioCtx.createMediaElementSource(audioElement);
-        trackSource.connect(masterGain);
-        
+        try {
+          const trackSource = audioCtx.createMediaElementSource(audioElement);
+          trackSource.connect(masterGain);
+        } catch(e) {
+          // Already connected or cross-origin handled by direct audio output
+          audioElement.connect = null;
+        }
+
         audioElement.play().then(() => {
           usingSynth = false;
           isPlaying = true;
@@ -115,12 +121,8 @@
           try { localStorage.setItem(STORAGE_PREFIX + 'playing', 'true'); } catch(e){}
           drawVisualizer();
         }).catch(() => {
-          // Fallback to procedural Web Audio synthesizer if CORS or audio stream fails
           startSynthFallback(track);
         });
-      } else if (audioElement) {
-        audioElement.src = track.streamUrl;
-        audioElement.play().catch(() => startSynthFallback(track));
       } else {
         startSynthFallback(track);
       }
