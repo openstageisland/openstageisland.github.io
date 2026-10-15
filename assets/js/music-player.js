@@ -30,26 +30,32 @@
     try { localStorage.setItem(STORAGE_PREFIX + 'collapsed', isCollapsed); } catch(e){}
   });
 
-  // Verified top streamed sets from hearthis.at/neohiro
+  // Most popular tracks from hearthis.at/neohiro (sorted by playback_count descending)
   let tracks = [
-    { name: "Techno Point — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/rec20250810-175936/listen/?s=paL", baseFreq: 146.83, type: 'sawtooth' },
-    { name: "Korea City — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/rec20250808-152942/listen/?s=D1Z", baseFreq: 164.81, type: 'square' },
-    { name: "Little Mistake — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/littlemistakeneo-rec20250803-185930/listen/?s=Ty6", baseFreq: 110.00, type: 'triangle' },
-    { name: "DubWarz — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/rec20250802-225902/listen/?s=t0W", baseFreq: 130.81, type: 'sawtooth' },
-    { name: "Nexus {V0id} — Neohiro Live", streamUrl: "https://hearthis.app/neohiro/techno-1h-nexus-void/listen/?s=BTN", baseFreq: 123.47, type: 'square' }
+    { name: "Open Stage Island - rec_20250506-142557", streamUrl: "https://hearthis.app/neohiro/rec20250506-142557/listen/?s=pAd", baseFreq: 146.83, type: 'sawtooth' },
+    { name: "Open Stage Island - rec_20250407-183453", streamUrl: "https://hearthis.app/neohiro/rec20250407-183453/listen/?s=ypV", baseFreq: 164.81, type: 'square' },
+    { name: "Open Stage Island - rec_20250428-203324", streamUrl: "https://hearthis.app/neohiro/rec20250428-203324/listen/?s=QGi", baseFreq: 110.00, type: 'triangle' },
+    { name: "Open Stage Island - rec_20250708-074251", streamUrl: "https://hearthis.app/neohiro/rec20250708-074251/listen/?s=YZK", baseFreq: 130.81, type: 'sawtooth' },
+    { name: "Korea City - rec_20250808-152942", streamUrl: "https://hearthis.app/neohiro/rec20250808-152942/listen/?s=D1Z", baseFreq: 123.47, type: 'square' },
+    { name: "Little Mistake - rec_20250803-185930", streamUrl: "https://hearthis.app/neohiro/littlemistakeneo-rec20250803-185930/listen/?s=Ty6", baseFreq: 146.83, type: 'triangle' },
+    { name: "DubWarz - rec_20250802-225902", streamUrl: "https://hearthis.app/neohiro/rec20250802-225902/listen/?s=t0W", baseFreq: 164.81, type: 'sawtooth' },
+    { name: "Nexus {V0id} - rec_20250722-210047", streamUrl: "https://hearthis.app/neohiro/techno-1h-nexus-void/listen/?s=BTN", baseFreq: 110.00, type: 'square' }
   ];
 
   // Dynamically fetch freshest tracks from hearthis.at API with fallback to curated list
-  fetch('https://api-v2.hearthis.at/neohiro/?type=tracks&count=10')
+  fetch('https://api-v2.hearthis.at/neohiro/?type=tracks&count=20')
     .then(res => res.json())
     .then(data => {
       if (Array.isArray(data) && data.length > 0) {
-        tracks = data.map(t => ({
-          name: (t.title || "Neohiro Set") + " (hearthis.at)",
-          streamUrl: t.stream_url || t.permalink_url,
-          baseFreq: 146.83,
-          type: 'sawtooth'
-        }));
+        tracks = data
+          .filter(t => t.stream_url || t.permalink_url)
+          .sort((a, b) => parseInt(b.playback_count || 0) - parseInt(a.playback_count || 0))
+          .map(t => ({
+            name: (t.title || "Neohiro Set") + " (hearthis.at)",
+            streamUrl: t.stream_url || t.permalink_url,
+            baseFreq: 146.83,
+            type: 'sawtooth'
+          }));
         currentTrack = ((currentTrack % tracks.length) + tracks.length) % tracks.length;
         trackTitle.textContent = tracks[currentTrack].name;
       }

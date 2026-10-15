@@ -10,7 +10,6 @@ preload_hero: true
   <img src="{{ "/images/destination-image.png" | relative_url }}"
        alt="Avatars gathered at the Open Stage Island outdoor music venue under laser lights"
        class="hero-image"
-       width="657" height="394"
        fetchpriority="high"
        decoding="sync">
   <div class="hero-overlay">
@@ -48,6 +47,12 @@ preload_hero: true
       New to Second Life? <strong>Creating an avatar is free</strong> — the
       stage is open to every electronic music artist, no booking and no fee.
     </p>
+    <div class="scroll-indicator" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M12 5v14M19 12l-7 7-7-7"/>
+      </svg>
+      <span>Scroll to explore</span>
+    </div>
   </div>
 </header>
 
@@ -183,7 +188,7 @@ preload_hero: true
     </p>
   </section>
 
-  <section id="hosting" class="guide-section" data-guide-section aria-labelledby="hosting-heading">
+<section id="hosting" class="guide-section" data-guide-section aria-labelledby="hosting-heading">
     <h2 id="hosting-heading">&#129309; Hosting</h2>
     <p>
       Promoters are welcome, both working with a DJ as independent hosts. Invite
@@ -195,7 +200,7 @@ preload_hero: true
       group per set. DJ's often post a notification themselves, so double check!
     </p>
     <p>
-      For hosts &amp; promoters there is a diamond tip jar behind the stage at the
+      For hosts & promoters there is a diamond tip jar behind the stage at the
       arcade, next to the generator. Click it and the tipjar will float above you
       until you log out or leave. <strong>17% of host tips are commission for
       Open Stage Island.</strong>
@@ -204,42 +209,6 @@ preload_hero: true
       There is <strong>no commission on tips for djs</strong>, they always will
       receive 100% of the tips.
     </p>
-  </section>
-
-  <section id="membership" class="guide-section" data-guide-section aria-labelledby="membership-heading">
-    <h2 id="membership-heading">&#127942; Membership</h2>
-    <p>
-      Open Stage Island runs a supporter ladder. The tiers below are reference
-      information for visitors and hosts &mdash; nothing on this page is for sale
-      and playing the stage is always free.
-    </p>
-    <ul class="tier-grid">
-      <li class="tier tier-free">
-        <span class="tier-name">&#127793; Free Resident</span>
-        <span class="tier-price">Free</span>
-        <span class="tier-desc">The default tier for every visitor.</span>
-      </li>
-      <li class="tier tier-unlock">
-        <span class="tier-name">&#128275; OSI Unlocker</span>
-        <span class="tier-price">199 L$/week</span>
-        <span class="tier-desc">Weekly supporter of the stage.</span>
-      </li>
-      <li class="tier tier-elite">
-        <span class="tier-name">&#129373; Elite DJ</span>
-        <span class="tier-price">999 L$/month</span>
-        <span class="tier-desc">Monthly supporter for regular performers.</span>
-      </li>
-      <li class="tier tier-tribe">
-        <span class="tier-name">&#127796; Tribe Member</span>
-        <span class="tier-price">Invite only</span>
-        <span class="tier-desc">By invitation from the team.</span>
-      </li>
-      <li class="tier tier-legend">
-        <span class="tier-name">&#128208; LEGEND TIER</span>
-        <span class="tier-price">4999 L$/month</span>
-        <span class="tier-desc">The top supporter tier.</span>
-      </li>
-    </ul>
   </section>
 
   <section id="about" class="guide-section" data-guide-section aria-labelledby="about-heading">
@@ -474,11 +443,10 @@ preload_hero: true
         </a>
       </li>
       <li>
-        <span class="estate-card is-unavailable">
-          <span class="estate-name">Twitter</span>
-          <span class="estate-url">twitter.openstageis.land</span>
-          <span class="estate-note">hostname no longer resolves</span>
-        </span>
+        <a class="estate-card" href="https://bsky.app/profile/openstageisland.bsky.social" rel="noopener noreferrer">
+          <span class="estate-name">BlueSky</span>
+          <span class="estate-url">bsky.app/profile/openstageisland.bsky.social</span>
+        </a>
       </li>
       <li>
         <a class="estate-card" href="https://frenzypenguin.media" rel="noopener noreferrer">
