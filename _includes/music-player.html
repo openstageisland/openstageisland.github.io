@@ -132,6 +132,12 @@
   text-overflow: ellipsis;
   max-width: 150px;
   text-shadow: 0 0 8px rgba(0,229,255,0.3);
+  animation: ul-slide-left 6s linear infinite;
+}
+@keyframes ul-slide-left {
+  0% { text-indent: 0; }
+  30% { text-indent: 0; }
+  100% { text-indent: -100%; }
 }
 .ul-player-visualizer {
   width: 56px;
