@@ -138,6 +138,7 @@
         audioElement.loop = true;
         audioElement.volume = Math.min(1, Math.max(0, parseFloat(volInput.value)));
         audioElement.src = track.streamUrl;
+        audioElement.load();
 
         // If the URL 404s or the network drops, surface it via the error event so
         // we fall back to synth rather than leaving a dead, silent "playing" HUD.
