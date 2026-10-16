@@ -120,19 +120,6 @@
     cleanupAudio();
 
     try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-
-      masterGain = audioCtx.createGain();
-      masterGain.gain.value = parseFloat(volInput.value);
-
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
-      analyser.smoothingTimeConstant = 0.85;
-
-      masterGain.connect(analyser);
-      analyser.connect(audioCtx.destination);
-
       const track = tracks[currentTrack];
       
       if (track.streamUrl) {
@@ -182,7 +169,12 @@
   }
 
   function startSynthFallback(track) {
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
     usingSynth = true;
+    if (!masterGain) masterGain = audioCtx.createGain();
     masterGain.gain.value = parseFloat(volInput.value) * 0.15;
     filter = audioCtx.createBiquadFilter();
     filter.type = 'lowpass';
