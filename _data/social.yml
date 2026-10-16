@@ -5,10 +5,12 @@
 # existed in any of the four sites. With it present the existing include renders
 # the links with no template change at all.
 #
-# bluesky is set to openstageisland.bsky.social, which is free and NOT YET
-# CLAIMED (TASK-BSKY-CLAIM-OSI). The link is in place so it is not forgotten;
-# the task is what gates going live. Until then the profile 404s.
+# bluesky resolves to the site's own domain handle, openstageis.land (the
+# custom domain carries the _atproto DNS TXT record). social-links.html prefixes
+# https://bsky.app/profile/, so the rendered link is
+# https://bsky.app/profile/openstageis.land — one canonical identity for the
+# site, the domain and the feed.
 github: openstageisland
 sponsors: openstageisland
-bluesky: openstageisland.bsky.social
+bluesky: openstageis.land
 website: https://openstageis.land

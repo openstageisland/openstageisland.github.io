@@ -136,17 +136,28 @@
       const track = tracks[currentTrack];
       
       if (track.streamUrl) {
+        // Play the stream DIRECTLY through a plain <audio> element. Routing a
+        // cross-origin element through createMediaElementSource() silently yields
+        // silence if the CDN's CORS headers are missing or a redirect hop drops
+        // them - the play() promise still resolves, so no fallback ever fires and
+        // the visitor hears nothing. hearthis.at's listen URLs redirect to a
+        // stream*.hearthis.at host that serves audio/mpeg with
+        // Access-Control-Allow-Origin: *, so direct playback is both reliable and
+        // immediate. The visualizer below is synthetic (HUD ambience), so we do not
+        // need - and deliberately do not build - a Web Audio graph for the element.
         audioElement = new Audio();
-        audioElement.crossOrigin = 'anonymous';
+        audioElement.preload = 'auto';
         audioElement.loop = true;
+        audioElement.volume = Math.min(1, Math.max(0, parseFloat(volInput.value)));
         audioElement.src = track.streamUrl;
-        
-        try {
-          const trackSource = audioCtx.createMediaElementSource(audioElement);
-          trackSource.connect(masterGain);
-        } catch(e) {
-          // Cross-origin blocked - fall back to direct audio (no visualizer)
-        }
+
+        // If the URL 404s or the network drops, surface it via the error event so
+        // we fall back to synth rather than leaving a dead, silent "playing" HUD.
+        const onStreamError = () => {
+          audioElement.removeEventListener('error', onStreamError);
+          if (isPlaying) startSynthFallback(track);
+        };
+        audioElement.addEventListener('error', onStreamError);
 
         playPromise = audioElement.play();
         playPromise.then(() => {
@@ -221,19 +232,38 @@
   }
 
   function drawVisualizer() {
-    if (!analyser || !isPlaying) return;
-    const bufferLength = analyser.frequencyBinCount;
+    if (!isPlaying) return;
+    const bufferLength = 64;
     const dataArray = new Uint8Array(bufferLength);
     const w = canvas.width, h = canvas.height;
+    let t = 0;
 
     function draw() {
       if (!isPlaying) return;
-      analyser.getByteFrequencyData(dataArray);
+      // Prefer real frequency data when an analyser is actually receiving audio
+      // (synth fallback path). When streaming a cross-origin element we no longer
+      // route through Web Audio, so the analyser stays flat - in that case drive
+      // the bars from a synthetic envelope so the HUD still reads as "live".
+      let realData = false;
+      if (analyser) {
+        analyser.getByteFrequencyData(dataArray);
+        realData = dataArray.some(v => v > 0);
+      }
+      t += 0.08;
       ctx.clearRect(0, 0, w, h);
       const barWidth = w / bufferLength * 1.4;
       let x = 0;
       for (let i = 0; i < bufferLength; i++) {
-        const v = dataArray[i] / 255;
+        let v;
+        if (realData) {
+          v = dataArray[i] / 255;
+        } else {
+          // Synthetic two-tone envelope with a slow sweep, banded per bar.
+          const band = i / bufferLength;
+          v = (0.35 + 0.3 * Math.sin(t + band * 6.0)
+                   + 0.2 * Math.sin(t * 1.7 + band * 11.0)) * (1 - band * 0.5);
+          v = Math.max(0.04, Math.min(1, v));
+        }
         const barH = v * h * 0.95;
         const hue = 180 + v * 60;
         ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${0.4 + v * 0.6})`;

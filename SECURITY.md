@@ -2,7 +2,7 @@
 layout: default
 title: "Security Policy"
 description: "How to report a security vulnerability affecting Open Stage Island, and the disclosure timeline to expect."
-canonical: "https://openstageisland.github.io/SECURITY/"
+canonical: "https://openstageis.land/SECURITY/"
 ---
 # Security Policy
 

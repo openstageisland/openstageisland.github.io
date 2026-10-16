@@ -2,7 +2,7 @@
 layout: default
 title: "Open Stage Island — Live Destination Data"
 description: "Live embed of the official Second Life destination page, visitor counters, and real-time status for Open Stage Island."
-canonical: "https://openstageisland.github.io/destinations/"
+canonical: "https://openstageis.land/destinations/"
 preload_hero: true
 ---
 
@@ -75,14 +75,14 @@ preload_hero: true
     <ul class="link-list">
       <li>
         <strong>Heartbeat:</strong>
-        <a href="https://openstageisland.github.io/heartbeats/" rel="noopener">
-          openstageisland.github.io/heartbeats
+        <a href="https://openstageis.land/heartbeats/" rel="noopener">
+          openstageis.land/heartbeats
         </a>
         &mdash; render-side health SVG, refreshed every Heart cycle.
       </li>
       <li>
         <strong>Counter slot 1631175</strong> tracks traffic to this site
-        (openstageisland.github.io).
+        (openstageis.land).
       </li>
       <li>
         <strong>Counter slot 1631180</strong> tracks traffic to the
