@@ -138,6 +138,13 @@
         audioElement.loop = true;
         audioElement.volume = Math.min(1, Math.max(0, parseFloat(volInput.value)));
         audioElement.src = track.streamUrl;
+        // Resolve redirect to direct MP3 for reliable playback
+        fetch(track.streamUrl, { redirect: "manual", headers: { "User-Agent":"Mozilla/5.0" } })
+          .then(res => {
+            const loc = res.headers.get("location");
+            if (loc && audioElement) audioElement.src = loc;
+          })
+          .catch(() => {});
         audioElement.load();
 
         // If the URL 404s or the network drops, surface it via the error event so
