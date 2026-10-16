@@ -132,12 +132,13 @@
   text-overflow: ellipsis;
   max-width: 150px;
   text-shadow: 0 0 8px rgba(0,229,255,0.3);
-  animation: ul-slide-left 6s linear infinite;
+  animation: ul-slide-left 8s linear infinite;
+  display: inline-block;
+  padding-left: 100%;
 }
 @keyframes ul-slide-left {
-  0% { text-indent: 0; }
-  30% { text-indent: 0; }
-  100% { text-indent: -100%; }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-70%); }
 }
 .ul-player-visualizer {
   width: 56px;
