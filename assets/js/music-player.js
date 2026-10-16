@@ -133,7 +133,8 @@
         // immediate. The visualizer below is synthetic (HUD ambience), so we do not
         // need - and deliberately do not build - a Web Audio graph for the element.
         audioElement = new Audio();
-        audioElement.preload = 'auto';
+        audioElement.preload = 'none';
+        audioElement.crossOrigin = 'anonymous';
         audioElement.loop = true;
         audioElement.volume = Math.min(1, Math.max(0, parseFloat(volInput.value)));
         audioElement.src = track.streamUrl;
@@ -142,7 +143,7 @@
         // we fall back to synth rather than leaving a dead, silent "playing" HUD.
         const onStreamError = () => {
           audioElement.removeEventListener('error', onStreamError);
-          if (isPlaying) startSynthFallback(track);
+          if (isPlaying) stopAudio();
         };
         audioElement.addEventListener('error', onStreamError);
 
@@ -158,7 +159,7 @@
           drawVisualizer();
         }).catch(() => {
           playPromise = null;
-          startSynthFallback(track);
+          stopAudio();
         });
       } else {
         startSynthFallback(track);
