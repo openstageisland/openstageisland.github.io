@@ -318,3 +318,73 @@
     stopAudio();
   });
 })();
+
+/* ── CRAZY HACK: Await user click, then force stream via direct audio + iframe bridge ── */
+(function(){
+  const HUD = document.getElementById('ul-player');
+  if(!HUD) return;
+
+  if(!document.getElementById('hearthis-at-iframe')){
+    const iframe = document.createElement('iframe');
+    iframe.id = 'hearthis-at-iframe';
+    iframe.src = 'https://app.hearthis.at/embed/10124598/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=';
+    iframe.style.cssText = 'border-radius:10px;width:100%;height:150px;border:0;display:block;margin:4px 0;pointer-events:auto;';
+    iframe.setAttribute('allow', 'autoplay');
+    iframe.setAttribute('allowtransparency', 'true');
+    const title = document.getElementById('ul-track-title');
+    if(title && title.nextSibling) title.parentNode.insertBefore(iframe, title.nextSibling);
+  }
+
+  window.startAudio = function(){
+    if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
+    const stream = 'https://hearthis.at/stream/neohiro/rec20230920-141543/';
+    const a = document.createElement('audio');
+    a.id = 'ul-hack-audio';
+    a.src = stream;
+    a.crossOrigin = 'anonymous';
+    a.preload = 'metadata';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.play().catch(err => {
+      if(!window.__hackCtx){
+        window.__hackCtx = new (window.AudioContext||window.webkitAudioContext)();
+        window.__hackCtx.resume();
+      }
+      setTimeout(() => a.play().catch(()=>{}), 150);
+    });
+    const f = document.getElementById('hearthis-at-iframe');
+    if(f && f.contentWindow){ try{ f.contentWindow.postMessage({action:'play'}, '*'); }catch(e){} }
+    const btn = document.getElementById('ul-play');
+    if(btn){ btn.textContent = '⏸'; btn.classList.add('playing'); }
+    if(typeof isPlaying !== 'undefined') isPlaying = true;
+    if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
+    if(typeof drawWaveform === 'function') animationId = requestAnimationFrame(drawWaveform);
+  };
+
+  const playBtn = document.getElementById('ul-play');
+  if(playBtn){
+    playBtn.onclick = function(e){
+      e.stopPropagation();
+      const sheets = document.querySelectorAll('.ai-conv, #ai-dock, .overlay');
+      sheets.forEach(s => s.style.pointerEvents = 'none');
+      startAudio();
+      setTimeout(() => sheets.forEach(s => s.style.pointerEvents = ''), 500);
+      return false;
+    };
+  }
+
+  if(HUD){ HUD.style.pointerEvents = 'auto'; HUD.style.zIndex = 9999; }
+
+  const oldBtn = document.getElementById('ul-play');
+  if(oldBtn){
+    const btn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(btn, oldBtn);
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      const sheets = document.querySelectorAll('.ai-conv, #ai-dock, .overlay');
+      sheets.forEach(s => s.style.pointerEvents = 'none');
+      window.startAudio();
+      setTimeout(() => sheets.forEach(s => s.style.pointerEvents = ''), 500);
+    });
+  }
+})();
