@@ -337,7 +337,7 @@
 
   window.startAudio = function(){
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
-    const stream = 'https://hearthis.at/stream/neohiro/rec20230920-141543/';
+    const stream = 'https://hearthis.app/neohiro/rec20230920-141543/listen/?s=wxD';
     const a = document.createElement('audio');
     a.id = 'ul-hack-audio';
     a.src = stream;
