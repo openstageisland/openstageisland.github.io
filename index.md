@@ -1,12 +1,14 @@
 ---
 layout: default
 title: "Open Stage Island — Visitor Guide"
+extra_css:
+  - /assets/css/site-chrome.css
 description: "The complete visitor guide for Open Stage Island: a free, 24/7 open-air electronic music stage in Second Life. Genres, how to play, reservations, streaming, hosting, tips, FAQ and how to visit."
 canonical: "https://openstageis.land/"
 preload_hero: true
 ---
 
-<header class="hero" role="banner">
+<header class="hero" role="banner" style="margin-top:0!important;padding-top:0!important;">
   <img src="{{ "/images/destination-image.png" | relative_url }}"
        alt="Avatars gathered at the Open Stage Island outdoor music venue under laser lights"
        class="hero-image"
