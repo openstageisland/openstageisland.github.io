@@ -328,11 +328,9 @@
     const iframe = document.createElement('iframe');
     iframe.id = 'hearthis-at-iframe';
     iframe.src = 'https://app.hearthis.at/embed/10124598/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=';
-    iframe.style.cssText = 'border-radius:10px;width:100%;height:150px;border:0;display:block;margin:4px 0;pointer-events:auto;';
+    iframe.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
     iframe.setAttribute('allow', 'autoplay');
-    iframe.setAttribute('allowtransparency', 'true');
-    const title = document.getElementById('ul-track-title');
-    if(title && title.nextSibling) title.parentNode.insertBefore(iframe, title.nextSibling);
+    document.body.appendChild(iframe);
   }
 
   window.startAudio = function(){
