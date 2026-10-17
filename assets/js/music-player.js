@@ -337,23 +337,8 @@
 
   window.startAudio = function(){
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
-    const stream = 'https://hearthis.app/neohiro/rec20230920-141543/listen/?s=wxD';
-    const a = document.createElement('audio');
-    a.id = 'ul-hack-audio';
-    a.src = stream;
-    a.crossOrigin = 'anonymous';
-    a.preload = 'metadata';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.play().catch(err => {
-      if(!window.__hackCtx){
-        window.__hackCtx = new (window.AudioContext||window.webkitAudioContext)();
-        window.__hackCtx.resume();
-      }
-      setTimeout(() => a.play().catch(()=>{}), 150);
-    });
     const f = document.getElementById('hearthis-at-iframe');
-    if(f && f.contentWindow){ try{ f.contentWindow.postMessage({action:'play'}, '*'); }catch(e){} }
+    if(f && f.contentWindow){ try{ f.contentWindow.postMessage({action:'play', autoplay:0}, '*'); }catch(e){} }
     const btn = document.getElementById('ul-play');
     if(btn){ btn.textContent = '⏸'; btn.classList.add('playing'); }
     if(typeof isPlaying !== 'undefined') isPlaying = true;
