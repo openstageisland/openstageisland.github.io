@@ -8,7 +8,7 @@ canonical: "https://openstageis.land/"
 preload_hero: true
 ---
 
-<header class="hero" role="banner" style="margin-top:0!important;padding-top:0!important;position:relative;top:0;">
+<header class="hero" role="banner" style="margin-top:-12px!important;padding-top:0!important;position:relative;top:0;">
   <img src="{{ "/images/destination-image.png" | relative_url }}"
        alt="Avatars gathered at the Open Stage Island outdoor music venue under laser lights"
        class="hero-image"
