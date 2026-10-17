@@ -35,7 +35,7 @@
   min-height: var(--nav-height);
   max-width: var(--max-content);
   margin-inline: auto;
-  padding: 0.35rem 1rem;
+  padding: 0.15rem 1rem !important;
 }
 
 .site-brand {
@@ -329,6 +329,7 @@ a.estate-card .estate-name {
 .hero { margin-top: -12px !important; padding-top: 0 !important; margin-bottom: 0 !important; }
 body { padding-top: 0 !important; }
 .site-main { padding-top: 0 !important; }
+.site-header { margin-bottom: 0 !important; padding-bottom: 0 !important; border-bottom: none !important; height: auto !important; }
 .hero { margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 0 !important; position: relative !important; top: auto !important; left: auto !important; width: auto !important; }
 .header-mini .logo-mark { font-size: 1.15rem; }
 
