@@ -365,3 +365,5 @@ a.estate-card .estate-name {
   .site-nav { gap: 4px; }
   .site-nav .nav-link { padding: 7px 10px; font-size: 0.8125rem; }
 }
+@ m e d i a   a l l   {   . s i t e - h e a d e r   . c o n t a i n e r   {   p a d d i n g - t o p :   0   ! i m p o r t a n t ;   p a d d i n g - b o t t o m :   0   ! i m p o r t a n t ;   m i n - h e i g h t :   3 6 p x   ! i m p o r t a n t ;   }   . h e r o   {   m a r g i n - t o p :   0   ! i m p o r t a n t ;   p a d d i n g - t o p :   0   ! i m p o r t a n t ;   }   b o d y   {   p a d d i n g - t o p :   0   ! i m p o r t a n t ;   }   }  
+ 
