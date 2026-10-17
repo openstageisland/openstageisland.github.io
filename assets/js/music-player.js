@@ -328,15 +328,21 @@
     const iframe = document.createElement('iframe');
     iframe.id = 'hearthis-at-iframe';
     iframe.src = 'https://app.hearthis.at/embed/10124598/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=';
-    iframe.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+    iframe.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;overflow:hidden;opacity:0;border:0;pointer-events:none;';
     iframe.setAttribute('allow', 'autoplay');
-    document.body.appendChild(iframe);
+    const pb = document.getElementById('ul-player-body');
+    (pb || document.body).appendChild(iframe);
   }
 
   window.startAudio = function(){
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
     const f = document.getElementById('hearthis-at-iframe');
-    if(f && f.contentWindow){ try{ f.contentWindow.postMessage({action:'play', autoplay:0}, 'https://app.hearthis.at'); }catch(e){} }
+    if(f && f.contentWindow){
+      setTimeout(() => {
+        try{ f.contentWindow.postMessage({action:'play', autoplay:0}, 'https://app.hearthis.at'); }catch(e){}
+        try{ f.contentWindow.postMessage('play', 'https://app.hearthis.at'); }catch(e){}
+      }, 300);
+    }
     const btn = document.getElementById('ul-play');
     if(btn){ btn.textContent = '⏸'; btn.classList.add('playing'); }
     if(typeof isPlaying !== 'undefined') isPlaying = true;
