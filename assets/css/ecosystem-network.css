@@ -196,15 +196,14 @@ body:has(.bottom-bar) .footer-ecosystem {
 }
 
 .ecosystem-name {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--eco-heading);
   text-decoration: none;
+  overflow-wrap: anywhere;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: center;
-  display: block;
 }
 
 a.ecosystem-name:hover,
