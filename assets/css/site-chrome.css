@@ -330,7 +330,7 @@ a.estate-card .estate-name {
 body { padding-top: 0 !important; }
 .site-main { padding-top: 0 !important; }
 .site-header { margin-bottom: 0 !important; padding-bottom: 0 !important; border-bottom: none !important; height: auto !important; }
-.hero { margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 0 !important; position: relative !important; top: auto !important; left: auto !important; width: auto !important; }
+.hero { margin-top: 0 !important; padding-top: 0 !important; margin-bottom: 0 !important; position: relative !important; top: auto !important; left: auto !important; width: 100% !important; z-index: 1; }
 .header-mini .logo-mark { font-size: 1.15rem; }
 
 .nav-dropdown-btn { display: inline-flex; align-items: center; gap: 5px; }
