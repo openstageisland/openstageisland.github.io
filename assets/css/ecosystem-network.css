@@ -203,6 +203,8 @@ body:has(.bottom-bar) .footer-ecosystem {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
+  display: block;
 }
 
 a.ecosystem-name:hover,
@@ -216,6 +218,8 @@ a.ecosystem-name:focus-visible {
   color: var(--eco-subtle);
   text-decoration: none;
   overflow-wrap: anywhere;
+  text-align: center;
+  display: block;
 }
 
 a.ecosystem-url:hover,
