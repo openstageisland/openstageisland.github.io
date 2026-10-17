@@ -338,7 +338,7 @@
   window.startAudio = function(){
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
     const f = document.getElementById('hearthis-at-iframe');
-    if(f && f.contentWindow){ try{ f.contentWindow.postMessage({action:'play', autoplay:0}, '*'); }catch(e){} }
+    if(f && f.contentWindow){ try{ f.contentWindow.postMessage({action:'play', autoplay:0}, 'https://app.hearthis.at'); }catch(e){} }
     const btn = document.getElementById('ul-play');
     if(btn){ btn.textContent = '⏸'; btn.classList.add('playing'); }
     if(typeof isPlaying !== 'undefined') isPlaying = true;
