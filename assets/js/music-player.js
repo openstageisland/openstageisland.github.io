@@ -319,66 +319,50 @@
   });
 })();
 
-/* ── CRAZY HACK: Await user click, then force stream via direct audio + iframe bridge ── */
+/* -- CRAZY HACK: Embedded iframe sound via autoplay reload -- */
 (function(){
   const HUD = document.getElementById('ul-player');
   if(!HUD) return;
-
   if(!document.getElementById('hearthis-at-iframe')){
     const iframe = document.createElement('iframe');
     iframe.id = 'hearthis-at-iframe';
     iframe.src = 'https://app.hearthis.at/embed/10124598/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=';
-    iframe.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;overflow:hidden;opacity:0;border:0;pointer-events:none;';
-    iframe.setAttribute('allow', 'autoplay');
+    iframe.style.cssText = 'position:absolute;top:4px;left:4px;width:60px;height:28px;border:0;opacity:0.92;border-radius:8px;pointer-events:none;z-index:1;';
+    iframe.setAttribute('allow','autoplay');
     const pb = document.getElementById('ul-player-body');
     (pb || document.body).appendChild(iframe);
   }
-
   window.startAudio = function(){
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
     const f = document.getElementById('hearthis-at-iframe');
-    if(f && f.contentWindow){
-      setTimeout(() => {
-        try{ f.contentWindow.postMessage({action:'play', autoplay:0}, 'https://app.hearthis.at'); }catch(e){}
-        try{ f.contentWindow.postMessage('play', 'https://app.hearthis.at'); }catch(e){}
-      }, 300);
-    }
+    if(f) f.src = f.src.replace(/autoplay=\d/, 'autoplay=1');
     const btn = document.getElementById('ul-play');
-    if(btn){ btn.textContent = '⏸'; btn.classList.add('playing'); }
+    if(btn){ btn.textContent = '?'; btn.classList.add('playing'); }
     if(typeof isPlaying !== 'undefined') isPlaying = true;
     if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
     if(typeof drawWaveform === 'function') animationId = requestAnimationFrame(drawWaveform);
   };
-
+  window.stopAudio = function(){
+    if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
+    const f = document.getElementById('hearthis-at-iframe');
+    if(f) f.src = f.src.replace(/autoplay=\d/, 'autoplay=0');
+    const btn = document.getElementById('ul-play');
+    if(btn){ btn.textContent = '?'; btn.classList.remove('playing'); }
+    if(typeof isPlaying !== 'undefined') isPlaying = false;
+    if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
+    if(typeof clearCanvas === 'function') clearCanvas();
+  };
   const playBtn = document.getElementById('ul-play');
   if(playBtn){
     playBtn.onclick = function(e){
       e.stopPropagation();
       const sheets = document.querySelectorAll('.ai-conv, #ai-dock, .overlay');
       sheets.forEach(s => s.style.pointerEvents = 'none');
-      startAudio();
+      if(typeof isPlaying !== 'undefined' && isPlaying){ if(typeof window.stopAudio === 'function') window.stopAudio(); }
+      else { if(typeof window.startAudio === 'function') window.startAudio(); }
       setTimeout(() => sheets.forEach(s => s.style.pointerEvents = ''), 500);
       return false;
     };
   }
-
   if(HUD){ HUD.style.pointerEvents = 'auto'; HUD.style.zIndex = 9999; }
-
-  const oldBtn = document.getElementById('ul-play');
-  if(oldBtn){
-    const btn = oldBtn.cloneNode(true);
-    oldBtn.parentNode.replaceChild(btn, oldBtn);
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      const sheets = document.querySelectorAll('.ai-conv, #ai-dock, .overlay');
-      sheets.forEach(s => s.style.pointerEvents = 'none');
-      if(typeof isPlaying !== 'undefined' && isPlaying){
-        if(typeof stopAudio === 'function') stopAudio();
-        btn.textContent = '▶'; btn.classList.remove('playing'); isPlaying = false;
-      } else {
-        window.startAudio();
-      }
-      setTimeout(() => sheets.forEach(s => s.style.pointerEvents = ''), 500);
-    });
-  }
 })();
