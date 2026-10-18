@@ -112,21 +112,23 @@
 
   function startAudio() {
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
-    let f = document.getElementById('ht-player-iframe');
-    if(!f){
-      f = document.createElement('iframe');
-      f.id = 'ht-player-iframe';
-      f.src = 'https://app.hearthis.at/embed/10124598/transparent_black/?autoplay=1';
-      f.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
-      f.setAttribute('allow','autoplay');
-      document.body.appendChild(f);
-    } else {
-      f.src = f.src.replace(/autoplay=\d/, 'autoplay=1');
+    let a = document.getElementById('ul-hack-audio');
+    if(!a){
+      a = document.createElement('audio');
+      a.id = 'ul-hack-audio';
+      a.crossOrigin = 'anonymous';
+      a.preload = 'metadata';
+      a.style.display = 'none';
+      a.src = 'https://hearthis.at/neohiro/rec20230920-141543/listen/?s=wxD';
+      document.body.appendChild(a);
     }
+    try{ a.play(); }catch(e){}
     isPlaying = true;
-    playBtn.textContent = '‖';
+    playBtn.textContent = '⏸';
+    playBtn.setAttribute('aria-label', 'Pause music');
     statusDot.classList.add('playing');
-    drawVisualizer();
+    if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
+    if(typeof drawWaveform === 'function') animationId = requestAnimationFrame(drawWaveform);
   }
 
   function startSynthFallback(track) {
@@ -171,14 +173,14 @@
 
   function stopAudio() {
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
-    const f = document.getElementById('ht-player-iframe');
-    if(f) f.src = f.src.replace(/autoplay=\d/, 'autoplay=0');
+    const a = document.getElementById('ul-hack-audio');
+    if(a){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
     isPlaying = false;
     playBtn.textContent = '▶';
     playBtn.setAttribute('aria-label', 'Play music');
     statusDot.classList.remove('playing');
-    try { localStorage.setItem(STORAGE_PREFIX + 'playing', 'false'); } catch(e){}
     if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
+    if(typeof clearCanvas === 'function') clearCanvas();
   }
 
   function drawVisualizer() {
