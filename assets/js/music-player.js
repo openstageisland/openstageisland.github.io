@@ -174,7 +174,7 @@
   function stopAudio() {
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
     const a = document.getElementById('ul-hack-audio');
-    if(a){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
+    if(a){ try{ a.pause(); a.currentTime = 0; }catch(e){}; a.remove(); }
     isPlaying = false;
     playBtn.textContent = '▶';
     playBtn.setAttribute('aria-label', 'Play music');
