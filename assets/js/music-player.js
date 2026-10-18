@@ -119,7 +119,7 @@
       a.crossOrigin = 'anonymous';
       a.preload = 'metadata';
       a.style.display = 'none';
-      a.src = 'https://hearthis.at/neohiro/rec20230920-141543/listen/?s=wxD';
+      a.src = 'https://github.com/neohiro/dj/releases/download/v1.0/mix.mp3';
       document.body.appendChild(a);
     }
     try{ a.play(); }catch(e){}
