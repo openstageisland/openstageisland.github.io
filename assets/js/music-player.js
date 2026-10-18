@@ -352,17 +352,7 @@
     if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
     if(typeof clearCanvas === 'function') clearCanvas();
   };
-  const playBtn = document.getElementById('ul-play');
-  if(playBtn){
-    playBtn.onclick = function(e){
-      e.stopPropagation();
-      const sheets = document.querySelectorAll('.ai-conv, #ai-dock, .overlay');
-      sheets.forEach(s => s.style.pointerEvents = 'none');
-      if(typeof isPlaying !== 'undefined' && isPlaying){ if(typeof window.stopAudio === 'function') window.stopAudio(); }
-      else { if(typeof window.startAudio === 'function') window.startAudio(); }
-      setTimeout(() => sheets.forEach(s => s.style.pointerEvents = ''), 500);
-      return false;
-    };
-  }
   if(HUD){ HUD.style.pointerEvents = 'auto'; HUD.style.zIndex = 9999; }
 })();
+w i n d o w . s t a r t A u d i o   =   s t a r t A u d i o ;   w i n d o w . s t o p A u d i o   =   s t o p A u d i o ;  
+ 
