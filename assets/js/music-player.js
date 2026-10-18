@@ -119,7 +119,8 @@
       a.crossOrigin = 'anonymous';
       a.preload = 'auto'; a.title = 'Neohiro DJ Mix';
       a.style.display = 'none';
-      a.src = 'https://github.com/neohiro/dj/releases/download/v1.0/Whats%20in%20the%20box%20%5BBurn2%5D%20-%20rec_20230920-141543%20(hearthis.at).mp3';
+      const tracks = ["https://github.com/neohiro/dj/releases/download/v1.0/Little%20Mistake%20-%20rec_20250803-185930%20(hearthis.at).mp3","https://github.com/neohiro/dj/releases/download/v1.0/Neo%20at%20Open%20Stage%20Island%20-%20rec_20250403-131400%20(hearthis.at).mp3","https://github.com/neohiro/dj/releases/download/v1.0/Whats%20in%20the%20box%20%5BBurn2%5D%20-%20rec_20230920-141543%20(hearthis.at).mp3"];
+      a.src = tracks[Math.floor(Math.random() * tracks.length)];
       document.body.appendChild(a);
     }
     try{ a.play(); }catch(e){}
