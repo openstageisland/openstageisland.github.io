@@ -233,17 +233,19 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  playBtn.addEventListener('click', () => {
+  playplayBtn.addEventListener('click', () => {
     if (isPlaying) stopAudio();
     else startAudio();
   });
+  playBtn.setAttribute('tabindex','0');
+playBtn.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (isPlaying) stopAudio(); else startAudio(); } });
 
-  prevBtn.addEventListener('click', () => {
+  prevplayBtn.addEventListener('click', () => {
     currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
     updateTrack();
   });
 
-  nextBtn.addEventListener('click', () => {
+  nextplayBtn.addEventListener('click', () => {
     currentTrack = (currentTrack + 1) % tracks.length;
     updateTrack();
   });
@@ -260,10 +262,12 @@
   });
 
   // Play button toggle
-  playBtn.addEventListener('click', () => {
+  playplayBtn.addEventListener('click', () => {
     if (isPlaying) stopAudio();
     else startAudio();
   });
+  playBtn.setAttribute('tabindex','0');
+playBtn.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (isPlaying) stopAudio(); else startAudio(); } });
 
   // Collapse HUD when not playing on load
   const hud = document.getElementById('ul-player');
