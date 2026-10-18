@@ -257,6 +257,19 @@
     }
   });
 
+  // Play button toggle
+  playBtn.addEventListener('click', () => {
+    if (isPlaying) stopAudio();
+    else startAudio();
+  });
+
+  // Collapse HUD when not playing on load
+  const hud = document.getElementById('ul-player');
+  if (hud && !isPlaying) {
+    hud.classList.add('collapsed');
+    hud.style.transform = 'translateY(-100%)';
+  }
+
   if (autoPlay) {
     const resumeOnInteract = () => {
       startAudio();
@@ -310,7 +323,4 @@
     if(typeof clearCanvas === 'function') clearCanvas();
   };
   if(HUD){ HUD.style.pointerEvents = 'auto'; HUD.style.zIndex = 9999; }
-})();
-w i n d o w . s t a r t A u d i o   =   s t a r t A u d i o ;   w i n d o w . s t o p A u d i o   =   s t o p A u d i o ; 
- 
- 
+})()
