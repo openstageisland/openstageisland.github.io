@@ -372,7 +372,12 @@
       e.stopPropagation();
       const sheets = document.querySelectorAll('.ai-conv, #ai-dock, .overlay');
       sheets.forEach(s => s.style.pointerEvents = 'none');
-      window.startAudio();
+      if(typeof isPlaying !== 'undefined' && isPlaying){
+        if(typeof stopAudio === 'function') stopAudio();
+        btn.textContent = '▶'; btn.classList.remove('playing'); isPlaying = false;
+      } else {
+        window.startAudio();
+      }
       setTimeout(() => sheets.forEach(s => s.style.pointerEvents = ''), 500);
     });
   }
