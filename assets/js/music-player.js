@@ -124,13 +124,19 @@
       fetch('https://hearthis.at/neohiro/podcast.xml', {signal: fetchController?.signal}).then(r => r.text()).then(str => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(str, 'application/xml');
-        const enclosures = Array.from(doc.querySelectorAll('enclosure[url]'));
-        if (enclosures.length) {
-          const best = enclosures[0].getAttribute('url');
-          if (best && best.includes('.mp3')) {
-            track.streamUrl = best;
-            track.name = 'Neohiro Mix — Portfolio';
-            trackTitle.textContent = track.name;
+        const items = Array.from(doc.querySelectorAll('item'));
+        for (const item of items) {
+          const enc = item.querySelector('enclosure[url]');
+          if (enc) {
+            const url = enc.getAttribute('url');
+            if (url && url.includes('.mp3')) {
+              track.streamUrl = url;
+              const titleEl = item.querySelector('title');
+              const realName = titleEl ? titleEl.textContent.trim() : 'Neohiro Mix';
+              track.name = realName;
+              trackTitle.textContent = realName;
+              break;
+            }
           }
         }
       }).catch(() => {});
@@ -367,5 +373,6 @@
   };
   if(HUD){ HUD.style.pointerEvents = 'auto'; HUD.style.zIndex = 9999; }
 })();
-w i n d o w . s t a r t A u d i o   =   s t a r t A u d i o ;   w i n d o w . s t o p A u d i o   =   s t o p A u d i o ;  
+w i n d o w . s t a r t A u d i o   =   s t a r t A u d i o ;   w i n d o w . s t o p A u d i o   =   s t o p A u d i o ; 
+ 
  
