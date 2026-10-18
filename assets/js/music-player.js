@@ -121,6 +121,19 @@
 
     try {
       const track = tracks[currentTrack];
+      fetch('https://hearthis.at/neohiro/podcast.xml', {signal: fetchController?.signal}).then(r => r.text()).then(str => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(str, 'application/xml');
+        const enclosures = Array.from(doc.querySelectorAll('enclosure[url]'));
+        if (enclosures.length) {
+          const best = enclosures[0].getAttribute('url');
+          if (best && best.includes('.mp3')) {
+            track.streamUrl = best;
+            track.name = 'Neohiro Mix — Portfolio';
+            trackTitle.textContent = track.name;
+          }
+        }
+      }).catch(() => {});
       
       if (track.streamUrl) {
         // Play the stream DIRECTLY through a plain <audio> element. Routing a
