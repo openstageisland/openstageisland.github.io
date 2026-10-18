@@ -111,81 +111,22 @@
   }
 
   function startAudio() {
-    // Cancel any in-flight play
-    if (playPromise) {
-      playPromise.catch(() => {});
-      playPromise = null;
+    if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
+    let f = document.getElementById('ht-player-iframe');
+    if(!f){
+      f = document.createElement('iframe');
+      f.id = 'ht-player-iframe';
+      f.src = 'https://app.hearthis.at/embed/10124598/transparent_black/?autoplay=1';
+      f.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+      f.setAttribute('allow','autoplay');
+      document.body.appendChild(f);
+    } else {
+      f.src = f.src.replace(/autoplay=\d/, 'autoplay=1');
     }
-
-    cleanupAudio();
-
-    try {
-      const track = tracks[currentTrack];
-      fetch('https://hearthis.at/neohiro/podcast.xml', {signal: fetchController?.signal}).then(r => r.text()).then(str => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(str, 'application/xml');
-        const items = Array.from(doc.querySelectorAll('item'));
-        for (const item of items) {
-          const enc = item.querySelector('enclosure[url]');
-          if (enc) {
-            const url = enc.getAttribute('url');
-            if (url && url.includes('.mp3')) {
-              track.streamUrl = url;
-              const titleEl = item.querySelector('title');
-              const realName = titleEl ? titleEl.textContent.trim() : 'Neohiro Mix';
-              track.name = realName;
-              trackTitle.textContent = realName;
-              break;
-            }
-          }
-        }
-      }).catch(() => {});
-      
-      if (track.streamUrl) {
-        // Play the stream DIRECTLY through a plain <audio> element. Routing a
-        // cross-origin element through createMediaElementSource() silently yields
-        // silence if the CDN's CORS headers are missing or a redirect hop drops
-        // them - the play() promise still resolves, so no fallback ever fires and
-        // the visitor hears nothing. hearthis.at's listen URLs redirect to a
-        // stream*.hearthis.at host that serves audio/mpeg with
-        // Access-Control-Allow-Origin: *, so direct playback is both reliable and
-        // immediate. The visualizer below is synthetic (HUD ambience), so we do not
-        // need - and deliberately do not build - a Web Audio graph for the element.
-        audioElement = new Audio();
-        audioElement.preload = 'none';
-        audioElement.loop = true;
-        audioElement.volume = Math.min(1, Math.max(0, parseFloat(volInput.value)));
-        audioElement.src = track.streamUrl;
-        audioElement.load();
-
-        // If the URL 404s or the network drops, surface it via the error event so
-        // we leave a dead, silent "playing" HUD.
-        const onStreamError = () => {
-          audioElement.removeEventListener('error', onStreamError);
-          if (isPlaying) stopAudio();
-        };
-        audioElement.addEventListener('error', onStreamError);
-
-        playPromise = audioElement.play();
-        playPromise.then(() => {
-          playPromise = null;
-          usingSynth = false;
-          isPlaying = true;
-          playBtn.textContent = '‖';
-          playBtn.setAttribute('aria-label', 'Pause music');
-          statusDot.classList.add('playing');
-          try { localStorage.setItem(STORAGE_PREFIX + 'playing', 'true'); } catch(e){}
-          drawVisualizer();
-        }).catch(() => {
-          playPromise = null;
-          stopAudio();
-        });
-      } else {
-        startSynthFallback(track);
-      }
-    } catch(e) {
-      startSynthFallback(tracks[currentTrack]);
-    }
+    isPlaying = true;
+    playBtn.textContent = '‖';
+    statusDot.classList.add('playing');
+    drawVisualizer();
   }
 
   function startSynthFallback(track) {
@@ -229,18 +170,15 @@
   }
 
   function stopAudio() {
-    if (playPromise) {
-      playPromise.catch(() => {});
-      playPromise = null;
-    }
-    cleanupAudio();
+    if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
+    const f = document.getElementById('ht-player-iframe');
+    if(f) f.src = f.src.replace(/autoplay=\d/, 'autoplay=0');
     isPlaying = false;
     playBtn.textContent = '▶';
     playBtn.setAttribute('aria-label', 'Play music');
     statusDot.classList.remove('playing');
     try { localStorage.setItem(STORAGE_PREFIX + 'playing', 'false'); } catch(e){}
-    if (animationId) cancelAnimationFrame(animationId);
-    clearCanvas();
+    if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
   }
 
   function drawVisualizer() {
