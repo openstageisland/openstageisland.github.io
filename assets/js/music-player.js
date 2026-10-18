@@ -337,7 +337,7 @@
     const f = document.getElementById('hearthis-at-iframe');
     if(f) f.src = f.src.replace(/autoplay=\d/, 'autoplay=1');
     const btn = document.getElementById('ul-play');
-    if(btn){ btn.textContent = '?'; btn.classList.add('playing'); }
+    if(btn){ btn.textContent = '⏸'; btn.classList.add('playing'); }
     if(typeof isPlaying !== 'undefined') isPlaying = true;
     if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
     if(typeof drawWaveform === 'function') animationId = requestAnimationFrame(drawWaveform);
@@ -347,7 +347,7 @@
     const f = document.getElementById('hearthis-at-iframe');
     if(f) f.src = f.src.replace(/autoplay=\d/, 'autoplay=0');
     const btn = document.getElementById('ul-play');
-    if(btn){ btn.textContent = '?'; btn.classList.remove('playing'); }
+    if(btn){ btn.textContent = '▶'; btn.classList.remove('playing'); }
     if(typeof isPlaying !== 'undefined') isPlaying = false;
     if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
     if(typeof clearCanvas === 'function') clearCanvas();
