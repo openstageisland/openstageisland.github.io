@@ -377,3 +377,4 @@ body { padding-top: 0 !important; }
 /* Raise scroll-to-explore */
 .scroll-indicator, .scroll-to-explore, .chevron-down, .hero-scroll-hint { margin-top: -3rem !important; }
 
+.links-section table, .links-table, table.links { width: 100% !important; max-width: 100% !important; margin-left: 0 !important; } .links-section .container { max-width: 100% !important; }
