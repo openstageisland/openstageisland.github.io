@@ -324,11 +324,18 @@
   const HUD = document.getElementById('ul-player');
   if(!HUD) return;
 
+  if(!document.getElementById('hearthis-at-iframe')){
+    const iframe = document.createElement('iframe');
+    iframe.id = 'hearthis-at-iframe';
+    iframe.src = 'https://app.hearthis.at/embed/10124598/transparent_black/?hcolor=&color=&style=2&block_size=2&block_space=1&background=1&waveform=0&cover=0&autoplay=0&css=';
+    iframe.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+    iframe.setAttribute('allow','autoplay');
+    document.body.appendChild(iframe);
+  }
   window.startAudio = function(){
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
-    let a = document.getElementById('ul-hack-audio');
-    if(!a){ a = document.createElement('audio'); a.id = 'ul-hack-audio'; a.crossOrigin = 'anonymous'; a.preload = 'metadata'; a.style.display = 'none'; a.src = 'https://hearthis.app/neohiro/rec20230920-141543/listen/?s=wxD'; const pb = document.getElementById('ul-player-body') || document.body; pb.appendChild(a); }
-    try{ a.play(); }catch(e){}
+    const f = document.getElementById('hearthis-at-iframe');
+    if(f) f.src = f.src.replace(/autoplay=\d/, 'autoplay=1');
     const btn = document.getElementById('ul-play');
     if(btn){ btn.textContent = '⏸'; btn.classList.add('playing'); }
     if(typeof isPlaying !== 'undefined') isPlaying = true;
@@ -337,8 +344,8 @@
   };
   window.stopAudio = function(){
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
-    const a = document.getElementById('ul-hack-audio');
-    if(a){ try{ a.pause(); a.currentTime = 0; }catch(e){} }
+    const f = document.getElementById('hearthis-at-iframe');
+    if(f) f.src = f.src.replace(/autoplay=\d/, 'autoplay=0');
     const btn = document.getElementById('ul-play');
     if(btn){ btn.textContent = '▶'; btn.classList.remove('playing'); }
     if(typeof isPlaying !== 'undefined') isPlaying = false;
