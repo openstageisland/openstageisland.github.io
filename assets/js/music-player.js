@@ -123,6 +123,7 @@
       a.src = tracks[Math.floor(Math.random() * tracks.length)];
       a.load();
       document.body.appendChild(a);
+    a.addEventListener('canplay', () => { try{ a.play(); }catch(e){} });
     }
     try{ a.play(); }catch(e){}
     isPlaying = true;
