@@ -82,8 +82,8 @@ html {
   padding: 0 max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left));
   background: transparent;
   /* Ghost Dock / Idle Reduction: subtle, unobtrusive when not in use */
-  opacity: 0.38;
-  transform: translateY(14px);
+  opacity: 1;
+  transform: translateY(8px);
   transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -91,7 +91,7 @@ html {
 .bottom-bar:focus-within,
 body.ai-conv-active .bottom-bar {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(-6px);
 }
 
 /* Explicit column placement. `grid-template-columns` alone is not enough: grid
