@@ -167,6 +167,20 @@
  * is the only styling a generated page needs.
  * -------------------------------------------------------------------------- */
 
+#matrix-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -5;
+  pointer-events: none;
+}
+
+.site-header,
+.hero-avatar-tags,
+.mhero {
+  position: relative;
+  z-index: 5;
+}
+
 .page-shell {
   /* Clear the fixed assistant bar (auth-bar.css) plus a little breathing room.
    * The bar is ~52px tall; --ai-dock-h is set by auth-bar when the dock is up. */
@@ -283,7 +297,21 @@
   .decor-grain::after {
     display: none !important;
   }
-  .page-shell {
+  #matrix-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -5;
+  pointer-events: none;
+}
+
+.site-header,
+.hero-avatar-tags,
+.mhero {
+  position: relative;
+  z-index: 5;
+}
+
+.page-shell {
     padding-bottom: 0;
   }
 }

@@ -1,3 +1,4 @@
+/* Music Player HUD — Ecosystem Audio Stream */
 (function() {
   const toggle = document.getElementById('ul-player-toggle');
   const player = document.getElementById('ul-player');
@@ -112,27 +113,32 @@
 
   function startAudio() {
     if(typeof cleanupAudio === 'function') try{cleanupAudio();}catch(e){}
+    const track = tracks[currentTrack] || tracks[0];
     let a = document.getElementById('ul-hack-audio');
-    if(!a){
+    if (!a) {
       a = document.createElement('audio');
       a.id = 'ul-hack-audio';
       a.crossOrigin = 'anonymous';
-      a.preload = 'auto'; a.title = 'Neohiro DJ Mix';
+      a.preload = 'auto';
+      a.title = track.name || 'Neohiro DJ Mix';
       a.style.display = 'none';
-      const tracks = ["https://github.com/neohiro/dj/releases/download/v1.0/Little.Mistake.-.rec_20250803-185930.hearthis.at.mp3","https://github.com/neohiro/dj/releases/download/v1.0/Neo.at.Open.Stage.Island.-.rec_20250403-131400.hearthis.at.mp3","https://github.com/neohiro/dj/releases/download/v1.0/Whats.in.the.box.Burn2.-.rec_20230920-141543.hearthis.at.mp3"];
-      a.src = tracks[Math.floor(Math.random() * tracks.length)];
-      a.load();
       document.body.appendChild(a);
-    a.addEventListener('canplay', () => { try{ a.play(); }catch(e){} });
     }
-    try{ a.play(); }catch(e){}
+    a.src = track.streamUrl || track.stream_url || "https://github.com/neohiro/dj/releases/download/v1.0/Whats.in.the.box.Burn2.-.rec_20230920-141543.hearthis.at.mp3";
+    a.load();
+    a.onerror = () => { if(typeof startSynthFallback === 'function') startSynthFallback(track); };
+    a.oncanplay = () => { try { a.play(); } catch(e){} };
+    try { a.play(); } catch(e){}
     isPlaying = true;
     playBtn.textContent = '⏸';
     playBtn.setAttribute('aria-label', 'Pause music');
     statusDot.classList.add('playing');
-    document.getElementById('ul-player').setAttribute('aria-live', 'polite');
+    const hud = document.getElementById('ul-player');
+    if (hud) { hud.classList.remove('collapsed'); hud.style.transform = ''; hud.setAttribute('aria-live', 'polite'); }
+    else if (document.getElementById('ul-player')) document.getElementById('ul-player').setAttribute('aria-live', 'polite');
     if(typeof animationId !== 'undefined' && animationId) cancelAnimationFrame(animationId);
     if(typeof drawWaveform === 'function') animationId = requestAnimationFrame(drawWaveform);
+    try { localStorage.setItem(STORAGE_PREFIX + 'playing', 'true'); } catch(e){}
   }
 
   function startSynthFallback(track) {
@@ -239,12 +245,12 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  playplayBtn.addEventListener('click', () => {
+  playBtn.addEventListener('click', () => {
     if (isPlaying) stopAudio();
     else startAudio();
   });
   playBtn.setAttribute('tabindex','0');
-playBtn.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (isPlaying) stopAudio(); else startAudio(); } });
+  playBtn.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (isPlaying) stopAudio(); else startAudio(); } });
 
   prevplayBtn.addEventListener('click', () => {
     currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
@@ -266,14 +272,6 @@ playBtn.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Ent
       audioElement.volume = val;
     }
   });
-
-  // Play button toggle
-  playplayBtn.addEventListener('click', () => {
-    if (isPlaying) stopAudio();
-    else startAudio();
-  });
-  playBtn.setAttribute('tabindex','0');
-playBtn.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (isPlaying) stopAudio(); else startAudio(); } });
 
   // Collapse HUD when not playing on load
   const hud = document.getElementById('ul-player');
