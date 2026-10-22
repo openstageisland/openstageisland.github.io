@@ -227,42 +227,6 @@ preload_hero: true
     </p>
   </section>
 
-  <section id="membership" class="guide-section" data-guide-section aria-labelledby="membership-heading">
-    <h2 id="membership-heading">&#127942; Membership</h2>
-    <p>
-      Open Stage Island runs a supporter ladder. The tiers below are reference
-      information for visitors and hosts &mdash; nothing on this page is for sale
-      and playing the stage is always free.
-    </p>
-    <ul class="tier-grid">
-      <li class="tier tier-free">
-        <span class="tier-name">&#127793; Free Resident</span>
-        <span class="tier-price">Free</span>
-        <span class="tier-desc">The default tier for every visitor.</span>
-      </li>
-      <li class="tier tier-unlock">
-        <span class="tier-name">&#128275; OSI Unlocker</span>
-        <span class="tier-price">199 L$/week</span>
-        <span class="tier-desc">Weekly supporter of the stage.</span>
-      </li>
-      <li class="tier tier-elite">
-        <span class="tier-name">&#129373; Elite DJ</span>
-        <span class="tier-price">999 L$/month</span>
-        <span class="tier-desc">Monthly supporter for regular performers.</span>
-      </li>
-      <li class="tier tier-tribe">
-        <span class="tier-name">&#127796; Tribe Member</span>
-        <span class="tier-price">Invite only</span>
-        <span class="tier-desc">By invitation from the team.</span>
-      </li>
-      <li class="tier tier-legend">
-        <span class="tier-name">&#128208; LEGEND TIER</span>
-        <span class="tier-price">4999 L$/month</span>
-        <span class="tier-desc">The top supporter tier.</span>
-      </li>
-    </ul>
-  </section>
-
   <section id="about" class="guide-section" data-guide-section aria-labelledby="about-heading">
     <h2 id="about-heading">About Open Stage Island</h2>
     <p>
@@ -492,6 +456,12 @@ preload_hero: true
            rel="noopener noreferrer">
           <span class="estate-name">Facebook</span>
           <span class="estate-url">facebook.openstageis.land</span>
+        </a>
+      </li>
+      <li>
+        <a class="estate-card" href="https://bsky.app/profile/openstageis.land" rel="noopener noreferrer">
+          <span class="estate-name">Bluesky</span>
+          <span class="estate-url">bsky.app/profile/openstageis.land</span>
         </a>
       </li>
       <li>
