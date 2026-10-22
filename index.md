@@ -3,6 +3,19 @@ layout: default
 title: "Open Stage Island — Visitor Guide"
 description: "The complete visitor guide for Open Stage Island: a free, 24/7 open-air electronic music stage in Second Life. Genres, how to play, reservations, streaming, hosting, tips, FAQ and how to visit."
 canonical: "https://openstageis.land/"
+# The permalink was MISSING here and on CODE_OF_CONDUCT.md, CONTRIBUTING.md,
+# destinations.md and SECURITY.md -- each of which carried only a `canonical:`
+# key. Jekyll ignores `canonical:` when deciding where a page is published, so
+# all five were being served from /<name>.html while claiming /<name>/ was their
+# canonical address.
+#
+# That was self-contradictory before, and worse after: jekyll-seo-tag used
+# page.canonical to emit the <link rel="canonical">, so each page advertised a
+# URL that 404'd. Once seo-head.html took over and honoured page.canonical, the
+# same 404 became a live canonical -- which is precisely the "canonical on a URL
+# that does not exist" mistake that de-indexes a page. Adding the permalinks
+# makes both statements true.
+permalink: /
 preload_hero: true
 ---
 

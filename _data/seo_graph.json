@@ -1,0 +1,71 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@id": "https://openstageis.land/#organization",
+      "@type": "Organization",
+      "alternateName": [
+        "Open Stage Island",
+        "openstageis.land",
+        "OSI"
+      ],
+      "areaServed": "Worldwide",
+      "description": "A free, 24/7 open-air electronic music stage in Second Life. Any artist can take the stage and play to a live audience: there is no fee at any point, and booking is a conversation rather than a payment. Open for guest sets, residencies and full night-long takeovers.",
+      "foundingDate": "2020",
+      "knowsAbout": [
+        "Second Life",
+        "Second Life venue",
+        "Second Life music",
+        "Second Life destination",
+        "Second Life DJ",
+        "open-air stage",
+        "open stage",
+        "live music venue",
+        "electronic music",
+        "techno",
+        "house music",
+        "trance",
+        "psytrance",
+        "drum and bass",
+        "DJ set",
+        "DJ residency",
+        "guest DJ",
+        "virtual world",
+        "virtual venue",
+        "online event",
+        "livestream",
+        "booking a DJ slot",
+        "free venue"
+      ],
+      "logo": {
+        "@type": "ImageObject",
+        "caption": "Open Stage Island",
+        "url": "https://openstageis.land/assets/favicon.svg"
+      },
+      "name": "Open Stage Island",
+      "sameAs": [
+        "https://github.com/openstageisland",
+        "https://bsky.app/profile/openstageis.land",
+        "https://maps.secondlife.com/secondlife/Derwent/248/130/22",
+        "https://frenzypenguin.media/",
+        "https://neohiro.github.io/",
+        "https://transhumanists.github.io/"
+      ],
+      "url": "https://openstageis.land/"
+    },
+    {
+      "@id": "https://openstageis.land/#website",
+      "@type": "WebSite",
+      "alternateName": [
+        "https://openstageisland.github.io/"
+      ],
+      "description": "A free, 24/7 open-air electronic music stage in Second Life. Any artist can take the stage and play to a live audience: there is no fee at any point, and booking is a conversation rather than a payment. Open for guest sets, residencies and full night-long takeovers.",
+      "inLanguage": "en",
+      "name": "Open Stage Island",
+      "publisher": {
+        "@id": "https://openstageis.land/#organization"
+      },
+      "url": "https://openstageis.land/"
+    }
+  ]
+}

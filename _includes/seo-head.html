@@ -1,0 +1,268 @@
+{%- comment -%}
+seo-head.html -- the ONLY place this site writes search metadata.
+
+Why this file exists at all, given jekyll-seo-tag was already doing this job:
+
+  The site shipped a hand-written <title> and <meta name="description"> in
+  _layouts/default.html AND {% raw %}{% seo %}{% endraw %} a few lines below them. Both rendered, on
+  every page, on all four sites. That is two <title> elements and two meta
+  descriptions per URL, which is undefined behaviour: each engine picks one,
+  inconsistently, and which one it picks is not something you control. The
+  hand-written pair also ignored front matter, so it rendered the same string
+  for the homepage and for all 17 tool pages.
+
+  So this file replaces {% raw %}{% seo %}{% endraw %} entirely and owns the whole head: one title, one
+  description, one canonical, one set of Open Graph tags, one set of Twitter
+  tags, one JSON-LD graph. One writer means one answer, and check_seo.py can
+  assert "exactly one" because there is only one place to look.
+
+Contract, enforced by scripts/check_seo.py:
+
+  * exactly one <title> per page
+  * exactly one <meta name="description"> per page, unique across the site
+  * exactly one <link rel="canonical">, always absolute, always on site.origin
+  * og:image and twitter:image always present and always a real PNG
+  * the JSON-LD block always parses, and always has the site-level nodes
+
+Precedence for each field, highest first:
+
+  title        page.seo_title  >  page.title  >  site.title
+  description  page.description  >  <tool node description>  >  site.description
+  canonical    page.canonical  >  site.origin + page.url
+  image        page.image  >  <tool card>  >  site card from _data/seo.yml
+  robots       page.robots  >  "index, follow"
+
+`page.seo_title` is separate from `page.title` on purpose: the H1 wants the
+short brand ("LANScan"), and a SERP line wants the searchable phrase ("LANScan —
+LAN device scanner"). Forcing one string to do both job produces a page that
+either reads badly or ranks badly.
+{%- endcomment -%}
+
+{%- assign seo = site.data.seo -%}
+{%- assign origin = seo.origin -%}
+{%- comment -%}
+  Whether this site has a tool catalogue at all. build_seo.py only emits the
+  ItemList node when there is at least one tool, so anything pointing at it has
+  to be conditional too -- otherwise the homepage of a site with no tools
+  declares a mainEntity that resolves to nothing. An unresolved @id reference
+  is silently dropped by every consumer, so it does not break anything; it just
+  leaves a hole in the graph that nobody notices.
+{%- endcomment -%}
+{%- assign seo_graph_has_tools = false -%}
+{%- for node in site.data.seo_graph["@graph"] -%}
+  {%- if node["@type"] == "ItemList" -%}{%- assign seo_graph_has_tools = true -%}{%- endif -%}
+{%- endfor -%}
+{%- assign is_home = false -%}
+{%- if page.url == "/" or page.url == "/index.html" -%}{%- assign is_home = true -%}{%- endif -%}
+
+{%- comment -%} ---- title -------------------------------------------------------- {%- endcomment -%}
+{%- assign seo_title = page.seo_title | default: page.title | default: site.title -%}
+{%- comment -%}
+  A tool page's SERP line comes from _data/seo.yml, not from its front matter.
+  Two reasons. First, keeping every piece of search copy in one file is the
+  point of having a single source of truth. Second, the alternative -- adding
+  seo_title to each _tools/*.md -- would put a second copy of the tool name,
+  platform and keywords next to the ones already in that file's tagline and
+  category, and those are exactly the duplicates verify_data.py exists to catch.
+
+  The slug is derived from the URL rather than page.slug, because the collection
+  sets :name to the basename and we want the same string _tools/<slug>.md used,
+  with no dependence on which of Jekyll's page variables happens to be
+  populated for a collection document.
+{%- endcomment -%}
+{%- assign tool_slug = "" -%}
+{%- if page.collection == "tools" -%}
+  {%- assign parts = page.url | split: "/" -%}
+  {%- assign tool_slug = parts[2] -%}
+  {%- assign tool_meta = seo.tools[tool_slug] -%}
+  {%- if tool_meta.seo_title -%}
+    {%- assign seo_title = tool_meta.seo_title -%}
+  {%- endif -%}
+{%- endif -%}
+{%- assign brand = seo.brand -%}
+{%- comment -%}
+  Append the brand only when it is not already the whole title. Appending
+  unconditionally is how you end up with "LANScan | neohiro" instead of
+  "LANScan — LAN device scanner | neohiro", and the half of the SERP line the
+  human reads is the half you just spent the character budget on.
+{%- endcomment -%}
+{%- assign full_title = seo_title -%}
+{%- unless seo_title == brand or seo_title == site.title -%}
+  {%- if seo_title contains brand -%}
+    {%- assign full_title = seo_title -%}
+  {%- else -%}
+    {%- assign full_title = seo_title | append: " | " | append: brand -%}
+  {%- endif -%}
+{%- endunless -%}
+
+{%- comment -%} ---- description -------------------------------------------------- {%- endcomment -%}
+{%- comment -%}
+  A tool page has no `description` in its front matter -- that omission is the
+  bug this replaces -- so its description is read straight out of the generated
+  JSON-LD, which is built from the tool's own tagline, platform and keywords.
+  One source, so the SERP line and the structured data can never disagree.
+{%- endcomment -%}
+{%- assign tool_node = nil -%}
+{%- if page.collection == "tools" -%}
+  {%- assign want = origin | append: page.url | append: "#tool" -%}
+  {%- assign matched = site.data.seo_graph["@graph"] | where: "@id", want -%}
+  {%- assign tool_node = matched | first -%}
+{%- endif -%}
+{%- assign seo_desc = page.description | default: tool_node.description | default: seo.organization.description | default: site.description -%}
+
+{%- comment -%} ---- canonical, image, robots ------------------------------------- {%- endcomment -%}
+{%- assign canonical = page.canonical | default: origin | append: page.url -%}
+{%- comment -%} Strip a trailing slash from a hand-written canonical only when it is
+  the bare origin, so https://neohiro.github.io/ and https://neohiro.github.io
+  cannot both be emitted as canonicals for the same page. {%- endcomment -%}
+{%- if canonical == origin -%}{%- assign canonical = origin | append: "/" -%}{%- endif -%}
+
+{%- assign og = seo.og -%}
+{%- assign og_image = og.image -%}
+{%- assign og_alt = og.alt -%}
+{%- if tool_node -%}
+  {%- assign og_image = "/assets/og/tools/" | append: tool_slug | append: ".png" -%}
+  {%- assign og_alt = tool_node.name | append: " — " | append: tool_node.description -%}
+{%- endif -%}
+{%- if page.image -%}
+  {%- assign og_image = page.image -%}
+{%- endif -%}
+{%- assign og_image_abs = og_image -%}
+{%- unless og_image contains "://" -%}
+  {%- assign og_image_abs = origin | append: og_image -%}
+{%- endunless -%}
+
+{%- assign robots = page.robots | default: "index, follow" -%}
+{%- comment -%}
+  og:type. `article` is reserved for dated editorial content, and a tool page is
+  not that: it has no byline, no publication date and no prose. Tagging it
+  `article` is what Facebook does not support and what Google's rich-result
+  validator rejects, so it is worth being precise. The check is on the posts
+  collection rather than on `page.date`, because Jekyll populates `date` for
+  collection documents generally, which put every tool page in `article`.
+{%- endcomment -%}
+{%- assign og_type = "website" -%}
+{%- if page.collection == "posts" or page.layout == "post" -%}
+  {%- assign og_type = "article" -%}
+{%- endif -%}
+
+  <title>{{ full_title | strip_html | normalize_whitespace | xml_escape }}</title>
+  <meta name="description" content="{{ seo_desc | strip_html | normalize_whitespace | truncate: 300, '' | xml_escape }}">
+  <meta name="robots" content="{{ robots | xml_escape }}">
+  <link rel="canonical" href="{{ canonical | xml_escape }}">
+
+  <meta property="og:type" content="{{ og_type }}">
+  <meta property="og:site_name" content="{{ brand | xml_escape }}">
+  <meta property="og:title" content="{{ full_title | strip_html | normalize_whitespace | xml_escape }}">
+  <meta property="og:description" content="{{ seo_desc | strip_html | normalize_whitespace | truncate: 300, '' | xml_escape }}">
+  <meta property="og:url" content="{{ canonical | xml_escape }}">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="{{ og_image_abs | xml_escape }}">
+  <meta property="og:image:width" content="{{ og.width }}">
+  <meta property="og:image:height" content="{{ og.height }}">
+  <meta property="og:image:alt" content="{{ og_alt | strip_html | normalize_whitespace | xml_escape }}">
+
+  <meta name="twitter:card" content="{{ og.twitter_card | default: 'summary_large_image' }}">
+  {%- if seo.social.twitter %}
+  <meta name="twitter:site" content="@{{ seo.social.twitter }}">
+  <meta name="twitter:creator" content="@{{ seo.social.twitter }}">
+  {%- endif %}
+  <meta name="twitter:title" content="{{ full_title | strip_html | normalize_whitespace | xml_escape }}">
+  <meta name="twitter:description" content="{{ seo_desc | strip_html | normalize_whitespace | truncate: 300, '' | xml_escape }}">
+  <meta name="twitter:image" content="{{ og_image_abs | xml_escape }}">
+  <meta name="twitter:image:alt" content="{{ og_alt | strip_html | normalize_whitespace | xml_escape }}">
+
+{%- comment -%} ---- JSON-LD ------------------------------------------------------ {%- endcomment -%}
+{%- comment -%}
+  The site-level graph (Organization, WebSite, every SoftwareApplication, the
+  tools ItemList) is generated by scripts/build_seo.py into _data/seo_graph.json
+  and emitted verbatim with jsonify -- no Liquid string-building, so no chance of
+  an unescaped quote producing invalid JSON that a crawler silently discards.
+
+  The per-page nodes below are the only part built in Liquid. They reference the
+  site nodes by @id rather than repeating them, which is what lets Google merge
+  the page into the site entity instead of treating each URL as its own thing.
+{%- endcomment -%}
+{%- capture seo_graph_json -%}{{- site.data.seo_graph | jsonify -}}{%- endcapture -%}
+{%- assign page_nodes = "" | split: "" -%}
+
+{%- if tool_node -%}
+  {%- capture tool_about -%}
+    {{ seo_desc | strip_html | normalize_whitespace | jsonify }}
+  {%- endcapture -%}
+  {%- capture tool_nodes -%}
+    [
+      {
+        "@type": "WebPage",
+        "@id": {{ canonical | append: "#webpage" | jsonify }},
+        "url": {{ canonical | jsonify }},
+        "name": {{ seo_title | strip_html | normalize_whitespace | jsonify }},
+        "description": {{ seo_desc | strip_html | normalize_whitespace | jsonify }},
+        "inLanguage": "en",
+        "isPartOf": { "@id": {{ origin | append: "/#website" | jsonify }} },
+        "about": { "@id": {{ tool_node["@id"] | jsonify }} },
+        "breadcrumb": { "@id": {{ canonical | append: "#breadcrumb" | jsonify }} }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": {{ canonical | append: "#breadcrumb" | jsonify }},
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": {{ brand | jsonify }}, "item": {{ origin | append: "/" | jsonify }} },
+          { "@type": "ListItem", "position": 2, "name": "Tools", "item": {{ origin | append: "/repositories/" | jsonify }} },
+          { "@type": "ListItem", "position": 3, "name": {{ seo_title | strip_html | normalize_whitespace | jsonify }} }
+        ]
+      }
+    ]
+  {%- endcapture -%}
+{%- elsif is_home -%}
+  {%- capture tool_nodes -%}
+    [
+      {
+        "@type": "WebPage",
+        "@id": {{ canonical | append: "#webpage" | jsonify }},
+        "url": {{ canonical | jsonify }},
+        "name": {{ full_title | strip_html | normalize_whitespace | jsonify }},
+        "description": {{ seo_desc | strip_html | normalize_whitespace | jsonify }},
+        "inLanguage": "en",
+        "isPartOf": { "@id": {{ origin | append: "/#website" | jsonify }} },
+        "primaryImageOfPage": { "@id": {{ origin | append: og.image | append: "#primaryimage" | jsonify }} },
+        "about": { "@id": {{ origin | append: "/#organization" | jsonify }} }{% if seo_graph_has_tools %},
+        "mainEntity": { "@id": {{ origin | append: "/#tools" | jsonify }} }{% endif %}
+      },
+      {
+        "@type": "ImageObject",
+        "@id": {{ origin | append: og.image | append: "#primaryimage" | jsonify }},
+        "url": {{ origin | append: og.image | jsonify }},
+        "width": {{ og.width }},
+        "height": {{ og.height }},
+        "caption": {{ og_alt | strip_html | normalize_whitespace | jsonify }}
+      }
+    ]
+  {%- endcapture -%}
+{%- else -%}
+  {%- capture tool_nodes -%}
+    [
+      {
+        "@type": "WebPage",
+        "@id": {{ canonical | append: "#webpage" | jsonify }},
+        "url": {{ canonical | jsonify }},
+        "name": {{ seo_title | strip_html | normalize_whitespace | jsonify }},
+        "description": {{ seo_desc | strip_html | normalize_whitespace | jsonify }},
+        "inLanguage": "en",
+        "isPartOf": { "@id": {{ origin | append: "/#website" | jsonify }} },
+        "breadcrumb": { "@id": {{ canonical | append: "#breadcrumb" | jsonify }} }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": {{ canonical | append: "#breadcrumb" | jsonify }},
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": {{ brand | jsonify }}, "item": {{ origin | append: "/" | jsonify }} },
+          { "@type": "ListItem", "position": 2, "name": {{ seo_title | strip_html | normalize_whitespace | jsonify }} }
+        ]
+      }
+    ]
+  {%- endcapture -%}
+{%- endif -%}
+
+  <script type="application/ld+json">{{ seo_graph_json | replace: "&#39;", "'" }}</script>
+  <script type="application/ld+json">{{ tool_nodes }}</script>

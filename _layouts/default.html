@@ -32,7 +32,17 @@
        element.style.cssText, both of which style-src governs. -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; frame-src https://secondlife.com https://maps.secondlife.com; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://neohiro.github.io https://mainframe.taild879f3.ts.net; base-uri 'self'; form-action 'self'">
-  {% seo %}
+  {%- comment -%}
+    Search metadata: title, description, canonical, Open Graph, Twitter and
+    JSON-LD all come from _includes/seo-head.html and from nowhere else.
+
+    {% seo %} used to sit here. It is replaced rather than complemented: two
+    writers of <title> and <link rel="canonical"> means two answers, and which
+    one an engine believes is not something the site controls. On this site that
+    mattered more than anywhere else -- see the origin note at the top of
+    _data/seo.yml. See the header of _includes/seo-head.html.
+  {%- endcomment -%}
+  {% include seo-head.html %}
   <link rel="stylesheet" href="{{ '/assets/css/site-tokens.css' | relative_url }}">
   <link rel="stylesheet" href="{{ '/assets/css/site-forge.css' | relative_url }}">
   {%- comment -%} fonts: managed by template-shared/site_forge.py from sites.yaml {%- endcomment -%}

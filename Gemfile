@@ -3,8 +3,8 @@ source "https://rubygems.org"
 gem "jekyll", "~> 4.3"
 gem "kramdown-parser-gfm"
 gem "webrick", "~> 1.8"
-# Required by {% seo %} in _layouts/default.html. Liquid raises on unknown tags
-# in every error mode, so without this gem `jekyll build` fails outright. The
-# GitHub Pages build tolerates the missing gem because its own whitelist loads
-# jekyll-seo-tag, which is why only CI was red.
+# Retired: the {% seo %} tag that used to live in _layouts/default.html.
+# Search metadata is written by _includes/seo-head.html now -- see _config.yml
+# for why there is exactly one writer. The gem stays listed only so an existing
+# Gemfile.lock keeps resolving; nothing loads it.
 gem "jekyll-seo-tag", "~> 2.8"

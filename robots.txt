@@ -1,0 +1,66 @@
+# robots.txt -- openstageis.land
+#
+# See neohiro.github.io/robots.txt for the full policy; this file is the same
+# policy applied to this site.
+#
+# The vanity-domain detail, because it is the one that bites here: this site is
+# served at openstageis.land via CNAME, while the repository openstageisland
+# also builds and serves it at openstageisland.github.io. Canonicals and og:url
+# are always built from `origin:` in _data/seo.yml, which is the CNAME host, and
+# never from the host a page happened to be requested on. The repository host is
+# declared as an alias in website.aliases so a crawler landing there is pointed
+# at the canonical rather than left to guess. scripts/check_seo.py fails the
+# build if origin and CNAME ever disagree -- which is the single check that keeps
+# this site from being de-indexed on its real domain.
+#
+# Nothing is blocked. The venue guide, the destination data and the live counters
+# are all meant to be found.
+
+User-agent: *
+Allow: /
+
+# AI and answer-engine crawlers, named explicitly rather than relying on the
+# wildcard above. Several of these read their own token first and treat a site as
+# disallowed unless they find themselves named, even when `User-agent: *` allows
+# everything.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: MistralAI-User
+Allow: /
+
+Sitemap: https://openstageis.land/sitemap.xml
+
+# The AI-crawler manifest, generated from _data/seo.yml so it cannot go stale.
+# llms.txt:  https://openstageis.land/llms.txt
+# llms-full.txt: https://openstageis.land/llms-full.txt

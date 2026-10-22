@@ -1,0 +1,32 @@
+# Open Stage Island
+
+> A free, 24/7 open-air electronic music stage in Second Life. Any artist can take the stage and play to a live audience: there is no fee at any point, and booking is a conversation rather than a payment. Open for guest sets, residencies and full night-long takeovers.
+
+A free, 24/7 open-air electronic music stage in Second Life. Any artist can take the stage and play to a live audience -- there is no fee at any point in the process, and booking is a conversation rather than a payment. Open for guest sets, residencies and full night-long takeovers, with live visitor counters and real-time destination status published openly.
+
+## What this site covers
+
+- **Second Life music venue** -- A 24/7 open-air electronic music stage in Second Life: a permanent venue with a full sound system, visible from the water, open to any artist at any hour of any day.
+- **DJing in Second Life** -- How to take the stage: register a free Second Life account, turn up, and claim a slot. Guest sets, residencies and full takeovers all welcome, with no fee and no application process.
+- **Listening to live music in Second Life** -- What is on, how to hear it, how to get there in the viewer or a browser, and how to tip an artist. Reservation slots are listed with set times.
+- **Streaming and live data** -- Live visitor counters and real-time destination status, published as open data and readable from a browser.
+- **Destination details** -- The official Second Life destination record: location, coordinates, parcel details and a live embed of the destination page.
+
+## Other pages
+
+- [Visitor guide](https://openstageis.land/): Everything a visitor needs: genres, how to play, reservations, streaming, hosting, tips and FAQ.
+- [Destination data](https://openstageis.land/destinations/): Live embed of the official destination page, plus location and coordinates.
+- [Live data](https://openstageis.land/live.html): Visitor counters and real-time destination status.
+- [Contributing](https://openstageis.land/CONTRIBUTING/): How to report an issue, suggest an improvement or send a patch.
+- [Code of conduct](https://openstageis.land/CODE_OF_CONDUCT/): The behaviour expected of everyone taking part.
+- [Security policy](https://openstageis.land/SECURITY/): How to report a vulnerability affecting this site.
+- [AI disclosure](https://openstageis.land/ai-disclosure/): How AI assistance is used on this site, stated plainly.
+
+## Related sites in this network
+
+- https://frenzypenguin.media/
+- https://transhumanists.github.io/
+
+## Licensing
+
+The tooling is open source. See https://openstageis.land/LICENSE for the licence of the site content and https://github.com/openstageisland for per-repository licences.

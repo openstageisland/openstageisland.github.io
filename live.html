@@ -1,10 +1,21 @@
+---
+# Front matter only so _includes/seo-head.html renders. No `layout:`, on
+# purpose: this is a standalone live-data panel with its own inline stylesheet,
+# and inheriting the site layout would pull in the nav and auth-bar scripts it
+# does not need.
+#
+# Before this the page shipped a <title> and a description and nothing else: no
+# canonical, no Open Graph card, no structured data -- despite being the page
+# that carries this site's live numbers, which is the most linkable thing here.
+seo_title: "Live data — Open Stage Island destination status"
+description: "Live Open Stage Island data: visitor counters and real-time status for the Second Life destination, published as open data and readable in any browser."
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Open Stage Island / Live Data</title>
-    <meta name="description" content="Live Open Stage Island data: visitor counters and real-time status for the Second Life destination.">
+  {% include seo-head.html %}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root { --bg: #080a0e; --surface: #0f1318; --border: #1a2030; --fg: #eceff1; --fg-muted: #667788; --accent: #7c4dff; --green: #00cc88; --blue: #00aaff; --magenta: #ff0066; }

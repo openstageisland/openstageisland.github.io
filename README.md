@@ -52,3 +52,28 @@
 <div align="center">
   <a href="https://visitorbadge.io/status?path=github.com%2Fopenstageisland%2Fopenstageisland.github.io" rel="noopener noreferrer nofollow"><img src="https://api.visitorbadge.io/api/visitors?path=github.com%2Fopenstageisland%2Fopenstageisland.github.io&label=Visitors&countColor=%23263759" alt="Visitors" /></a>
 </div>
+## SEO layer
+
+Search metadata has one writer, `_includes/seo-head.html`, driven by
+[`_data/seo.yml`](_data/seo.yml). `jekyll-seo-tag` is no longer enabled.
+
+```bash
+python scripts/build_seo.py         # regenerate llms.txt, graph, sitemap.xml
+python scripts/build_seo.py --check # CI: fail if stale
+python scripts/make_og.py           # re-render the 1200x630 card
+python scripts/check_seo.py         # gate, against the built site
+```
+
+This is the only site in the network whose canonical host differs from its
+repository name. Four pages carried a canonical pointing at
+`openstageisland.github.io` while the CNAME serves `openstageis.land`, which
+tells the engine to consolidate onto the repository host — the single most
+expensive mistake available to a vanity-domain site. `check_seo.py` now asserts
+`origin` matches `CNAME` on every build.
+
+`sitemap.xml` is generated and committed here rather than left to GitHub Pages,
+which emits one for Jekyll sites as undocumented platform behaviour: it held on
+production while failing every local build.
+
+The reference for the whole network is
+[`template-shared/docs/seo-layer.md`](../template-shared/docs/seo-layer.md).

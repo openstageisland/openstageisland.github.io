@@ -5,10 +5,10 @@
 # existed in any of the four sites. With it present the existing include renders
 # the links with no template change at all.
 #
-# bluesky is set to openstageisland.bsky.social, which is free and NOT YET
+# bluesky is set to openstageis.land, which is free and NOT YET
 # CLAIMED (TASK-BSKY-CLAIM-OSI). The link is in place so it is not forgotten;
 # the task is what gates going live. Until then the profile 404s.
 github: openstageisland
 sponsors: openstageisland
-bluesky: openstageisland.bsky.social
+bluesky: openstageis.land
 website: https://openstageis.land

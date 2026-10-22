@@ -153,6 +153,31 @@ jobs:
         # exclusion actually took effect.
         run: python3 .github/scripts/check_publish_artifacts.py --site _site --config _config.yml
 
+      - name: Verify SEO artifacts are in sync with _data/seo.yml
+        # llms.txt, llms-full.txt, sitemap.xml and _data/seo_graph.json are
+        # generated from seo.yml. Hand-maintained they would name routes that
+        # stop building the first time a page moves, and the crawlers that trust
+        # the manifest stop being useful. Also validates that every logo,
+        # og:image, topic page and advertised route resolves.
+        run: python3 scripts/build_seo.py --check
+
+      - name: Check the SEO layer against the built site
+        # The most important check on this site, and the one with the longest
+        # reach. This is the only site in the network served from a vanity
+        # domain, so it asserts that every canonical and og:url is on the CNAME
+        # host -- a canonical on the .github.io host tells the engine to
+        # consolidate onto that host, which is how a custom domain silently
+        # stops being indexed. Also catches duplicate <title>/description,
+        # missing og:image, unparseable JSON-LD and a site-wide robots Disallow.
+        run: python3 scripts/check_seo.py
+
+      - name: Test the site-wide SEO gate itself
+        # check_seo.py had two silent-failure bugs while it was written -- a
+        # JSON-LD branch that was unreachable, and a cross-page accumulator that
+        # was actually per-page. Both made it report green on the exact defects
+        # it exists to catch. Without this step the gate is decorative.
+        run: python3 scripts/test_check_seo.py
+
       - name: Validate local asset references
         # Replaces a shell pipeline that skipped every reference starting with
         # "/". Because `relative_url` emits root-absolute paths when baseurl is

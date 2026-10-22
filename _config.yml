@@ -27,8 +27,22 @@ kramdown:
 # {% seo %} in _layouts/default.html needs this plugin registered. Declared
 # explicitly (rather than relying on the GitHub Pages whitelist) so a local
 # `jekyll build` and the ci.yml build behave the same as production.
-plugins:
-  - jekyll-seo-tag
+plugins: []
+# jekyll-seo-tag is deliberately NOT enabled any more, even though the gem is
+# still in the Gemfile.
+#
+# Search metadata now has a single owner -- _includes/seo-head.html -- which
+# reads _data/seo.yml and the generated _data/seo_graph.json. That matters more
+# here than on the other three sites: this is the only one served from a vanity
+# domain, so a canonical emitted from the wrong host is not a cosmetic error but
+# the thing that de-indexes the real domain. scripts/check_seo.py asserts origin
+# matches CNAME, and asserts there is only one writer.
+# See the header comment in _includes/seo-head.html before changing this.
+#
+# Note there is no sitemap plugin here. GitHub Pages generates sitemap.xml for
+# Jekyll sites by default, which is why robots.txt can advertise one; if that
+# ever stops being true, check_seo.py fails on the missing sitemap rather than
+# the absence going unnoticed.
 
 exclude:
   - Gemfile
@@ -47,7 +61,7 @@ exclude:
 
 
 # >>> top-bar contract (managed by template-shared/site_forge.py)
-# Top-bar contract. Rendered by _includes/nav.html — ONE template serves
+# Top-bar contract. Rendered by _includes/nav.html â€” ONE template serves
 # every site in the network; only these lists differ. Format is
 # "Label|url" with an optional trailing drop-priority (2|3|4). Labels MUST
 # stay one word: the bar is not sticky, so a long label is the only thing
@@ -62,7 +76,7 @@ nav_links:
 
 community_links:
   - "Org Overview|https://github.com/openstageisland"
-  - "Bluesky|https://bsky.app/profile/openstageisland.bsky.social"
+  - "Bluesky|https://bsky.app/profile/openstageis.land"
   - "neohiro|https://neohiro.github.io/"
   - "Sponsor|https://github.com/sponsors/openstageisland"
 

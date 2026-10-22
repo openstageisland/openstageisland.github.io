@@ -1,0 +1,224 @@
+# _data/seo.yml -- single source of truth for openstageis.land.
+#
+# Companion to neohiro.github.io/_data/seo.yml, same schema, one set of scripts.
+# Read that header first.
+#
+# TWO THINGS SPECIFIC TO THIS SITE, both of which cost real rankings if missed:
+#
+# 1. This is the only site in the network on a vanity domain that differs from
+#    its repository name. `origin` must be the CNAME host, openstageis.land, and
+#    must never be the .github.io host -- the repository still builds and serves
+#    there, so it is trivially easy to emit a canonical on the wrong one, and a
+#    canonical on a host the site is not primarily served from tells the engine
+#    to consolidate onto that host. Four of this site's pages carried exactly
+#    that before it was fixed. scripts/check_seo.py fails the build if origin and
+#    CNAME disagree.
+#
+# 2. The audience is Second Life residents, not searchers. Somebody looking for a
+#    place to DJ in a virtual world is a small, real, findable population, and
+#    almost all of them arrive through in-world links, the SL web map, or a
+#    search for "second life music venue". The clusters below are written for
+#    that person: what the place is, that it is free, and how to take the stage.
+
+origin: "https://openstageis.land"
+
+brand: "Open Stage Island"
+brand_long: "Open Stage Island"
+
+organization:
+  type: "Organization"
+  alternate_name: ["Open Stage Island", "openstageis.land", "OSI"]
+  description: >-
+    A free, 24/7 open-air electronic music stage in Second Life. Any artist can
+    take the stage and play to a live audience: there is no fee at any point, and
+    booking is a conversation rather than a payment. Open for guest sets, residencies
+    and full night-long takeovers.
+  founding_date: "2020"
+  area_served: "Worldwide"
+  # Written for how this audience actually searches. Second Life residents look
+  # for a venue, for a genre, or for the word "DJ" -- not for "virtual world
+  # platform", which is what a generic keyword list would have produced.
+  knows_about:
+    - "Second Life"
+    - "Second Life venue"
+    - "Second Life music"
+    - "Second Life destination"
+    - "Second Life DJ"
+    - "open-air stage"
+    - "open stage"
+    - "live music venue"
+    - "electronic music"
+    - "techno"
+    - "house music"
+    - "trance"
+    - "psytrance"
+    - "drum and bass"
+    - "DJ set"
+    - "DJ residency"
+    - "guest DJ"
+    - "virtual world"
+    - "virtual venue"
+    - "online event"
+    - "livestream"
+    - "booking a DJ slot"
+    - "free venue"
+
+website:
+  type: "WebSite"
+  in_language: "en"
+  # The repository host still builds and serves this site. Declared as an alias
+  # so a crawler landing there learns the canonical is openstageis.land, rather
+  # than treating the two as separate sites competing for the same content.
+  aliases: ["https://openstageisland.github.io/"]
+
+social:
+  twitter: ""
+  bluesky: "https://bsky.app/profile/openstageis.land"
+  github: "https://github.com/openstageisland"
+  mastodon: ""
+  youtube: ""
+  same_as:
+    - "https://github.com/openstageisland"
+    - "https://bsky.app/profile/openstageis.land"
+    - "https://maps.secondlife.com/secondlife/Derwent/248/130/22"
+    - "https://frenzypenguin.media/"
+    - "https://neohiro.github.io/"
+    - "https://transhumanists.github.io/"
+
+og:
+  image: "/assets/og/openstageisland.png"
+  width: 1200
+  height: 630
+  alt: "Open Stage Island -- a free, 24/7 open-air electronic music stage in Second Life"
+  twitter_card: "summary_large_image"
+
+card:
+  title: "Open Stage Island"
+  subtitle: "A free, 24/7 open-air electronic music stage in Second Life. Any artist can take the stage."
+  palette:
+    ink: [8, 10, 20]
+    ink_soft: [14, 20, 36]
+    accent: [124, 77, 255]
+    accent_dim: [64, 40, 130]
+    fg: [236, 239, 241]
+    fg_muted: [140, 152, 172]
+    border: [30, 38, 58]
+
+intro: >-
+  A free, 24/7 open-air electronic music stage in Second Life. Any artist can take
+  the stage and play to a live audience -- there is no fee at any point in the
+  process, and booking is a conversation rather than a payment. Open for guest
+  sets, residencies and full night-long takeovers, with live visitor counters and
+  real-time destination status published openly.
+
+# --- Topics -----------------------------------------------------------------
+topics:
+  - id: sl-venue
+    label: "Second Life music venue"
+    claim: live
+    page: "/"
+    summary: >-
+      A 24/7 open-air electronic music stage in Second Life: a permanent venue
+      with a full sound system, visible from the water, open to any artist at any
+      hour of any day.
+    keywords:
+      - "second life venue"
+      - "second life music venue"
+      - "second life club"
+      - "second life stage"
+      - "second life destination"
+      - "virtual music venue"
+      - "virtual club"
+      - "open air stage"
+      - "24/7 venue"
+      - "free second life venue"
+  - id: sl-dj
+    label: "DJing in Second Life"
+    claim: live
+    page: "/"
+    summary: >-
+      How to take the stage: register a free Second Life account, turn up, and
+      claim a slot. Guest sets, residencies and full takeovers all welcome, with
+      no fee and no application process.
+    keywords:
+      - "second life dj"
+      - "dj in second life"
+      - "second life guest dj"
+      - "second life residency"
+      - "virtual dj"
+      - "dj gig"
+      - "book a dj slot"
+      - "dj booking second life"
+      - "play music in second life"
+  - id: sl-audience
+    label: "Listening to live music in Second Life"
+    claim: live
+    page: "/"
+    summary: >-
+      What is on, how to hear it, how to get there in the viewer or a browser,
+      and how to tip an artist. Reservation slots are listed with set times.
+    keywords:
+      - "second live music"
+      - "listen to music in second life"
+      - "second life events"
+      - "virtual concert"
+      - "online dj set"
+      - "second life tonight"
+      - "second life timetable"
+      - "second life reservations"
+  - id: streaming
+    label: "Streaming and live data"
+    claim: live
+    page: "/live.html"
+    summary: >-
+      Live visitor counters and real-time destination status, published as open
+      data and readable from a browser.
+    keywords:
+      - "second life live data"
+      - "destination status"
+      - "visitor counter"
+      - "live open data"
+  - id: destination
+    label: "Destination details"
+    claim: live
+    page: "/destinations/"
+    summary: >-
+      The official Second Life destination record: location, coordinates, parcel
+      details and a live embed of the destination page.
+    keywords:
+      - "second life destination page"
+      - "second life coordinates"
+      - "how to teleport"
+      - "second life map"
+      - "openstageisland coordinates"
+
+# No tool collection: this is a venue, not a catalogue. build_seo.py emits
+# Organization + WebSite with no SoftwareApplication nodes, which is the honest
+# shape. The chat viewer and mesh tooling exist, but they live on the neohiro and
+# FrenzyPenguin Media sites -- claiming them here would point crawlers at 404s.
+tools: {}
+
+# Pages advertised in llms.txt. Every `path` is validated against what the site
+# actually builds.
+pages:
+  - title: "Visitor guide"
+    path: "/"
+    summary: "Everything a visitor needs: genres, how to play, reservations, streaming, hosting, tips and FAQ."
+  - title: "Destination data"
+    path: "/destinations/"
+    summary: "Live embed of the official destination page, plus location and coordinates."
+  - title: "Live data"
+    path: "/live.html"
+    summary: "Visitor counters and real-time destination status."
+  - title: "Contributing"
+    path: "/CONTRIBUTING/"
+    summary: "How to report an issue, suggest an improvement or send a patch."
+  - title: "Code of conduct"
+    path: "/CODE_OF_CONDUCT/"
+    summary: "The behaviour expected of everyone taking part."
+  - title: "Security policy"
+    path: "/SECURITY/"
+    summary: "How to report a vulnerability affecting this site."
+  - title: "AI disclosure"
+    path: "/ai-disclosure/"
+    summary: "How AI assistance is used on this site, stated plainly."

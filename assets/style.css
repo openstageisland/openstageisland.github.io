@@ -133,7 +133,8 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
 
 .hero {
   position: relative;
-  width: 100%;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
   max-height: var(--hero-max-height);
   aspect-ratio: var(--hero-aspect);
   overflow: hidden;

@@ -2,7 +2,8 @@
 layout: default
 title: "Open Stage Island — Live Destination Data"
 description: "Live embed of the official Second Life destination page, visitor counters, and real-time status for Open Stage Island."
-canonical: "https://openstageisland.github.io/destinations/"
+canonical: "https://openstageis.land/destinations/"
+permalink: /destinations/
 preload_hero: true
 ---
 
