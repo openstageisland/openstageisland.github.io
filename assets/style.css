@@ -168,6 +168,24 @@ a:hover { color: var(--color-accent-hover); text-decoration: underline; }
   );
 }
 
+.hero__scroll-hint {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  animation: scrollPulse 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.6; transform: translateX(-50%) translateY(0); }
+  50% { opacity: 1; transform: translateX(-50%) translateY(4px); }
+}
+
 .eyebrow {
   margin: 0 0 0.75rem;
   font-size: 0.8rem;

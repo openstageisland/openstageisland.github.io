@@ -62,6 +62,14 @@ preload_hero: true
       stage is open to every electronic music artist, no booking and no fee.
     </p>
   </div>
+  <div class="hero__scroll-hint">Scroll down to explore</div>
+  <nav class="hero-chapter-tabs" aria-label="Chapter navigation" role="navigation">
+    <a href="#welcome" class="hero-chapter-tab" aria-label="Welcome section">Welcome</a>
+    <a href="#music" class="hero-chapter-tab" aria-label="Music section">Music</a>
+    <a href="#open-stage" class="hero-chapter-tab" aria-label="Open Stage section">Stage</a>
+    <a href="#reservations" class="hero-chapter-tab" aria-label="Reservations section">Book</a>
+    <a href="#faq" class="hero-chapter-tab" aria-label="FAQ section">FAQ</a>
+  </nav>
 </header>
 
   <section class="intro-card" aria-labelledby="intro-heading">
@@ -485,13 +493,6 @@ preload_hero: true
           <span class="estate-name">Facebook</span>
           <span class="estate-url">facebook.openstageis.land</span>
         </a>
-      </li>
-      <li>
-        <span class="estate-card is-unavailable">
-          <span class="estate-name">Twitter</span>
-          <span class="estate-url">twitter.openstageis.land</span>
-          <span class="estate-note">hostname no longer resolves</span>
-        </span>
       </li>
       <li>
         <a class="estate-card" href="https://frenzypenguin.media" rel="noopener noreferrer">
