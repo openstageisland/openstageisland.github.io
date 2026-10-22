@@ -77,7 +77,7 @@
          closeOnOverlayClick: true
        }
      Falls back to AI_TRIGGER_SELECTOR if the config is absent or unusable. */
-  var AI_TRIGGER_SELECTOR = '[data-ai-trigger], #ai-dock__tab--ai';
+  var AI_TRIGGER_SELECTOR = '#bottom-bar__ai';
 
   function wireAITriggers() {
     var cfg = (window.AI_CONV_CONFIG || {});
@@ -1406,7 +1406,8 @@ function renderSafeHtml(html) {
 
   /* ── AI assistant input bar (full width) ──────────────────────── */
 function mountAssistantBar() {
-    if (document.getElementById('ai-bar')) return;
+    return; // Disabled — AI only via bottom-bar button
+  }
 
     recordCurrent(); // register this page for the cross-domain back button
 
