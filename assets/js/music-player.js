@@ -33,6 +33,7 @@
   function load(i) {
     idx = ((i % playlist.length) + playlist.length) % playlist.length;
     audio.src = playlist[idx].src;
+    audio.load();
     if (titleEl) titleEl.textContent = playlist[idx].title;
   }
 
@@ -49,7 +50,14 @@
   }
 
   function toggle() {
-    if (audio.paused) play(); else pause();
+    if (audio.paused) {
+      if (!audio.src || audio.readyState < 2) {
+        load(idx);
+      }
+      play();
+    } else {
+      pause();
+    }
   }
 
   if (btnPlay) btnPlay.addEventListener('click', toggle);
