@@ -123,13 +123,11 @@ html {
      --bg-elevated / --border. Without both lists the canvas resolved to an
      invalid colour and rendered fully transparent, so the bar had no surface
      and no visible curve on three of the four sites. */
-  background: var(--bg-card, var(--color-surface, #ffffff));
+  background: var(--bg-card, var(--color-surface, #111820));
   border-top: 1px solid var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
   box-shadow:
-    0 -4px 24px rgba(0, 0, 0, 0.1),
+    0 -4px 24px rgba(0, 0, 0, 0.15),
     0 -1px 0 var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
   pointer-events: none;
   z-index: -1;
 }
@@ -137,17 +135,7 @@ html {
 /* The upward sweep, drawn as a light-catching highlight along the arc so the
    curvature is legible on a surface-coloured bar. Purely decorative. */
 .bottom-bar__canvas::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.5),
-    rgba(0, 0, 0, 0) 38%
-  );
-  opacity: 0.6;
-  pointer-events: none;
+  content: none;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -167,7 +155,7 @@ html {
    or transparent, on three of the four. */
 @media (prefers-color-scheme: dark) {
   .bottom-bar__canvas {
-    background: color-mix(in srgb, var(--bg-card, var(--color-surface, #111820)) 8%, transparent);
+    background: var(--bg-card, var(--color-surface, #111820));
     box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.5),
                 0 -1px 0 var(--border, var(--color-border, rgba(127, 127, 127, 0.25)));
   }
