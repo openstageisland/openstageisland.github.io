@@ -24,6 +24,21 @@ description: "Live Open Stage Island data: visitor counters and real-time status
   <link rel="stylesheet" href="assets/css/neohiro-widgets.css">
 </head>
 <body>
+<script>
+(function(){
+  var key='neohiro_session_v1';
+  var ok=false;
+  try{
+    var s=JSON.parse(localStorage.getItem(key));
+    if(s&&s.login==='neohiro'&&s.session_id){ ok=true; }
+  }catch(e){}
+  if(!ok){
+    document.write('<div style="padding:40px;text-align:center;font-family:sans-serif;background:#080a0e;color:#eceff1;"><h1>Admin Access Required</h1><p>Login via GitHub (neohiro account) to view live data.</p><a href="/" style="display:inline-block;padding:12px 24px;background:#7c4dff;color:#fff;text-decoration:none;border-radius:6px;">Back to Home</a></div>');
+    document.close();
+    return;
+  }
+})();
+</script>
   <div class="nhw-root">
     <h1>Open Stage Island / Live Data</h1>
     <p class="nhw-subtitle">Live visitor counters, Second Life destination embed, and real-time status for Open Stage Island. All widgets auto-refresh during your visit.</p>

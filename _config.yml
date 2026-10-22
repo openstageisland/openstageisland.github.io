@@ -72,7 +72,7 @@ dashboard_url: "https://github.com/neohiro/dashboard"
 
 nav_links:
   - "Home|/"
-  - "Live|/live.html|3"
+
 
 community_links:
   - "Org Overview|https://github.com/openstageisland"
